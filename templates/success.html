@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}תודה על תמיכתך! | HeadFund{% endblock %}
+
+{% block content %}
+<section class="max-w-2xl mx-auto px-4 py-16 text-center">
+  <div class="bg-white rounded-3xl p-8 sm:p-12 border border-slate-200 shadow-xl">
+    
+    <!-- Success Icon Animation -->
+    <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+      <i data-lucide="check-circle" class="w-10 h-10 stroke-[2.5]"></i>
+    </div>
+
+    <div class="inline-block bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full mb-3 font-mono">
+      מספר אישור: {{ pledge.transaction_id }}
+    </div>
+
+    <h1 class="text-3xl font-black text-slate-900 mb-2">תודה ענקית על תמיכתך!</h1>
+    <p class="text-slate-600 text-sm mb-8">
+      התמיכה שלך בסך <strong class="text-slate-900 font-mono">₪{{ "{:,.0f}".format(pledge.amount) }}</strong> נרשמה בהצלחה והועברה לפרויקט.
+    </p>
+
+    <!-- Project & Reward Summary Box -->
+    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-200/80 text-right space-y-3 mb-8 text-xs sm:text-sm">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <span class="text-slate-500">פרויקט:</span>
+        <span class="font-bold text-slate-900">{{ pledge.project_title }}</span>
+      </div>
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <span class="text-slate-500">תשורה שנבחרה:</span>
+        <span class="font-bold text-emerald-700">{{ pledge.reward_title or "תמיכה חופשית בפרויקט" }}</span>
+      </div>
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <span class="text-slate-500">שם התומך:</span>
+        <span class="font-bold text-slate-900">{{ pledge.backer_name }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">אישור נשלח לכתובת:</span>
+        <span class="font-mono text-slate-700" dir="ltr">{{ pledge.backer_email }}</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="{{ url_for('project_detail', slug=pledge.project_slug) }}" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors">
+        חזרה לדף הפרויקט ←
+      </a>
+      <a href="{{ url_for('index') }}" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors">
+        גלו פרויקטים נוספים
+      </a>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

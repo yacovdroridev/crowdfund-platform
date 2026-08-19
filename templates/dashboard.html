@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}לוח בקרה וניהול גיוסים | HeadFund{% endblock %}
+
+{% block content %}
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+  
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-3xl font-black text-slate-900">לוח ניהול ומעקב גיוסים</h1>
+      <p class="text-xs sm:text-sm text-slate-500 mt-1">מבט על על כלל הפרויקטים, התמיכות והתשלומים בפלטפורמה</p>
+    </div>
+    <a href="{{ url_for('create_project') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md">
+      <i data-lucide="plus-circle" class="w-4 h-4"></i>
+      <span>הקמת פרויקט חדש</span>
+    </a>
+  </div>
+
+  <!-- Stats Cards Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">סך הכל גיוסים</div>
+      <div class="text-2xl font-black text-emerald-600 font-mono">₪{{ "{:,.0f}".format(total_raised) }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">מכלל הפרויקטים</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">סך הכל תומכים</div>
+      <div class="text-2xl font-black text-slate-900 font-mono">{{ total_backers }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">תומכים רשומים</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">פרויקטים שהצליחו (100%+)</div>
+      <div class="text-2xl font-black text-indigo-600 font-mono">{{ successful_count }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">הגיעו ליעד המלא</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">סך הכל קמפיינים</div>
+      <div class="text-2xl font-black text-slate-900 font-mono">{{ total_projects }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">במערכת</div>
+    </div>
+  </div>
+
+  <!-- Projects List Table -->
+  <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">
+    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+      <h2 class="text-lg font-black text-slate-900">פרויקטים במערכת</h2>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-xs">
+        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+          <tr>
+            <th class="p-4">פרויקט</th>
+            <th class="p-4">יוזם</th>
+            <th class="p-4">סכום שגויס</th>
+            <th class="p-4">יעד</th>
+            <th class="p-4">התקדמות</th>
+            <th class="p-4">תומכים</th>
+            <th class="p-4">סטטוס</th>
+            <th class="p-4">פעולות</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for p in projects %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="p-4 font-bold text-slate-900">
+                <a href="{{ url_for('project_detail', slug=p.slug) }}" class="hover:text-emerald-600 flex items-center gap-2">
+                  <img src="{{ p.cover_image }}" class="w-8 h-8 rounded-lg object-cover">
+                  <span class="truncate max-w-xs">{{ p.title }}</span>
+                </a>
+              </td>
+              <td class="p-4 text-slate-600">{{ p.creator_name }}</td>
+              <td class="p-4 font-bold font-mono text-emerald-600">₪{{ "{:,.0f}".format(p.current_amount) }}</td>
+              <td class="p-4 font-mono text-slate-600">₪{{ "{:,.0f}".format(p.goal_amount) }}</td>
+              <td class="p-4 font-bold font-mono">
+                <span class="{% if p.percent >= 100 %}text-emerald-600{% else %}text-slate-700{% endif %}">{{ p.percent }}%</span>
+              </td>
+              <td class="p-4 font-mono">{{ p.backers_count }}</td>
+              <td class="p-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold {% if p.percent >= 100 %}bg-emerald-100 text-emerald-800{% else %}bg-slate-100 text-slate-700{% endif %}">
+                  {{ 'הושלם בהצלחה' if p.percent >= 100 else 'פעיל' }}
+                </span>
+              </td>
+              <td class="p-4">
+                <a href="{{ url_for('project_detail', slug=p.slug) }}" class="text-emerald-600 hover:text-emerald-800 font-bold">צפייה ←</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Pledges Table -->
+  <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="p-6 border-b border-slate-100">
+      <h2 class="text-lg font-black text-slate-900">תמיכות אחרונות וסליקות</h2>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-xs">
+        <thead class="bg-slate-50 text-slate-500 font-bold border-b border-slate-200">
+          <tr>
+            <th class="p-4">מזהה עסקה</th>
+            <th class="p-4">פרויקט</th>
+            <th class="p-4">תומך</th>
+            <th class="p-4">סכום תמיכה</th>
+            <th class="p-4">דוא"ל</th>
+            <th class="p-4">סטטוס סליקה</th>
+            <th class="p-4">תאריך</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for b in recent_pledges %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+              <td class="p-4 font-mono text-[11px] text-slate-500">{{ b.transaction_id or 'TXN-' ~ b.id }}</td>
+              <td class="p-4 font-bold text-slate-900 truncate max-w-xs">{{ b.project_title }}</td>
+              <td class="p-4 font-medium">{{ 'תומך אנונימי' if b.is_anonymous else b.backer_name }}</td>
+              <td class="p-4 font-bold font-mono text-emerald-600">₪{{ "{:,.0f}".format(b.amount) }}</td>
+              <td class="p-4 font-mono text-slate-500" dir="ltr">{{ b.backer_email }}</td>
+              <td class="p-4">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                  סליקה מאושרת
+                </span>
+              </td>
+              <td class="p-4 text-slate-400">{{ b.created_at[:16] }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="7" class="p-8 text-center text-slate-400">טרם נרשמו תמיכות.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white py-16 sm:py-24">
+  <!-- Subtle background glow -->
+  <div class="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
+    
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold mb-6 font-mono">
+      <i data-lucide="sparkles" class="w-4 h-4"></i>
+      <span>גיוס המונים חכם, שקוף ומניב תוצאות</span>
+    </div>
+
+    <h1 class="text-4xl sm:text-6xl font-black tracking-tight leading-tight max-w-4xl mx-auto mb-6">
+      הופכים רעיונות גדולים <br class="hidden sm:block">
+      <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-indigo-300">למציאות בעזרת הקהילה</span>
+    </h1>
+
+    <p class="text-base sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal">
+      גלו פרויקטים מעוררי השראה, תמכו ביוצרים ויזמים, קבלו תשורות בלעדיות והיו חלק מהצלחות שמשנות את המציאות.
+    </p>
+
+    <!-- Search Bar in Hero -->
+    <form action="{{ url_for('index') }}" method="GET" class="max-w-2xl mx-auto bg-white/10 backdrop-blur-md p-2 rounded-2xl border border-white/20 shadow-2xl flex items-center gap-2 mb-12">
+      <div class="flex-grow flex items-center px-3 gap-2">
+        <i data-lucide="search" class="w-5 h-5 text-slate-300"></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="חיפוש פרויקט, יוזם או נושא..." class="w-full bg-transparent border-none text-white placeholder-slate-400 focus:outline-none text-sm">
+      </div>
+      <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm shrink-0">
+        חיפוש
+      </button>
+    </form>
+
+    <!-- Quick Stats Strip -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto pt-6 border-t border-slate-800/80">
+      <div class="text-center">
+        <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">₪{{ "{:,.0f}".format(total_funded) }}</div>
+        <div class="text-xs text-slate-400 mt-1">סך הכל גויס בפלטפורמה</div>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl sm:text-3xl font-black text-white font-mono">{{ total_backers }}</div>
+        <div class="text-xs text-slate-400 mt-1">תומכים נלהבים</div>
+      </div>
+      <div class="text-center">
+        <div class="text-2xl sm:text-3xl font-black text-teal-400 font-mono">{{ total_projects }}</div>
+        <div class="text-xs text-slate-400 mt-1">פרויקטים ומיזמים פעילים</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Main Explore Section -->
+<section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  
+  <!-- Filter Controls: Categories & Status -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 pb-6 border-b border-slate-200">
+    
+    <!-- Categories Horizontal Scroll -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {% for key, label in categories.items() %}
+        <a href="{{ url_for('index', category=key, status=selected_status) }}" 
+           class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all {% if selected_category == key %}bg-slate-900 text-white shadow-md{% else %}bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300{% endif %}">
+          {{ label }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Status Tabs -->
+    <div class="flex items-center bg-slate-200/80 p-1 rounded-xl text-xs font-bold self-start md:self-auto shrink-0">
+      <a href="{{ url_for('index', category=selected_category, status='all') }}" class="px-3 py-1.5 rounded-lg transition-colors {% if selected_status == 'all' %}bg-white text-slate-900 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">הכל</a>
+      <a href="{{ url_for('index', category=selected_category, status='active') }}" class="px-3 py-1.5 rounded-lg transition-colors {% if selected_status == 'active' %}bg-white text-slate-900 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">פעילים עכשיו</a>
+      <a href="{{ url_for('index', category=selected_category, status='successful') }}" class="px-3 py-1.5 rounded-lg transition-colors {% if selected_status == 'successful' %}bg-white text-slate-900 shadow-sm{% else %}text-slate-600 hover:text-slate-900{% endif %}">הושלמו בהצלחה 🏆</a>
+    </div>
+
+  </div>
+
+  <!-- Projects Grid -->
+  {% if projects %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {% for p in projects %}
+        <div class="bg-white rounded-2xl overflow-hidden border border-slate-200/80 shadow-sm card-hover flex flex-col group">
+          
+          <!-- Card Image & Category Badge -->
+          <a href="{{ url_for('project_detail', slug=p.slug) }}" class="block relative aspect-[16/9] overflow-hidden bg-slate-100">
+            <img src="{{ p.cover_image }}" alt="{{ p.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            
+            <div class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full">
+              {{ p.category_label }}
+            </div>
+
+            {% if p.percent >= 100 %}
+              <div class="absolute bottom-3 left-3 bg-emerald-600 text-white text-xs font-extrabold px-3 py-1 rounded-lg shadow-lg flex items-center gap-1">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                <span>גויס 100%+</span>
+              </div>
+            {% endif %}
+          </a>
+
+          <!-- Card Body -->
+          <div class="p-6 flex-grow flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-3 text-xs text-slate-500">
+                <span class="font-medium text-slate-700">יוזם: {{ p.creator_name }}</span>
+              </div>
+
+              <h3 class="text-xl font-bold text-slate-900 mb-2 line-clamp-1 group-hover:text-emerald-600 transition-colors">
+                <a href="{{ url_for('project_detail', slug=p.slug) }}">{{ p.title }}</a>
+              </h3>
+
+              <p class="text-xs text-slate-600 leading-relaxed line-clamp-2 mb-6">
+                {{ p.subtitle }}
+              </p>
+            </div>
+
+            <!-- Progress & Stats Strip (Headstart style) -->
+            <div>
+              <!-- Progress Bar -->
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden mb-4">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-full transition-all duration-500 progress-bar-glow" style="width: {{ [p.percent, 100]|min }}%"></div>
+              </div>
+
+              <div class="flex items-center justify-between text-slate-900">
+                <div>
+                  <div class="text-lg font-black font-mono">₪{{ "{:,.0f}".format(p.current_amount) }}</div>
+                  <div class="text-[11px] text-slate-500">מתוך ₪{{ "{:,.0f}".format(p.goal_amount) }}</div>
+                </div>
+
+                <div class="text-center">
+                  <div class="text-lg font-black text-emerald-600 font-mono">{{ p.percent }}%</div>
+                  <div class="text-[11px] text-slate-500">גויסו מהיעד</div>
+                </div>
+
+                <div class="text-left">
+                  <div class="text-lg font-black font-mono">{{ p.days_left }}</div>
+                  <div class="text-[11px] text-slate-500">ימים נותרו</div>
+                </div>
+              </div>
+
+              <!-- View CTA -->
+              <a href="{{ url_for('project_detail', slug=p.slug) }}" class="mt-5 w-full block text-center py-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 font-bold text-xs border border-slate-200 hover:border-emerald-200 transition-all">
+                לפרטי הפרויקט ובחירת תשורה ←
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="bg-white rounded-2xl p-12 text-center border border-slate-200 max-w-lg mx-auto">
+      <i data-lucide="folder-search" class="w-12 h-12 text-slate-300 mx-auto mb-4"></i>
+      <h3 class="text-lg font-bold text-slate-800 mb-2">לא נמצאו פרויקטים בסינון זה</h3>
+      <p class="text-xs text-slate-500 mb-6">נסו לבחור קטגוריה אחרת או להסיר את מילות החיפוש.</p>
+      <a href="{{ url_for('index') }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold">
+        חזרה לכל הפרויקטים
+      </a>
+    </div>
+  {% endif %}
+
+</section>
+
+<!-- Call to Action for Creators -->
+<section class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white py-16 my-12">
+  <div class="max-w-5xl mx-auto px-4 text-center">
+    <h2 class="text-3xl sm:text-4xl font-extrabold mb-4">יש לך רעיון או מיזם שרוצה לפרוץ?</h2>
+    <p class="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto mb-8">
+      בנו קמפיין גיוס המונים מלא תוך מספר דקות, הגדירו תשורות מושכות וקבלו תמיכה ישירה מהקהילה שלכם.
+    </p>
+    <a href="{{ url_for('create_project') }}" class="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm shadow-xl transition-all">
+      <i data-lucide="rocket" class="w-5 h-5"></i>
+      <span>פתח פרויקט גיוס עכשיו בחינם</span>
+    </a>
+  </div>
+</section>
+{% endblock %}
