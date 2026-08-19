@@ -255,6 +255,96 @@ def seed_db():
     (?, 'דיסק פיזי + כרטיס למופע ההשקה', 'עותק דיסק מהודר עם חוברת מילים + כרטיס ישיבה זוגי למופע ההשקה בתל אביב או חיפה.', 180.0, 'אוקטובר 2026', 150, 65, 1, ?);
     """, (proj3_id, now_str, proj3_id, now_str))
 
+    # Seed Project 4: Or Latefila / Kavana Batfila
+    end_date_4 = (now + timedelta(days=21)).strftime("%Y-%m-%d %H:%M:%S")
+    story_or_latefila = """
+<div class="space-y-6 text-slate-800 leading-relaxed">
+  <div class="bg-amber-50 border border-amber-200/80 rounded-2xl p-6 mb-6">
+    <h3 class="text-xl font-bold text-amber-900 mb-2">להחזיר את הלב אל המילים ואל התפילה</h3>
+    <p class="text-amber-800 text-sm">
+      כולנו מכירים את הרגעים שבהם התפילה הופכת לקריאה מהירה מהשפתיים ולחוץ, כשהמחשבות נודדות וחסר החיבור העמוק. 
+      פרויקט <strong>"אור לתפילה"</strong> נולד מתוך רצון עמוק להחזיר את השקט, המחשבה והכוונה הטהורה אל מילות הסידור והסליחות.
+    </p>
+  </div>
+
+  <h3 class="text-2xl font-bold text-slate-900">מה כולל הפרויקט?</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-emerald-600 font-bold text-base mb-1">🎙️ חדר שידור ומפגשים חיים</div>
+      <p class="text-xs text-slate-600">וובינרים יומיים פעמיים ביום (10:00 בבוקר ו-20:00 בערב) ללימוד, כוונה משותפת והכנה לימים הנוראים.</p>
+    </div>
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-indigo-600 font-bold text-base mb-1">📱 אפליקציית כוונה והתבוננות</div>
+      <p class="text-xs text-slate-600">פיתוח אפליקציה מתקדמת עם כוונות מילים, התבוננות באותיות, צלילי רקע מרגיעים ותרגול נשימה בתפילה.</p>
+    </div>
+  </div>
+
+  <h3 class="text-2xl font-bold text-slate-900">מבט אל מתוך האפליקציה וחדר השידור</h3>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
+    <img src="/static/images/tefila_screen_1.png" alt="מסך כוונה בתפילה" class="rounded-2xl border border-slate-200 shadow-md w-full object-cover">
+    <img src="/static/images/tefila_screen_2.png" alt="מסך התבוננות והעמקה" class="rounded-2xl border border-slate-200 shadow-md w-full object-cover">
+  </div>
+
+  <h3 class="text-2xl font-bold text-slate-900">למה התמיכה שלכם קריטית עכשיו?</h3>
+  <p>אנחנו נמצאים בימים שלפני חודש אלול והימים הנוראים. הגיוס מאפשר לנו:</p>
+  <ul class="list-disc list-inside space-y-2 text-sm text-slate-700">
+    <li>להפעיל את שרתי השידור החי בחינם לכלל הציבור פעמיים ביום.</li>
+    <li>להשלים את פיתוח אפליקציית המובייל לכוונה בתפילה ולהפיץ אותה ללא עלות לתפוצה רחבה.</li>
+    <li>להקליט קטעי שמע והנחיות כוונה איכותיות באולפן מקצועי.</li>
+  </ul>
+</div>
+"""
+    cursor.execute("""
+    INSERT INTO projects (
+        slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
+        creator_email, creator_phone, cover_image, video_url, story_html,
+        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        'or-latefila',
+        'אור לתפילה: להחזיר את הלב והכוונה אל התפילה והסליחות',
+        'פרויקט קהילתי וטכנולוגי להעמקת הכוונה, חיבור פנימי, שידורים חיים יומיים ואפליקציית מדיטציה והתבוננות בתפילה.',
+        'community',
+        'יעקב דרורי וצוות אור לתפילה',
+        'יוזמי פרויקט "אור לתפילה" וסטודיו SynApse Zero, מפתחים טכנולוגיות בעלות ערך ומשמעות.',
+        '/static/images/tefila_icon.png',
+        'yacov@drori.org',
+        '054-9103046',
+        '/static/images/tefila_feature.png',
+        None,
+        story_or_latefila,
+        50000.0,
+        38450.0,
+        148,
+        30,
+        now_str,
+        end_date_4,
+        'active',
+        now_str
+    ))
+    proj4_id = cursor.lastrowid
+
+    cursor.execute("""
+    INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
+    VALUES 
+    (?, 'ברכת כוונה דיגיטלית + הקדשה בשידור החי', 'רישום שמכם לברכה בלוח השידור החי של הוובינר היומי + גישה מוקדמת להקלטות המפגשים.', 36.0, 'אלול תשפ"ו (ספטמבר 2026)', NULL, 54, 0, ?),
+    (?, 'מארז כוונות הסליחות והתפילה (PDF + שמע)', 'מדריך דיגיטלי מעוצב לכוונה במילות התפילה + רצועות שמע להרפיה והתבוננות לפני התפילה.', 90.0, 'אלול תשפ"ו (ספטמבר 2026)', NULL, 42, 0, ?),
+    (?, 'גישת פרימיום לכל החיים באפליקציית "כוונה בתפילה"', 'מנוי פרימיום לכל החיים באפליקציה: כל מסלולי הכוונה, צלילי רקע מרגיעים, והתאמה אישית.', 180.0, 'תשרי תשפ"ז (אוקטובר 2026)', 200, 38, 0, ?),
+    (?, 'מפגש סדנה אישי בזום + הקדשת שידור בלעדית', 'השתתפות בסדנת עומק אינטימית על סודות הכוונה והתפילה + הקדשת שידור שלם לרפואה/הצלחה/לעילוי נשמת יקירכם.', 360.0, 'אלול תשפ"ו (ספטמבר 2026)', 30, 11, 0, ?),
+    (?, 'שותף אור וחסות ראשית בפרויקט', 'חסות רשמית בראש חדר השידור ובאפליקציה, תעודת הוקרה מהודרת ממוסגרת, וכל התשורות הקודמות.', 1000.0, 'אלול תשפ"ו (ספטמבר 2026)', 10, 3, 1, ?);
+    """, (proj4_id, now_str, proj4_id, now_str, proj4_id, now_str, proj4_id, now_str, proj4_id, now_str))
+
+    cursor.execute("""
+    INSERT INTO updates (project_id, title, content, author, created_at)
+    VALUES (?, ?, ?, ?, ?)
+    """, (
+        proj4_id,
+        'חצינו את 75% מהיעד! חדר השידור החי כבר באוויר',
+        'תודה עצומה לכל 148 התומכים שהצטרפו אלינו. השידורים היומיים (10:00 בבוקר ו-20:00 בערב) זוכים להיענות מרגשת. אנחנו ממשיכים בכל הכוח עד להשגת היעד המלא!',
+        'יעקב דרורי',
+        now_str
+    ))
+
     conn.commit()
     conn.close()
 
