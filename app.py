@@ -190,6 +190,7 @@ def submit_pledge(slug):
     is_anonymous = 1 if request.form.get('is_anonymous') == 'on' else 0
     greeting_message = request.form.get('greeting_message', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
+    payment_method = request.form.get('payment_method', 'credit_card').strip()
     
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     transaction_id = f"TXN-{uuid.uuid4().hex[:10].upper()}"
@@ -200,11 +201,11 @@ def submit_pledge(slug):
         project_id, reward_id, amount, tip_amount, backer_name, backer_email,
         backer_phone, is_anonymous, greeting_message, shipping_address,
         payment_status, payment_method, transaction_id, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', 'credit_card', ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
     """, (
         project["id"], reward_id, total_charge, tip_amount, backer_name,
         backer_email, backer_phone, is_anonymous, greeting_message,
-        shipping_address, transaction_id, now_str
+        shipping_address, payment_method, transaction_id, now_str
     ))
     pledge_id = cursor.lastrowid
 

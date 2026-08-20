@@ -46,7 +46,7 @@ def test_submit_pledge(client):
     initial_amount = rv.json['project']['current_amount']
     initial_backers = rv.json['project']['backers_count']
 
-    # Submit a pledge
+    # Submit a pledge with Bit
     post_data = {
         'reward_id': '1',
         'amount': '50',
@@ -54,12 +54,14 @@ def test_submit_pledge(client):
         'backer_name': 'דניאל כהן',
         'backer_email': 'daniel@example.com',
         'backer_phone': '050-9998877',
+        'payment_method': 'bit',
         'greeting_message': 'בהצלחה רבה לפרויקט!',
         'shipping_address': 'הרצל 1, תל אביב'
     }
     rv = client.post('/project/synapse-guardian-iot/pledge', data=post_data, follow_redirects=True)
     assert rv.status_code == 200
     assert "תודה ענקית על תמיכתך".encode('utf-8') in rv.data
+    assert "ביט (Bit)".encode('utf-8') in rv.data
 
     # Check updated stats
     rv = client.get('/api/projects/synapse-guardian-iot')

@@ -34,6 +34,20 @@
         <span class="text-slate-500">שם התומך:</span>
         <span class="font-bold text-slate-900">{{ pledge.backer_name }}</span>
       </div>
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <span class="text-slate-500">אמצעי תשלום:</span>
+        <span class="inline-flex items-center gap-1 font-bold text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200">
+          {% if pledge.payment_method == 'bit' %}
+            💙 ביט (Bit)
+          {% elif pledge.payment_method == 'paybox' %}
+            🩵 פייבוקס (PayBox)
+          {% elif pledge.payment_method == 'paypal' %}
+            🅿️ PayPal
+          {% else %}
+            💳 כרטיס אשראי / Paperless
+          {% endif %}
+        </span>
+      </div>
       <div class="flex items-center justify-between">
         <span class="text-slate-500">אישור נשלח לכתובת:</span>
         <span class="font-mono text-slate-700" dir="ltr">{{ pledge.backer_email }}</span>
