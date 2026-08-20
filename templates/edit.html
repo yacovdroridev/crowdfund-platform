@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}עריכת פרויקט: {{ project.title }} | HeadFund{% endblock %}
+
+{% block content %}
+<section class="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+  
+  <div class="mb-10 text-center">
+    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-3">
+      <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+      <span>מצב עריכת קמפיין</span>
+    </div>
+    <h1 class="text-3xl sm:text-4xl font-black text-slate-900 mb-3">עריכת פרטי הפרויקט</h1>
+    <p class="text-slate-600 text-sm max-w-xl mx-auto">עדכנו את סיפור הפרויקט, התשורות, התמונות והפרטים המוצגים לתומכים</p>
+  </div>
+
+  <form method="POST" action="{{ url_for('edit_project', slug=project.slug) }}" class="space-y-8">
+    
+    <!-- Step 1: Basic Info -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <h2 class="text-lg font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">1</span>
+        פרטים בסיסיים והגדרות
+      </h2>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">כותרת הפרויקט *</label>
+        <input type="text" name="title" required value="{{ project.title }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">תקציר קצר / משפט מפתח *</label>
+        <textarea name="subtitle" required rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ project.subtitle }}</textarea>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">קטגוריה *</label>
+          <select name="category" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            {% for cat_id, cat_name in categories.items() %}
+              <option value="{{ cat_id }}" {% if project.category == cat_id %}selected{% endif %}>{{ cat_name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">סכום יעד (₪) *</label>
+          <input type="number" name="goal_amount" required value="{{ "{:.0f}".format(project.goal_amount) }}" min="1000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Media & Content -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <h2 class="text-lg font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">2</span>
+        תמונת שער, וידאו ותיאור מלא
+      </h2>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">קישור לתמונת שער (URL) *</label>
+        <input type="url" name="cover_image" required value="{{ project.cover_image }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">קישור לסרטון וידאו (YouTube Embed או רגיל)</label>
+        <input type="text" name="video_url" value="{{ project.video_url or '' }}" placeholder="https://www.youtube.com/embed/..." class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">סיפור הפרויקט המלא (HTML / טקסט עשיר) *</label>
+        <textarea name="story_html" required rows="10" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ project.story_html }}</textarea>
+      </div>
+    </div>
+
+    <!-- Step 3: Rewards -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">3</span>
+          מדרגות תמיכה ותשורות (Rewards)
+        </h2>
+        <button type="button" onclick="addRewardTier()" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>הוסף תשורה</span>
+        </button>
+      </div>
+
+      <div id="rewards-container" class="space-y-4">
+        {% for r in rewards %}
+          <div class="reward-tier-box p-5 rounded-2xl border border-slate-200 bg-slate-50 space-y-4 relative">
+            <input type="hidden" name="existing_reward_id[]" value="{{ r.id }}">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-black text-slate-700">תשורה קימת (נתמכה {{ r.quantity_claimed }} פעמים)</span>
+              <button type="button" onclick="removeRewardTier(this)" class="text-xs text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>מחק</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">כותרת התשורה *</label>
+                <input type="text" name="reward_title[]" value="{{ r.title }}" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">סכום תמיכה בש"ח *</label>
+                <input type="number" name="reward_amount[]" value="{{ "{:.0f}".format(r.amount) }}" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white font-mono">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">תיאור התשורה *</label>
+              <textarea name="reward_desc[]" rows="2" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white">{{ r.description }}</textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">זמן אספקה משוער</label>
+                <input type="text" name="reward_delivery[]" value="{{ r.estimated_delivery }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-600 mb-1">הגבלת כמות (השאירו ריק אם ללא הגבלה)</label>
+                <input type="number" name="reward_limit[]" value="{{ r.quantity_limit or '' }}" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white font-mono">
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Step 4: Creator Info -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <h2 class="text-lg font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+        <span class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs">4</span>
+        פרטי היוזם
+      </h2>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">שם מלא / שם הארגון *</label>
+          <input type="text" name="creator_name" required value="{{ project.creator_name }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">דוא"ל ליצירת קשר *</label>
+          <input type="email" name="creator_email" required value="{{ project.creator_email or '' }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono" dir="ltr">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">טלפון / וואטסאפ</label>
+          <input type="tel" name="creator_phone" value="{{ project.creator_phone or '' }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono" dir="ltr">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">תמונת פרופיל (URL)</label>
+        <input type="url" name="creator_avatar" value="{{ project.creator_avatar }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono" dir="ltr">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">אודות היוזם (Bio)</label>
+        <textarea name="creator_bio" rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">{{ project.creator_bio or '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="flex items-center justify-between pt-4">
+      <a href="{{ url_for('project_detail', slug=project.slug) }}" class="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors">
+        ביטול וחזרה לפרויקט
+      </a>
+      <button type="submit" class="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+        <i data-lucide="check" class="w-4 h-4"></i>
+        <span>שמור שינויים ועדכן פרויקט</span>
+      </button>
+    </div>
+
+  </form>
+</section>
+
+<script>
+  function addRewardTier() {
+    const container = document.getElementById('rewards-container');
+    const newTier = document.createElement('div');
+    newTier.className = "reward-tier-box p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4 relative";
+    newTier.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-black text-emerald-800">תשורה חדשה</span>
+        <button type="button" onclick="removeRewardTier(this)" class="text-xs text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1">
+          <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          <span>הסר</span>
+        </button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">כותרת התשורה *</label>
+          <input type="text" name="reward_title[]" required placeholder="לדוגמה: עותק מודפס חתום" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">סכום תמיכה בש"ח *</label>
+          <input type="number" name="reward_amount[]" required placeholder="100" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white font-mono">
+        </div>
+      </div>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-600 mb-1">תיאור התשורה *</label>
+        <textarea name="reward_desc[]" rows="2" placeholder="מה כוללת התשורה..." class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white"></textarea>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">זמן אספקה משוער</label>
+          <input type="text" name="reward_delivery[]" placeholder="חודש ושנה" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">הגבלת כמות</label>
+          <input type="number" name="reward_limit[]" placeholder="ללא הגבלה" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs bg-white font-mono">
+        </div>
+      </div>
+    `;
+    container.appendChild(newTier);
+    lucide.createIcons();
+  }
+
+  function removeRewardTier(btn) {
+    const tierBox = btn.closest('.reward-tier-box');
+    tierBox.remove();
+  }
+</script>
+{% endblock %}

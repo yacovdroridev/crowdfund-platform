@@ -30,16 +30,23 @@
       {{ project.subtitle }}
     </p>
 
-    <div class="flex items-center gap-4 mt-6 text-xs text-slate-400">
-      <div class="flex items-center gap-2">
-        <img src="{{ project.creator_avatar }}" alt="{{ project.creator_name }}" class="w-7 h-7 rounded-full object-cover border border-slate-700">
-        <span class="text-white font-medium">יוזם: {{ project.creator_name }}</span>
+    <div class="flex flex-wrap items-center justify-between gap-4 mt-6">
+      <div class="flex items-center gap-4 text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+          <img src="{{ project.creator_avatar }}" alt="{{ project.creator_name }}" class="w-7 h-7 rounded-full object-cover border border-slate-700">
+          <span class="text-white font-medium">יוזם: {{ project.creator_name }}</span>
+        </div>
+        <span>•</span>
+        <div class="flex items-center gap-1">
+          <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+          <span>הושק ב-{{ project.created_at[:10] }}</span>
+        </div>
       </div>
-      <span>•</span>
-      <div class="flex items-center gap-1">
-        <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-        <span>הושק ב-{{ project.created_at[:10] }}</span>
-      </div>
+
+      <a href="{{ url_for('edit_project', slug=project.slug) }}" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold border border-slate-700 transition-colors shadow-sm">
+        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span>עריכת פרויקט</span>
+      </a>
     </div>
 
   </div>

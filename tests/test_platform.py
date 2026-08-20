@@ -106,3 +106,33 @@ def test_dashboard(client):
     rv = client.get('/dashboard')
     assert rv.status_code == 200
     assert "לוח ניהול ומעקב גיוסים".encode('utf-8') in rv.data
+
+def test_edit_project(client):
+    # GET edit page
+    rv = client.get('/project/synapse-guardian-iot/edit')
+    assert rv.status_code == 200
+    assert "עריכת פרטי הפרויקט".encode('utf-8') in rv.data
+
+    # POST updated details
+    post_data = {
+        'title': 'SynApse Guardian: מכשיר הגנה מעודכן',
+        'subtitle': 'תקציר מעודכן לבדיקה',
+        'category': 'technology',
+        'goal_amount': '150000',
+        'creator_name': 'יעקב דרורי',
+        'creator_email': 'yacov@drori.org',
+        'creator_phone': '054-9103046',
+        'creator_bio': 'מהנדס מערכות ומפתח פתרונות AI',
+        'creator_avatar': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+        'cover_image': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200',
+        'story_html': '<p>סיפור מעודכן</p>',
+        'reward_title[]': ['תשורה מעודכנת'],
+        'reward_amount[]': ['120'],
+        'reward_desc[]': ['תיאור מעודכן'],
+        'reward_delivery[]': ['דצמבר 2026'],
+        'reward_limit[]': ['100']
+    }
+    rv = client.post('/project/synapse-guardian-iot/edit', data=post_data, follow_redirects=True)
+    assert rv.status_code == 200
+    assert "מכשיר הגנה מעודכן".encode('utf-8') in rv.data
+

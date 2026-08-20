@@ -232,6 +232,86 @@ def pledge_success(pledge_id):
 
     return render_template('success.html', pledge=dict(pledge))
 
+@app.route('/project/<slug>/edit', methods=['GET', 'POST'])
+def edit_project(slug):
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    project = cursor.fetchone()
+
+    if not project:
+        conn.close()
+        abort(404)
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        subtitle = request.form.get('subtitle', '').strip()
+        category = request.form.get('category', 'technology')
+        goal_amount = float(request.form.get('goal_amount', project['goal_amount']))
+        creator_name = request.form.get('creator_name', '').strip()
+        creator_email = request.form.get('creator_email', '').strip()
+        creator_phone = request.form.get('creator_phone', '').strip()
+        creator_bio = request.form.get('creator_bio', '').strip()
+        creator_avatar = request.form.get('creator_avatar', '').strip() or project['creator_avatar']
+        cover_image = request.form.get('cover_image', '').strip() or project['cover_image']
+        video_url = request.form.get('video_url', '').strip() or None
+        story_html = request.form.get('story_html', '').strip()
+
+        cursor.execute("""
+        UPDATE projects SET
+            title = ?, subtitle = ?, category = ?, goal_amount = ?,
+            creator_name = ?, creator_email = ?, creator_phone = ?, creator_bio = ?,
+            creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?
+        WHERE id = ?
+        """, (
+            title, subtitle, category, goal_amount,
+            creator_name, creator_email, creator_phone, creator_bio,
+            creator_avatar, cover_image, video_url, story_html,
+            project['id']
+        ))
+
+        # Handle rewards: remove old ones without pledges and update/insert
+        tier_titles = request.form.getlist('reward_title[]')
+        tier_amounts = request.form.getlist('reward_amount[]')
+        tier_descriptions = request.form.getlist('reward_desc[]')
+        tier_deliveries = request.form.getlist('reward_delivery[]')
+        tier_limits = request.form.getlist('reward_limit[]')
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Clear existing rewards that can be safely recreated or modified
+        cursor.execute("DELETE FROM rewards WHERE project_id = ? AND quantity_claimed = 0", (project['id'],))
+
+        for i in range(len(tier_titles)):
+            if tier_titles[i].strip() and tier_amounts[i]:
+                try:
+                    amt = float(tier_amounts[i])
+                    lim = int(tier_limits[i]) if tier_limits[i] and tier_limits[i].isdigit() else None
+                    cursor.execute("""
+                    INSERT INTO rewards (
+                        project_id, title, description, amount, estimated_delivery,
+                        quantity_limit, quantity_claimed, includes_shipping, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?)
+                    """, (
+                        project['id'], tier_titles[i].strip(), tier_descriptions[i].strip() if i < len(tier_descriptions) else "",
+                        amt, tier_deliveries[i].strip() if i < len(tier_deliveries) and tier_deliveries[i] else "בקרוב",
+                        lim, now_str
+                    ))
+                except ValueError:
+                    continue
+
+        conn.commit()
+        conn.close()
+
+        flash("פרטי הפרויקט עודכנו בהצלחה!", "success")
+        return redirect(url_for('project_detail', slug=slug))
+
+    cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project['id'],))
+    rewards = [dict(r) for r in cursor.fetchall()]
+    conn.close()
+
+    return render_template('edit.html', project=dict(project), rewards=rewards, categories=CATEGORIES)
+
 @app.route('/create', methods=['GET', 'POST'])
 def create_project():
     if request.method == 'POST':
