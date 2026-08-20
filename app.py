@@ -580,8 +580,13 @@ def api_get_stats():
     conn.close()
     return jsonify({"success": True, "stats": stats})
 
-if __name__ == '__main__':
+# Initialize database schema and initial seed data if needed
+try:
     init_db()
     seed_db()
+except Exception as e:
+    print(f"DB Init warning: {e}")
+
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
