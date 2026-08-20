@@ -2,6 +2,7 @@ import os
 import re
 import uuid
 import secrets
+from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
 from db import get_db, init_db, seed_db
@@ -243,6 +244,7 @@ def pledge_success(pledge_id):
 
     cursor.execute("""
     SELECT p.*, pr.title as project_title, pr.slug as project_slug, pr.cover_image as project_cover,
+           pr.creator_phone, pr.creator_email,
            r.title as reward_title
     FROM pledges p
     JOIN projects pr ON p.project_id = pr.id
@@ -255,7 +257,32 @@ def pledge_success(pledge_id):
     if not pledge:
         abort(404)
 
-    return render_template('success.html', pledge=dict(pledge))
+    pledge_dict = dict(pledge)
+    raw_phone = pledge_dict.get('creator_phone') or '054-9103046'
+    clean_phone = re.sub(r'\D', '', raw_phone)
+    if clean_phone.startswith('972'):
+        clean_phone = '0' + clean_phone[3:]
+    
+    amount = pledge_dict.get('amount', 50.0)
+    
+    # Formulate Direct Links
+    bit_deep_link = f"bit://pay?phone={clean_phone}&amount={int(amount)}"
+    bit_web_link = f"https://www.bitpay.co.il/"
+    paybox_deep_link = f"paybox://pay?phone={clean_phone}&amount={int(amount)}"
+    paybox_web_link = f"https://links.payboxapp.com/"
+    paypal_link = f"https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business={pledge_dict.get('creator_email', '')}&amount={amount:.2f}&currency_code=ILS&item_name={quote_plus(pledge_dict.get('project_title', ''))}"
+
+    return render_template(
+        'success.html',
+        pledge=pledge_dict,
+        clean_phone=clean_phone,
+        raw_phone=raw_phone,
+        bit_deep_link=bit_deep_link,
+        bit_web_link=bit_web_link,
+        paybox_deep_link=paybox_deep_link,
+        paybox_web_link=paybox_web_link,
+        paypal_link=paypal_link
+    )
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
