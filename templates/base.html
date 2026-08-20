@@ -103,9 +103,24 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-3">
-        <a href="{{ url_for('create_project') }}" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-sm">
+        {% if is_admin %}
+          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold border border-slate-700">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>מנהל מערכת</span>
+          </span>
+          <a href="{{ url_for('logout') }}" title="התנתקות" class="p-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-colors">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="text-xs font-bold text-slate-600 hover:text-emerald-600 px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors flex items-center gap-1.5">
+            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+            <span>כניסה</span>
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('create_project') }}" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>התחל פרויקט חדש</span>
+          <span>התחל פרויקט</span>
         </a>
       </div>
 

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}אימות גישה לעריכת פרויקט | HeadFund{% endblock %}
+
+{% block content %}
+<section class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6">
+    
+    <div class="text-center space-y-2">
+      <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+        <i data-lucide="lock" class="w-7 h-7"></i>
+      </div>
+      <h1 class="text-2xl font-black text-slate-900">אימות בעלות על הפרויקט</h1>
+      <p class="text-xs text-slate-600">
+        עריכת <strong>"{{ project.title }}"</strong> מוגנת באמצעות קוד גישה אישי
+      </p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-2">
+          {% for category, message in messages %}
+            <div class="p-3.5 rounded-xl text-xs font-bold {% if category == 'error' %}bg-rose-50 text-rose-700 border border-rose-200{% else %}bg-emerald-50 text-emerald-700 border border-emerald-200{% endif %}">
+              {{ message }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('project_auth', slug=project.slug) }}" class="space-y-5">
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-2">קוד עריכה אישי (PIN) או סיסמת מנהל</label>
+        <div class="relative">
+          <input type="password" name="auth_key" required autofocus placeholder="הזינו קוד PIN או סיסמה..." class="w-full px-4 py-3.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none text-center font-mono tracking-widest text-lg">
+          <div class="absolute left-3.5 top-3.5 text-slate-400">
+            <i data-lucide="key-round" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <p class="text-[11px] text-slate-400 mt-1.5">קוד זה ניתן ליוזם בעת הקמת הפרויקט, או באמצעות סיסמת מנהל מערכת</p>
+      </div>
+
+      <button type="submit" class="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-sm shadow-md transition-colors flex items-center justify-center gap-2">
+        <i data-lucide="unlock" class="w-4 h-4 text-amber-400"></i>
+        <span>אימות וכניסה לעריכה</span>
+      </button>
+    </form>
+
+    <div class="pt-4 border-t border-slate-100 text-center">
+      <a href="{{ url_for('project_detail', slug=project.slug) }}" class="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors">
+        ← ביטול וחזרה לעמוד הפרויקט
+      </a>
+    </div>
+
+  </div>
+</section>
+{% endblock %}

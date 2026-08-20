@@ -102,18 +102,33 @@ def test_api_endpoints(client):
     assert rv.status_code == 200
     assert len(rv.json['projects']) >= 3
 
-def test_dashboard(client):
+def test_dashboard_protection(client):
+    # Unauthenticated should redirect to login
     rv = client.get('/dashboard')
+    assert rv.status_code == 302
+    assert '/login' in rv.location
+
+    # Login with admin password
+    rv = client.post('/login', data={'password': 'drori2026'}, follow_redirects=True)
     assert rv.status_code == 200
     assert "לוח ניהול ומעקב גיוסים".encode('utf-8') in rv.data
 
-def test_edit_project(client):
-    # GET edit page
+def test_edit_project_security(client):
+    # Unauthenticated user visiting edit is redirected to auth
     rv = client.get('/project/synapse-guardian-iot/edit')
+    assert rv.status_code == 302
+    assert '/project/synapse-guardian-iot/auth' in rv.location
+
+    # Submit wrong PIN
+    rv = client.post('/project/synapse-guardian-iot/auth', data={'auth_key': 'wrongpin'}, follow_redirects=True)
+    assert "קוד PIN או סיסמה שגויים".encode('utf-8') in rv.data
+
+    # Submit correct PIN
+    rv = client.post('/project/synapse-guardian-iot/auth', data={'auth_key': '202601'}, follow_redirects=True)
     assert rv.status_code == 200
     assert "עריכת פרטי הפרויקט".encode('utf-8') in rv.data
 
-    # POST updated details
+    # Now authorized to post edits
     post_data = {
         'title': 'SynApse Guardian: מכשיר הגנה מעודכן',
         'subtitle': 'תקציר מעודכן לבדיקה',

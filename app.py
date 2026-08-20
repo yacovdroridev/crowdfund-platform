@@ -1,12 +1,36 @@
 import os
 import re
 import uuid
+import secrets
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
 from db import get_db, init_db, seed_db
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "crowdfund-super-secret-key-2026")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "drori2026")
+
+def is_admin():
+    return session.get('is_admin', False)
+
+def is_project_authorized(slug):
+    if is_admin():
+        return True
+    authorized_list = session.get('authorized_projects', [])
+    return slug in authorized_list
+
+def authorize_project(slug):
+    authorized = session.get('authorized_projects', [])
+    if slug not in authorized:
+        authorized.append(slug)
+        session['authorized_projects'] = authorized
+
+@app.context_processor
+def inject_auth_context():
+    return {
+        'is_admin': is_admin(),
+        'authorized_projects': session.get('authorized_projects', [])
+    }
 
 # Categories definition
 CATEGORIES = {
@@ -232,6 +256,54 @@ def pledge_success(pledge_id):
 
     return render_template('success.html', pledge=dict(pledge))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    next_url = request.args.get('next', url_for('dashboard'))
+    if request.method == 'POST':
+        pwd = request.form.get('password', '').strip()
+        if pwd == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            flash("התחברת בהצלחה כמנהל מערכת!", "success")
+            return redirect(next_url or url_for('dashboard'))
+        else:
+            flash("סיסמת מנהל שגויה. נסו שנית.", "error")
+    return render_template('login.html', next_url=next_url)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash("התנתקת מהמערכת בהצלחה.", "info")
+    return redirect(url_for('index'))
+
+@app.route('/project/<slug>/auth', methods=['GET', 'POST'])
+def project_auth(slug):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    project = cursor.fetchone()
+    conn.close()
+
+    if not project:
+        abort(404)
+
+    if request.method == 'POST':
+        auth_key = request.form.get('auth_key', '').strip()
+        project_pin = str(project['edit_pin'] or '202600').strip()
+
+        if auth_key == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            authorize_project(slug)
+            flash("אומת בהצלחה כמנהל מערכת!", "success")
+            return redirect(url_for('edit_project', slug=slug))
+        elif auth_key == project_pin:
+            authorize_project(slug)
+            flash("קוד עריכה אומת בהצלחה!", "success")
+            return redirect(url_for('edit_project', slug=slug))
+        else:
+            flash("קוד PIN או סיסמה שגויים. נסו שוב.", "error")
+
+    return render_template('project_auth.html', project=dict(project))
+
 @app.route('/project/<slug>/edit', methods=['GET', 'POST'])
 def edit_project(slug):
     conn = get_db()
@@ -243,6 +315,11 @@ def edit_project(slug):
     if not project:
         conn.close()
         abort(404)
+
+    if not is_project_authorized(slug):
+        conn.close()
+        flash("נדרש אימות קוד PIN או סיסמת מנהל לצורך עריכת הפרויקט.", "error")
+        return redirect(url_for('project_auth', slug=slug))
 
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
@@ -328,6 +405,7 @@ def create_project():
         cover_image = request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
         video_url = request.form.get('video_url', '').strip() or None
         story_html = request.form.get('story_html', '').strip()
+        edit_pin = request.form.get('edit_pin', '').strip() or str(secrets.randbelow(900000) + 100000)
 
         # Generate slug
         clean_slug = re.sub(r'[^a-zA-Z0-9\-]', '', title.lower().replace(' ', '-'))
@@ -346,12 +424,12 @@ def create_project():
         INSERT INTO projects (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', ?)
+            goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', ?, ?)
         """, (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, days_total, now_str, end_date, now_str
+            goal_amount, days_total, now_str, end_date, edit_pin, now_str
         ))
         project_id = cursor.lastrowid
 
@@ -383,7 +461,10 @@ def create_project():
         conn.commit()
         conn.close()
 
-        flash("הפרויקט פורסם בהצלחה!", "success")
+        # Automatically authorize creator in session
+        authorize_project(slug)
+
+        flash(f"הפרויקט פורסם בהצלחה! קוד ה-PIN האישי שלך לעריכה הוא: {edit_pin}", "success")
         return redirect(url_for('project_detail', slug=slug))
 
     return render_template('create.html', categories=CATEGORIES)
@@ -391,6 +472,10 @@ def create_project():
 @app.route('/dashboard')
 @app.route('/admin')
 def dashboard():
+    if not is_admin():
+        flash("גישה ללוח הניהול מוגבלת למנהלי מערכת בלבד.", "error")
+        return redirect(url_for('login', next=url_for('dashboard')))
+
     conn = get_db()
     cursor = conn.cursor()
 

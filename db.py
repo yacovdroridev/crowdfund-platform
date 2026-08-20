@@ -38,9 +38,16 @@ def init_db():
         start_date TEXT NOT NULL,
         end_date TEXT NOT NULL,
         status TEXT DEFAULT 'active',
+        edit_pin TEXT DEFAULT '202600',
         created_at TEXT NOT NULL
     );
     """)
+
+    # Ensure edit_pin exists on older databases
+    try:
+        cursor.execute("ALTER TABLE projects ADD COLUMN edit_pin TEXT DEFAULT '202600'")
+    except sqlite3.OperationalError:
+        pass
 
     # Rewards table
     cursor.execute("""
@@ -128,8 +135,8 @@ def seed_db():
     INSERT INTO projects (
         slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
         creator_email, creator_phone, cover_image, video_url, story_html,
-        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         'synapse-guardian-iot',
         'SynApse Guardian: מכשיר הגנה מבוסס AI לרשת הביתית',
@@ -150,6 +157,7 @@ def seed_db():
         now_str,
         end_date_1,
         'active',
+        '202601',
         now_str
     ))
     proj1_id = cursor.lastrowid
@@ -182,8 +190,8 @@ def seed_db():
     INSERT INTO projects (
         slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
         creator_email, creator_phone, cover_image, video_url, story_html,
-        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         'nahariya-stories-book',
         'ספר האמנות וההיסטוריה: "גליל שלא הכרתם"',
@@ -204,6 +212,7 @@ def seed_db():
         now_str,
         end_date_2,
         'successful',
+        '202602',
         now_str
     ))
     proj2_id = cursor.lastrowid
@@ -222,8 +231,8 @@ def seed_db():
     INSERT INTO projects (
         slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
         creator_email, creator_phone, cover_image, video_url, story_html,
-        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         'music-for-healing',
         'אלבום הבכורה והסיבוב המוזיקלי: "ניגוני תקווה"',
@@ -244,6 +253,7 @@ def seed_db():
         now_str,
         end_date_3,
         'active',
+        '202603',
         now_str
     ))
     proj3_id = cursor.lastrowid
@@ -298,8 +308,8 @@ def seed_db():
     INSERT INTO projects (
         slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
         creator_email, creator_phone, cover_image, video_url, story_html,
-        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         'or-latefila',
         'אור לתפילה: להחזיר את הלב והכוונה אל התפילה והסליחות',
@@ -320,6 +330,7 @@ def seed_db():
         now_str,
         end_date_4,
         'active',
+        '770770',
         now_str
     ))
     proj4_id = cursor.lastrowid
