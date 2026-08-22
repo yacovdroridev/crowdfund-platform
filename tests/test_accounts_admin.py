@@ -57,6 +57,20 @@ def test_render_config_uses_the_admin_password_variable_expected_by_the_app():
     render_config = (Path(__file__).resolve().parents[1] / "render.yaml").read_text(encoding="utf-8")
     assert "key: ADMIN_INITIAL_PASSWORD" in render_config
     assert "key: ADMIN_PASSWORD\n" not in render_config
+    assert "key: SESSION_COOKIE_SECURE" in render_config
+
+
+def test_security_headers_and_legal_center_trailing_slash(client):
+    response = client.get("/", base_url="https://headfund.example")
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert response.headers["Permissions-Policy"] == "camera=(), microphone=(), geolocation=()"
+
+    legal = client.get("/legal/", base_url="https://headfund.example")
+    assert legal.status_code == 200
+    assert "מרכז מידע משפטי".encode() in legal.data
 
 
 def test_visual_theme_is_white_first_without_purple_tokens():

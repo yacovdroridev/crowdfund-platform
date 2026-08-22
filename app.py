@@ -21,6 +21,17 @@ app.config.update(
 )
 LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "support@headfund.co.il")
 
+
+@app.after_request
+def add_security_headers(response):
+    """Apply browser-side security defaults to every HTML/API response."""
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
+
 LEGAL_DOCUMENTS = {
     "privacy": ("מדיניות פרטיות", "legal/privacy.html"),
     "terms": ("תנאי שימוש", "legal/terms.html"),
@@ -159,7 +170,7 @@ def calculate_project_metrics(project):
 
 # --- HTML Routes ---
 
-@app.route('/legal')
+@app.route('/legal', strict_slashes=False)
 def legal_center():
     return render_template('legal/index.html')
 
