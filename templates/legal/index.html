@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}מרכז מידע משפטי | HeadFund{% endblock %}
+{% block content %}
+<section class="max-w-5xl mx-auto px-4 py-12">
+  <h1 class="text-3xl sm:text-4xl font-black text-slate-900 mb-3">מרכז מידע משפטי</h1>
+  <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900 mb-8"><strong>טיוטה טכנית:</strong> המסמכים מתארים את גרסת ה-MVP הקיימת ואינם תחליף לייעוץ משפטי. יש להשלים שם ישות משפטית, כתובת, מספר מזהה ומדיניות מסחרית לפני השקה מסחרית.</div>
+  <div class="grid sm:grid-cols-2 gap-4">
+    {% for slug, item in legal_documents.items() %}<a href="{{ url_for('legal_document', document=slug) }}" class="bg-white border border-slate-200 rounded-2xl p-5 hover:border-emerald-400 transition"><h2 class="font-black text-slate-900">{{ item[0] }}</h2><p class="text-sm text-slate-500 mt-1">לקריאה מלאה ←</p></a>{% endfor %}
+  </div>
+  <div class="mt-8 bg-slate-900 text-slate-200 rounded-2xl p-5 text-sm leading-7"><strong class="text-white">המצב הנוכחי:</strong> אין עדיין ספק סליקה מחובר או Webhook מאומת. בקשת תמיכה נשמרת במצב ממתין ואינה נספרת כסכום ששולם. אין להסתמך על HeadFund כשומר כספים או כמאשר תשלום.</div>
+</section>
+{% endblock %}

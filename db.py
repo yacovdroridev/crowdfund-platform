@@ -2,6 +2,7 @@ import sqlite3
 import os
 import json
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash
 
 DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "crowdfund.db"))
 
@@ -14,6 +15,30 @@ def get_db():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        password_hash TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        phone TEXT,
+        role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
+        is_active BOOLEAN NOT NULL DEFAULT 1,
+        last_login_at TEXT,
+        created_at TEXT NOT NULL
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        slug TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        name TEXT NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL
+    );
+    """)
 
     # Projects table
     cursor.execute("""
@@ -39,7 +64,10 @@ def init_db():
         end_date TEXT NOT NULL,
         status TEXT DEFAULT 'active',
         edit_pin TEXT DEFAULT '202600',
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        owner_user_id INTEGER,
+        is_active BOOLEAN NOT NULL DEFAULT 1,
+        FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
     );
     """)
 
@@ -48,6 +76,75 @@ def init_db():
         cursor.execute("ALTER TABLE projects ADD COLUMN edit_pin TEXT DEFAULT '202600'")
     except sqlite3.OperationalError:
         pass
+
+    for migration in (
+        "ALTER TABLE projects ADD COLUMN owner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
+        "ALTER TABLE projects ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
+    ):
+        try:
+            cursor.execute(migration)
+        except sqlite3.OperationalError:
+            pass
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS login_attempts (
+        attempt_key TEXT PRIMARY KEY,
+        failures INTEGER NOT NULL DEFAULT 0,
+        window_started_at TEXT NOT NULL,
+        blocked_until TEXT
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS passkey_credentials (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        credential_id BLOB NOT NULL UNIQUE,
+        public_key BLOB NOT NULL,
+        sign_count INTEGER NOT NULL DEFAULT 0,
+        transports TEXT,
+        created_at TEXT NOT NULL,
+        last_used_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_user_id INTEGER,
+        action TEXT NOT NULL,
+        target_type TEXT NOT NULL,
+        target_id TEXT,
+        details TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
+    """)
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    default_categories = {
+        "technology": "טכנולוגיה וחדשנות",
+        "art_culture": "אמנות וספרות",
+        "music": "מוזיקה והופעות",
+        "community": "חברה וקהילה",
+        "games": "משחקים ודיגיטל",
+        "food": "קולינריה ומזון",
+    }
+    cursor.executemany(
+        "INSERT OR IGNORE INTO categories (slug, name, is_active, created_at) VALUES (?, ?, 1, ?)",
+        [(slug, name, now_str) for slug, name in default_categories.items()],
+    )
+
+    admin_email = os.environ.get("ADMIN_EMAIL", "yacov@drori.org").strip().lower()
+    admin_password = os.environ.get("ADMIN_INITIAL_PASSWORD", "")
+    if admin_password and not cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,)).fetchone():
+        cursor.execute(
+            """INSERT INTO users
+               (email, password_hash, full_name, role, is_active, created_at)
+               VALUES (?, ?, ?, 'admin', 1, ?)""",
+            (admin_email, generate_password_hash(admin_password, method="scrypt"), "יעקב דרורי", now_str),
+        )
 
     # Rewards table
     cursor.execute("""

@@ -2,35 +2,110 @@ import os
 import re
 import uuid
 import secrets
+import hashlib
+import bleach
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
+from werkzeug.security import check_password_hash, generate_password_hash
 from db import get_db, init_db, seed_db
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "crowdfund-super-secret-key-2026")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "drori2026")
+app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "0") == "1",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+    CSRF_ENABLED=True,
+)
+LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "support@headfund.co.il")
+
+LEGAL_DOCUMENTS = {
+    "privacy": ("מדיניות פרטיות", "legal/privacy.html"),
+    "terms": ("תנאי שימוש", "legal/terms.html"),
+    "creators": ("תנאים ליוצרי קמפיינים", "legal/creators.html"),
+    "supporters": ("תנאים לתומכים ומדיניות תשלומים", "legal/supporters.html"),
+    "content": ("כללי תוכן וקניין רוחני", "legal/content.html"),
+    "cookies": ("מדיניות Cookies", "legal/cookies.html"),
+    "accessibility": ("הצהרת נגישות", "legal/accessibility.html"),
+}
+
+def current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    conn = get_db()
+    user = conn.execute(
+        "SELECT id, email, full_name, phone, role, is_active, created_at FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    conn.close()
+    return dict(user) if user and user["is_active"] else None
+
 
 def is_admin():
-    return session.get('is_admin', False)
+    user = current_user()
+    return bool(user and user["role"] == "admin")
+
 
 def is_project_authorized(slug):
     if is_admin():
         return True
-    authorized_list = session.get('authorized_projects', [])
-    return slug in authorized_list
+    user = current_user()
+    if not user:
+        return False
+    conn = get_db()
+    owned = conn.execute(
+        "SELECT 1 FROM projects WHERE slug = ? AND owner_user_id = ?",
+        (slug, user["id"]),
+    ).fetchone()
+    conn.close()
+    return bool(owned)
+
 
 def authorize_project(slug):
-    authorized = session.get('authorized_projects', [])
-    if slug not in authorized:
-        authorized.append(slug)
-        session['authorized_projects'] = authorized
+    # Kept temporarily for backward-compatible call sites. Authorization is
+    # now derived from project ownership or the admin role, never from a PIN.
+    return is_project_authorized(slug)
+
+def sanitize_story_html(value):
+    value = re.sub(r"<(script|style)\b[^>]*>.*?</\1\s*>", "", value or "", flags=re.IGNORECASE | re.DOTALL)
+    return bleach.clean(
+        value,
+        tags={"p", "br", "strong", "em", "ul", "ol", "li", "h2", "h3", "blockquote", "a"},
+        attributes={"a": ["href", "title", "target", "rel"]},
+        protocols={"http", "https", "mailto"},
+        strip=True,
+    )
+
+
+def csrf_token():
+    token = session.get('_csrf_token')
+    if not token:
+        token = secrets.token_urlsafe(32)
+        session['_csrf_token'] = token
+    return token
+
+
+@app.before_request
+def enforce_csrf():
+    if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and app.config.get('CSRF_ENABLED', True):
+        supplied = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
+        expected = session.get('_csrf_token', '')
+        if not supplied or not expected or not secrets.compare_digest(supplied, expected):
+            abort(400, description='Invalid CSRF token')
+
 
 @app.context_processor
 def inject_auth_context():
     return {
+        'csrf_token': csrf_token(),
         'is_admin': is_admin(),
-        'authorized_projects': session.get('authorized_projects', [])
+        'current_user': current_user(),
+        'authorized_projects': [],
+        'legal_contact_email': LEGAL_CONTACT_EMAIL,
+        'legal_documents': LEGAL_DOCUMENTS,
     }
 
 # Categories definition
@@ -43,6 +118,20 @@ CATEGORIES = {
     "games": "משחקים ודיגיטל",
     "food": "קולינריה ומזון"
 }
+
+
+def get_category_map(include_all=False, include_inactive=False):
+    conn = get_db()
+    query = "SELECT slug, name FROM categories"
+    if not include_inactive:
+        query += " WHERE is_active = 1"
+    query += " ORDER BY id, name"
+    rows = conn.execute(query).fetchall()
+    conn.close()
+    categories = {row['slug']: row['name'] for row in rows}
+    if include_all:
+        return {"all": "כל הקטגוריות", **categories}
+    return categories
 
 def calculate_project_metrics(project):
     p = dict(project)
@@ -70,19 +159,33 @@ def calculate_project_metrics(project):
 
 # --- HTML Routes ---
 
+@app.route('/legal')
+def legal_center():
+    return render_template('legal/index.html')
+
+
+@app.route('/legal/<document>')
+def legal_document(document):
+    item = LEGAL_DOCUMENTS.get(document)
+    if not item:
+        abort(404)
+    title, template_name = item
+    return render_template(template_name, legal_title=title)
+
 @app.route('/')
 def index():
     category = request.args.get('category', 'all')
     status_filter = request.args.get('status', 'all')
     search_query = request.args.get('q', '').strip()
+    categories = get_category_map(include_all=True)
 
     conn = get_db()
     cursor = conn.cursor()
 
-    query = "SELECT * FROM projects WHERE 1=1"
+    query = "SELECT * FROM projects WHERE is_active = 1"
     params = []
 
-    if category != 'all' and category in CATEGORIES:
+    if category != 'all' and category in categories:
         query += " AND category = ?"
         params.append(category)
 
@@ -110,7 +213,7 @@ def index():
     return render_template(
         'index.html',
         projects=projects,
-        categories=CATEGORIES,
+        categories=categories,
         selected_category=category,
         selected_status=status_filter,
         search_query=search_query,
@@ -127,7 +230,7 @@ def project_detail(slug):
     cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
     raw_project = cursor.fetchone()
 
-    if not raw_project:
+    if not raw_project or (not raw_project['is_active'] and not is_project_authorized(slug)):
         conn.close()
         abort(404)
 
@@ -167,13 +270,17 @@ def project_detail(slug):
 
 @app.route('/project/<slug>/pledge', methods=['POST'])
 def submit_pledge(slug):
+    if request.form.get('legal_accept') != 'on':
+        flash("יש לאשר את תנאי התומכים ומדיניות הפרטיות לפני המשך.", "error")
+        return redirect(url_for('project_detail', slug=slug))
+
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
     project = cursor.fetchone()
 
-    if not project:
+    if not project or not project['is_active']:
         conn.close()
         abort(404)
 
@@ -191,7 +298,11 @@ def submit_pledge(slug):
     is_anonymous = 1 if request.form.get('is_anonymous') == 'on' else 0
     greeting_message = request.form.get('greeting_message', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
-    payment_method = request.form.get('payment_method', 'credit_card').strip()
+    payment_method = request.form.get('payment_method', 'bit').strip()
+    if payment_method not in {'bit', 'paybox', 'paypal'}:
+        conn.close()
+        flash("אמצעי התשלום שנבחר אינו פעיל כרגע.", "error")
+        return redirect(url_for('project_detail', slug=slug))
     
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     transaction_id = f"TXN-{uuid.uuid4().hex[:10].upper()}"
@@ -202,7 +313,7 @@ def submit_pledge(slug):
         project_id, reward_id, amount, tip_amount, backer_name, backer_email,
         backer_phone, is_anonymous, greeting_message, shipping_address,
         payment_status, payment_method, transaction_id, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
     """, (
         project["id"], reward_id, total_charge, tip_amount, backer_name,
         backer_email, backer_phone, is_anonymous, greeting_message,
@@ -210,27 +321,9 @@ def submit_pledge(slug):
     ))
     pledge_id = cursor.lastrowid
 
-    # Update project stats
-    new_amount = project["current_amount"] + total_charge
-    new_backers = project["backers_count"] + 1
-    new_status = 'successful' if new_amount >= project["goal_amount"] else project["status"]
-
-    cursor.execute("""
-    UPDATE projects 
-    SET current_amount = ?, backers_count = ?, status = ?
-    WHERE id = ?
-    """, (new_amount, new_backers, new_status, project["id"]))
-
-    # Update reward claimed count if applicable
-    if reward_id:
-        cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (reward_id,))
-
-    # Add backer greeting as comment if present
-    if greeting_message:
-        cursor.execute("""
-        INSERT INTO comments (project_id, author_name, content, created_at)
-        VALUES (?, ?, ?, ?)
-        """, (project["id"], backer_name if not is_anonymous else "תומך אנונימי", greeting_message, now_str))
+    # The MVP has no signed provider webhook. A pledge remains pending and is
+    # deliberately excluded from totals, reward inventory and public comments
+    # until a future verified payment-confirmation flow marks it as completed.
 
     conn.commit()
     conn.close()
@@ -284,18 +377,110 @@ def pledge_success(pledge_id):
         paypal_link=paypal_link
     )
 
+def _login_attempt_key(email):
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
+    return hashlib.sha256(f"{email}|{ip}".encode()).hexdigest()
+
+
+def _login_is_blocked(conn, key, now):
+    row = conn.execute("SELECT blocked_until FROM login_attempts WHERE attempt_key = ?", (key,)).fetchone()
+    return bool(row and row['blocked_until'] and datetime.fromisoformat(row['blocked_until']) > now)
+
+
+def _record_login_failure(conn, key, now):
+    row = conn.execute("SELECT failures, window_started_at FROM login_attempts WHERE attempt_key = ?", (key,)).fetchone()
+    window_start = now
+    failures = 1
+    if row and now - datetime.fromisoformat(row['window_started_at']) < timedelta(minutes=15):
+        window_start = datetime.fromisoformat(row['window_started_at'])
+        failures = row['failures'] + 1
+    blocked_until = (now + timedelta(minutes=15)).isoformat() if failures >= 5 else None
+    conn.execute(
+        """INSERT INTO login_attempts (attempt_key, failures, window_started_at, blocked_until)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(attempt_key) DO UPDATE SET failures=excluded.failures,
+           window_started_at=excluded.window_started_at, blocked_until=excluded.blocked_until""",
+        (key, failures, window_start.isoformat(), blocked_until),
+    )
+    conn.commit()
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    next_url = request.args.get('next', url_for('dashboard'))
+    next_url = request.values.get('next') or url_for('index')
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = url_for('index')
     if request.method == 'POST':
-        pwd = request.form.get('password', '').strip()
-        if pwd == ADMIN_PASSWORD:
-            session['is_admin'] = True
-            flash("התחברת בהצלחה כמנהל מערכת!", "success")
-            return redirect(next_url or url_for('dashboard'))
-        else:
-            flash("סיסמת מנהל שגויה. נסו שנית.", "error")
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        conn = get_db()
+        now = datetime.now()
+        attempt_key = _login_attempt_key(email)
+        if _login_is_blocked(conn, attempt_key, now):
+            conn.close()
+            flash("ניסיונות כניסה רבים מדי. יש להמתין 15 דקות ולנסות שוב.", "error")
+            return render_template('login.html', next_url=next_url), 429
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        if user and user['is_active'] and check_password_hash(user['password_hash'], password):
+            session.clear()
+            session['user_id'] = user['id']
+            session.permanent = True
+            conn.execute("DELETE FROM login_attempts WHERE attempt_key = ?", (attempt_key,))
+            conn.execute(
+                "UPDATE users SET last_login_at = ? WHERE id = ?",
+                (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user['id']),
+            )
+            conn.commit()
+            conn.close()
+            flash("התחברת בהצלחה.", "success")
+            destination = url_for('dashboard') if user['role'] == 'admin' and next_url == url_for('index') else next_url
+            return redirect(destination)
+        _record_login_failure(conn, attempt_key, now)
+        conn.close()
+        flash("אימייל או סיסמה שגויים.", "error")
     return render_template('login.html', next_url=next_url)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user():
+        return redirect(url_for('index'))
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip().lower()
+        phone = request.form.get('phone', '').strip()
+        password = request.form.get('password', '')
+        password_confirm = request.form.get('password_confirm', '')
+
+        if request.form.get('legal_accept') != 'on':
+            flash("יש לאשר את תנאי השימוש ומדיניות הפרטיות.", "error")
+        elif not full_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            flash("יש להזין שם מלא וכתובת אימייל תקינה.", "error")
+        elif len(password) < 12 or not all((re.search(r"[a-z]", password), re.search(r"[A-Z]", password), re.search(r"\d", password), re.search(r"[^A-Za-z0-9]", password))):
+            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+        elif password != password_confirm:
+            flash("אימות הסיסמה אינו תואם.", "error")
+        else:
+            conn = get_db()
+            if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+                conn.close()
+                flash("כבר קיים חשבון עם כתובת האימייל הזאת.", "error")
+            else:
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                cursor = conn.execute(
+                    """INSERT INTO users
+                       (email, password_hash, full_name, phone, role, is_active, created_at)
+                       VALUES (?, ?, ?, ?, 'user', 1, ?)""",
+                    (email, generate_password_hash(password, method='scrypt'), full_name, phone, now_str),
+                )
+                conn.commit()
+                session.clear()
+                session['user_id'] = cursor.lastrowid
+                session.permanent = True
+                conn.close()
+                flash("החשבון נוצר בהצלחה.", "success")
+                return redirect(url_for('index'))
+    return render_template('register.html')
 
 @app.route('/logout')
 def logout():
@@ -306,31 +491,14 @@ def logout():
 @app.route('/project/<slug>/auth', methods=['GET', 'POST'])
 def project_auth(slug):
     conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
-    project = cursor.fetchone()
+    project = conn.execute("SELECT slug FROM projects WHERE slug = ?", (slug,)).fetchone()
     conn.close()
-
     if not project:
         abort(404)
-
-    if request.method == 'POST':
-        auth_key = request.form.get('auth_key', '').strip()
-        project_pin = str(project['edit_pin'] or '202600').strip()
-
-        if auth_key == ADMIN_PASSWORD:
-            session['is_admin'] = True
-            authorize_project(slug)
-            flash("אומת בהצלחה כמנהל מערכת!", "success")
-            return redirect(url_for('edit_project', slug=slug))
-        elif auth_key == project_pin:
-            authorize_project(slug)
-            flash("קוד עריכה אומת בהצלחה!", "success")
-            return redirect(url_for('edit_project', slug=slug))
-        else:
-            flash("קוד PIN או סיסמה שגויים. נסו שוב.", "error")
-
-    return render_template('project_auth.html', project=dict(project))
+    if is_project_authorized(slug):
+        return redirect(url_for('edit_project', slug=slug))
+    flash("עריכת פרויקט מחייבת כניסה לחשבון הבעלים או לחשבון מנהל.", "error")
+    return redirect(url_for('login', next=url_for('edit_project', slug=slug)))
 
 @app.route('/project/<slug>/edit', methods=['GET', 'POST'])
 def edit_project(slug):
@@ -346,8 +514,8 @@ def edit_project(slug):
 
     if not is_project_authorized(slug):
         conn.close()
-        flash("נדרש אימות קוד PIN או סיסמת מנהל לצורך עריכת הפרויקט.", "error")
-        return redirect(url_for('project_auth', slug=slug))
+        flash("עריכת פרויקט מחייבת כניסה לחשבון הבעלים או לחשבון מנהל.", "error")
+        return redirect(url_for('login', next=url_for('edit_project', slug=slug)))
 
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
@@ -361,7 +529,7 @@ def edit_project(slug):
         creator_avatar = request.form.get('creator_avatar', '').strip() or project['creator_avatar']
         cover_image = request.form.get('cover_image', '').strip() or project['cover_image']
         video_url = request.form.get('video_url', '').strip() or None
-        story_html = request.form.get('story_html', '').strip()
+        story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         cursor.execute("""
         UPDATE projects SET
@@ -419,7 +587,13 @@ def edit_project(slug):
 
 @app.route('/create', methods=['GET', 'POST'])
 def create_project():
+    user = current_user()
+    if not user:
+        return redirect(url_for('login', next=url_for('create_project')))
     if request.method == 'POST':
+        if request.form.get('legal_accept') != 'on':
+            flash("יש לאשר את תנאי היוצרים ומדיניות הפרטיות לפני פרסום קמפיין.", "error")
+            return redirect(url_for('create_project'))
         title = request.form.get('title', '').strip()
         subtitle = request.form.get('subtitle', '').strip()
         category = request.form.get('category', 'technology')
@@ -432,8 +606,7 @@ def create_project():
         creator_avatar = request.form.get('creator_avatar', '').strip() or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
         cover_image = request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
         video_url = request.form.get('video_url', '').strip() or None
-        story_html = request.form.get('story_html', '').strip()
-        edit_pin = request.form.get('edit_pin', '').strip() or str(secrets.randbelow(900000) + 100000)
+        story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         # Generate slug
         clean_slug = re.sub(r'[^a-zA-Z0-9\-]', '', title.lower().replace(' ', '-'))
@@ -452,12 +625,13 @@ def create_project():
         INSERT INTO projects (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, current_amount, backers_count, days_total, start_date, end_date, status, edit_pin, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', ?, ?)
+            goal_amount, current_amount, backers_count, days_total, start_date, end_date,
+            status, edit_pin, created_at, owner_user_id, is_active
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', NULL, ?, ?, 0)
         """, (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, days_total, now_str, end_date, edit_pin, now_str
+            goal_amount, days_total, now_str, end_date, now_str, user['id']
         ))
         project_id = cursor.lastrowid
 
@@ -489,13 +663,10 @@ def create_project():
         conn.commit()
         conn.close()
 
-        # Automatically authorize creator in session
-        authorize_project(slug)
-
-        flash(f"הפרויקט פורסם בהצלחה! קוד ה-PIN האישי שלך לעריכה הוא: {edit_pin}", "success")
+        flash("הפרויקט נשמר ונשלח לאישור מנהל. הוא יפורסם לאחר הפעלה בלוח הניהול.", "success")
         return redirect(url_for('project_detail', slug=slug))
 
-    return render_template('create.html', categories=CATEGORIES)
+    return render_template('create.html', categories=get_category_map())
 
 @app.route('/dashboard')
 @app.route('/admin')
@@ -535,6 +706,82 @@ def dashboard():
         total_projects=len(projects)
     )
 
+
+@app.route('/admin/categories', methods=['GET', 'POST'])
+def admin_categories():
+    if not is_admin():
+        abort(403)
+    conn = get_db()
+    if request.method == 'POST':
+        slug = request.form.get('slug', '').strip().lower()
+        name = request.form.get('name', '').strip()
+        if not re.fullmatch(r'[a-z0-9-]{2,40}', slug) or not name:
+            conn.close()
+            flash("יש להזין שם ומזהה באנגלית באורך תקין.", "error")
+            return redirect(url_for('admin_categories'))
+        if conn.execute("SELECT 1 FROM categories WHERE slug = ?", (slug,)).fetchone():
+            conn.close()
+            flash("קטגוריה עם המזהה הזה כבר קיימת.", "error")
+            return redirect(url_for('admin_categories'))
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor = conn.execute(
+            "INSERT INTO categories (slug, name, is_active, created_at) VALUES (?, ?, 1, ?)",
+            (slug, name, now_str),
+        )
+        conn.execute(
+            "INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at) VALUES (?, 'category.created', 'category', ?, ?, ?)",
+            (current_user()['id'], str(cursor.lastrowid), slug, now_str),
+        )
+        conn.commit()
+        flash("הקטגוריה נוספה בהצלחה.", "success")
+    categories = [dict(row) for row in conn.execute("SELECT * FROM categories ORDER BY name").fetchall()]
+    conn.close()
+    return render_template('admin_categories.html', categories=categories)
+
+
+@app.post('/admin/categories/<slug>/toggle')
+def admin_toggle_category(slug):
+    if not is_admin():
+        abort(403)
+    conn = get_db()
+    category = conn.execute("SELECT id, is_active FROM categories WHERE slug = ?", (slug,)).fetchone()
+    if not category:
+        conn.close()
+        abort(404)
+    new_state = 0 if category['is_active'] else 1
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute("UPDATE categories SET is_active = ? WHERE id = ?", (new_state, category['id']))
+    conn.execute(
+        "INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at) VALUES (?, ?, 'category', ?, ?, ?)",
+        (current_user()['id'], 'category.activated' if new_state else 'category.deactivated', str(category['id']), slug, now_str),
+    )
+    conn.commit()
+    conn.close()
+    flash("הקטגוריה הופעלה." if new_state else "הקטגוריה הושבתה.", "success")
+    return redirect(url_for('admin_categories'))
+
+
+@app.post('/admin/projects/<slug>/toggle')
+def admin_toggle_project(slug):
+    if not is_admin():
+        abort(403)
+    conn = get_db()
+    project = conn.execute("SELECT id, is_active FROM projects WHERE slug = ?", (slug,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    new_state = 0 if project['is_active'] else 1
+    conn.execute("UPDATE projects SET is_active = ? WHERE id = ?", (new_state, project['id']))
+    conn.execute(
+        "INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at) VALUES (?, ?, 'project', ?, ?, ?)",
+        (current_user()['id'], 'project.activated' if new_state else 'project.deactivated', str(project['id']), slug, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+    )
+    conn.commit()
+    conn.close()
+    flash("הפרויקט הופעל וגלוי לציבור." if new_state else "הפרויקט הושבת ואינו גלוי לציבור.", "success")
+    return redirect(url_for('dashboard'))
+
+
 @app.route('/project/<slug>/add-update', methods=['POST'])
 def add_project_update(slug):
     title = request.form.get('update_title', '').strip()
@@ -573,10 +820,11 @@ def api_get_projects():
     conn = get_db()
     cursor = conn.cursor()
 
+    visibility = "1=1" if is_admin() else "is_active = 1"
     if category != 'all' and category in CATEGORIES:
-        cursor.execute("SELECT * FROM projects WHERE category = ? ORDER BY id DESC", (category,))
+        cursor.execute(f"SELECT * FROM projects WHERE {visibility} AND category = ? ORDER BY id DESC", (category,))
     else:
-        cursor.execute("SELECT * FROM projects ORDER BY id DESC")
+        cursor.execute(f"SELECT * FROM projects WHERE {visibility} ORDER BY id DESC")
 
     projects = [calculate_project_metrics(p) for p in cursor.fetchall()]
     conn.close()
@@ -588,7 +836,7 @@ def api_get_project(slug):
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
     p = cursor.fetchone()
-    if not p:
+    if not p or (not p['is_active'] and not is_admin()):
         conn.close()
         return jsonify({"success": False, "error": "Project not found"}), 404
 

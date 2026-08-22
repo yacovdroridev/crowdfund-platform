@@ -1,7 +1,7 @@
 services:
   - type: web
     name: headfund
-    env: python
+    runtime: python
     region: frankfurt
     plan: free
     buildCommand: pip install -r requirements.txt
@@ -11,5 +11,9 @@ services:
         value: 3.11.0
       - key: SECRET_KEY
         generateValue: true
-      - key: ADMIN_PASSWORD
-        value: drori2026
+      - key: ADMIN_EMAIL
+        value: yacov@drori.org
+      - key: ADMIN_INITIAL_PASSWORD
+        sync: false
+      - key: LEGAL_CONTACT_EMAIL
+        value: support@headfund.co.il

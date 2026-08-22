@@ -15,6 +15,7 @@
   </div>
 
   <form method="POST" action="{{ url_for('edit_project', slug=project.slug) }}" class="space-y-8">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     
     <!-- Step 1: Basic Info -->
     <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">

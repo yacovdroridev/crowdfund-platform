@@ -30,8 +30,8 @@
               900: '#064e3b',
             },
             accent: {
-              500: '#6366f1',
-              600: '#4f46e5',
+              500: '#14b8a6',
+              600: '#0d9488',
             }
           }
         }
@@ -45,7 +45,7 @@
   <style>
     body {
       font-family: 'Heebo', sans-serif;
-      background-color: #f8fafc;
+      background-color: #ffffff;
       color: #0f172a;
     }
     .progress-bar-glow {
@@ -63,8 +63,8 @@
 <body class="min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
 
   <!-- Top Announcement Bar -->
-  <div class="bg-slate-900 text-slate-200 text-xs py-2 px-4 text-center font-medium border-b border-slate-800 flex items-center justify-center gap-2">
-    <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+  <div class="bg-emerald-50 text-emerald-900 text-xs py-2 px-4 text-center font-medium border-b border-emerald-100 flex items-center justify-center gap-2">
+    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
     <span>ברוכים הבאים ל-<strong>HeadFund</strong> • פלטפורמת גיוס ההמונים והתשורות המתקדמת בישראל</span>
   </div>
 
@@ -74,7 +74,7 @@
       
       <!-- Brand Logo -->
       <a href="{{ url_for('index') }}" class="flex items-center gap-3 group">
-        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-md group-hover:scale-105 transition-transform">
+        <div class="w-11 h-11 rounded-2xl bg-emerald-600 flex items-center justify-center text-white font-black text-xl shadow-sm group-hover:bg-emerald-700 group-hover:scale-105 transition-all">
           H
         </div>
         <div>
@@ -103,10 +103,10 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-3">
-        {% if is_admin %}
+        {% if current_user %}
           <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold border border-slate-700">
-            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-            <span>מנהל מערכת</span>
+            <i data-lucide="{% if is_admin %}shield-check{% else %}user{% endif %}" class="w-3.5 h-3.5"></i>
+            <span>{{ 'מנהל מערכת' if is_admin else current_user.full_name }}</span>
           </span>
           <a href="{{ url_for('logout') }}" title="התנתקות" class="p-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-colors">
             <i data-lucide="log-out" class="w-4 h-4"></i>
@@ -147,48 +147,49 @@
   </main>
 
   <!-- Footer -->
-  <footer class="bg-slate-900 text-slate-300 border-t border-slate-800 mt-20 pt-16 pb-12">
+  <footer class="bg-white text-slate-600 border-t border-slate-200 mt-20 pt-16 pb-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
         
         <div class="md:col-span-2">
           <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-indigo-600 flex items-center justify-center text-white font-black text-lg">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-lg">
               H
             </div>
-            <span class="text-2xl font-black text-white font-mono">Head<span class="text-emerald-400">Fund</span></span>
+            <span class="text-2xl font-black text-slate-900 font-mono">Head<span class="text-emerald-600">Fund</span></span>
           </div>
-          <p class="text-sm text-slate-400 leading-relaxed max-w-md">
+          <p class="text-sm text-slate-500 leading-relaxed max-w-md">
             פלטפורמת מימון המונים ישראלית לגיוס הון ותמיכה במיזמים טכנולוגיים, ספרי אמנות, מוזיקה, פרויקטים חברתיים ועסקים יצירתיים מכל רחבי הארץ.
           </p>
         </div>
 
         <div>
-          <h4 class="text-white font-bold text-sm mb-4">ניווט מהיר</h4>
-          <ul class="space-y-2 text-sm text-slate-400">
-            <li><a href="{{ url_for('index') }}" class="hover:text-emerald-400 transition-colors">כל הפרויקטים</a></li>
-            <li><a href="{{ url_for('create_project') }}" class="hover:text-emerald-400 transition-colors">פתיחת פרויקט חדש</a></li>
-            <li><a href="{{ url_for('dashboard') }}" class="hover:text-emerald-400 transition-colors">לוח בקרה ליוזמים</a></li>
+          <h4 class="text-slate-900 font-bold text-sm mb-4">ניווט מהיר</h4>
+          <ul class="space-y-2 text-sm text-slate-500">
+            <li><a href="{{ url_for('index') }}" class="hover:text-emerald-600 transition-colors">כל הפרויקטים</a></li>
+            <li><a href="{{ url_for('create_project') }}" class="hover:text-emerald-600 transition-colors">פתיחת פרויקט חדש</a></li>
+            <li><a href="{{ url_for('dashboard') }}" class="hover:text-emerald-600 transition-colors">לוח בקרה ליוזמים</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 class="text-white font-bold text-sm mb-4">תמיכה ושותפויות</h4>
-          <ul class="space-y-2 text-sm text-slate-400">
-            <li class="flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 text-emerald-400"></i> support@headfund.co.il</li>
-            <li class="flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 text-emerald-400"></i> 054-9103046</li>
+          <h4 class="text-slate-900 font-bold text-sm mb-4">תמיכה ושותפויות</h4>
+          <ul class="space-y-2 text-sm text-slate-500">
+            <li class="flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 text-emerald-600"></i> support@headfund.co.il</li>
+            <li class="flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 text-emerald-600"></i> 054-9103046</li>
             <li class="text-xs text-slate-500 mt-2">פותח ע"י סטודיו SynApse Zero ליזמות וטכנולוגיה</li>
           </ul>
         </div>
 
       </div>
 
-      <div class="border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
+      <div class="border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
         <div>© 2026 HeadFund. כל הזכויות שמורות.</div>
-        <div class="flex items-center gap-6">
-          <span>תנאי שימוש</span>
-          <span>מדיניות פרטיות</span>
-          <span>סליקה מאובטחת SSL</span>
+        <div class="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <a href="{{ url_for('legal_document', document='terms') }}" class="hover:text-emerald-700">תנאי שימוש</a>
+          <a href="{{ url_for('legal_document', document='privacy') }}" class="hover:text-emerald-700">מדיניות פרטיות</a>
+          <a href="{{ url_for('legal_document', document='supporters') }}" class="hover:text-emerald-700">תשלומים וביטולים</a>
+          <a href="{{ url_for('legal_document', document='accessibility') }}" class="hover:text-emerald-700">נגישות</a>
         </div>
       </div>
     </div>

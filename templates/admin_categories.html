@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}ניהול קטגוריות | HeadFund{% endblock %}
+{% block content %}
+<section class="max-w-5xl mx-auto px-4 py-10">
+  <div class="flex items-center justify-between gap-4 mb-8">
+    <div><h1 class="text-3xl font-black text-slate-900">ניהול קטגוריות</h1><p class="text-sm text-slate-500 mt-1">הוספה, הפעלה והשבתה של קטגוריות.</p></div>
+    <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-xl border border-slate-300 font-bold text-sm">חזרה ללוח הניהול</a>
+  </div>
+  <form method="POST" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 bg-white border border-slate-200 rounded-2xl p-5 mb-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input name="name" required placeholder="שם בעברית" class="p-3 rounded-xl border border-slate-300">
+    <input name="slug" required dir="ltr" pattern="[a-z0-9-]{2,40}" placeholder="slug-in-english" class="p-3 rounded-xl border border-slate-300 font-mono">
+    <button class="px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold">הוספה</button>
+  </form>
+  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+    {% for category in categories %}
+    <div class="flex items-center justify-between gap-4 p-4 border-b border-slate-100 last:border-0">
+      <div><div class="font-bold text-slate-900">{{ category.name }}</div><code class="text-xs text-slate-500" dir="ltr">{{ category.slug }}</code></div>
+      <form method="POST" action="{{ url_for('admin_toggle_category', slug=category.slug) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button class="px-4 py-2 rounded-xl text-xs font-bold {{ 'bg-rose-50 text-rose-700' if category.is_active else 'bg-emerald-50 text-emerald-700' }}">{{ 'השבתה' if category.is_active else 'הפעלה' }}</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

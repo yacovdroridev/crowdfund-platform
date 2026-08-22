@@ -132,6 +132,7 @@
 
         <!-- Quick Post Update Form (Creator) -->
         <form id="post-update-form" action="{{ url_for('add_project_update', slug=project.slug) }}" method="POST" class="hidden bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="text" name="update_title" placeholder="כותרת העדכון..." required class="w-full p-2 text-sm rounded-lg border border-slate-300">
           <textarea name="update_content" rows="3" placeholder="תוכן העדכון לתומכים..." required class="w-full p-2 text-sm rounded-lg border border-slate-300"></textarea>
           <div class="flex justify-end">
@@ -303,6 +304,7 @@
 
     <!-- Pledge Form -->
     <form action="{{ url_for('submit_pledge', slug=project.slug) }}" method="POST" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="reward_id" id="modal-reward-id" value="">
 
       <!-- Amount Section -->
@@ -420,17 +422,17 @@
         </div>
 
         <!-- 4. PayPal Pane -->
-        <div id="pane-paypal" class="hidden p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200 space-y-3">
-          <div class="flex items-center gap-2 text-indigo-900 font-bold text-xs">
-            <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+        <div id="pane-paypal" class="hidden p-4 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
+          <div class="flex items-center gap-2 text-blue-900 font-bold text-xs">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
             <span>תשלום גלובלי מאובטח ב-PayPal</span>
           </div>
-          <p class="text-xs text-indigo-800 leading-relaxed">
+          <p class="text-xs text-blue-800 leading-relaxed">
             מעבר מיידי לחשבון ה-PayPal המאובטח של הפרויקט לתשלום בכרטיס בינלאומי או מיתרת החשבון.
           </p>
-          <div class="bg-white p-3 rounded-xl border border-indigo-200 flex items-center justify-between text-xs">
+          <div class="bg-white p-3 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
             <span class="text-slate-600">יעד חשבון PayPal:</span>
-            <span class="font-mono font-bold text-indigo-900" dir="ltr">{{ project.creator_email or "yacov@drori.org" }}</span>
+            <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_email or "yacov@drori.org" }}</span>
           </div>
         </div>
       </div>

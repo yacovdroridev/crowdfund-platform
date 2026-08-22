@@ -8,6 +8,8 @@ from db import init_db, seed_db, get_db
 def client():
     db_fd, db_path = tempfile.mkstemp()
     os.environ["DATABASE_PATH"] = db_path
+    os.environ["ADMIN_EMAIL"] = "yacov@drori.org"
+    os.environ["ADMIN_INITIAL_PASSWORD"] = "A-very-strong-admin-password-2026!"
     
     # Reload DB config
     import db
@@ -16,6 +18,7 @@ def client():
     seed_db()
 
     app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
     with app.test_client() as client:
         yield client
 
@@ -57,18 +60,24 @@ def test_submit_pledge(client):
         'payment_method': 'bit',
         'greeting_message': 'בהצלחה רבה לפרויקט!',
         'shipping_address': 'הרצל 1, תל אביב'
+        ,'legal_accept': 'on'
     }
     rv = client.post('/project/synapse-guardian-iot/pledge', data=post_data, follow_redirects=True)
     assert rv.status_code == 200
     assert "תודה ענקית על תמיכתך".encode('utf-8') in rv.data
     assert "ביט (Bit)".encode('utf-8') in rv.data
 
-    # Check updated stats
+    # Pending payment requests are not counted before a verified provider webhook.
     rv = client.get('/api/projects/synapse-guardian-iot')
-    assert rv.json['project']['current_amount'] == initial_amount + 60.0
-    assert rv.json['project']['backers_count'] == initial_backers + 1
+    assert rv.json['project']['current_amount'] == initial_amount
+    assert rv.json['project']['backers_count'] == initial_backers
 
 def test_create_project(client):
+    client.post('/register', data={
+        'full_name': 'יעקב דרורי', 'email': 'creator@example.com', 'phone': '0501234567',
+        'password': 'Strong-creator-password-2026!',
+        'password_confirm': 'Strong-creator-password-2026!', 'legal_accept': 'on'
+    })
     post_data = {
         'title': 'רובוט גינון אוטונומי',
         'subtitle': 'מערכת רובוטית חכמה להשקיה וגיזום אוטונומי לגינה',
@@ -86,11 +95,12 @@ def test_create_project(client):
         'reward_amount[]': ['100', '1500'],
         'reward_desc[]': ['תודה רבה', 'רובוט מלא'],
         'reward_delivery[]': ['ינואר 2027', 'מרץ 2027'],
-        'reward_limit[]': ['', '50']
+        'reward_limit[]': ['', '50'],
+        'legal_accept': 'on'
     }
     rv = client.post('/create', data=post_data, follow_redirects=True)
     assert rv.status_code == 200
-    assert "רובוט גינון אוטונומי".encode('utf-8') in rv.data
+    assert "נשלח לאישור מנהל".encode('utf-8') in rv.data
 
 def test_api_endpoints(client):
     # API stats
@@ -110,24 +120,27 @@ def test_dashboard_protection(client):
     assert rv.status_code == 302
     assert '/login' in rv.location
 
-    # Login with admin password
-    rv = client.post('/login', data={'password': 'drori2026'}, follow_redirects=True)
+    # Login with the provisioned admin account
+    rv = client.post('/login', data={
+        'email': 'yacov@drori.org',
+        'password': 'A-very-strong-admin-password-2026!'
+    }, follow_redirects=True)
     assert rv.status_code == 200
     assert "לוח ניהול ומעקב גיוסים".encode('utf-8') in rv.data
 
 def test_edit_project_security(client):
-    # Unauthenticated user visiting edit is redirected to auth
+    # Unauthenticated user visiting edit is redirected to account login.
     rv = client.get('/project/synapse-guardian-iot/edit')
     assert rv.status_code == 302
-    assert '/project/synapse-guardian-iot/auth' in rv.location
+    assert '/login' in rv.location
 
-    # Submit wrong PIN
-    rv = client.post('/project/synapse-guardian-iot/auth', data={'auth_key': 'wrongpin'}, follow_redirects=True)
-    assert "קוד PIN או סיסמה שגויים".encode('utf-8') in rv.data
-
-    # Submit correct PIN
-    rv = client.post('/project/synapse-guardian-iot/auth', data={'auth_key': '202601'}, follow_redirects=True)
+    # The administrator can edit without a legacy project PIN.
+    rv = client.post('/login', data={
+        'email': 'yacov@drori.org',
+        'password': 'A-very-strong-admin-password-2026!'
+    }, follow_redirects=True)
     assert rv.status_code == 200
+    rv = client.get('/project/synapse-guardian-iot/edit')
     assert "עריכת פרטי הפרויקט".encode('utf-8') in rv.data
 
     # Now authorized to post edits
