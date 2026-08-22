@@ -10,12 +10,21 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from werkzeug.security import check_password_hash, generate_password_hash
 from db import get_db, init_db, seed_db
 
+
+def session_cookie_should_be_secure():
+    """Use secure cookies on Render unless an explicit override is supplied."""
+    value = os.environ.get("SESSION_COOKIE_SECURE")
+    if value is None:
+        value = os.environ.get("RENDER", "0")
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.environ.get("SESSION_COOKIE_SECURE", "0") == "1",
+    SESSION_COOKIE_SECURE=session_cookie_should_be_secure(),
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
     CSRF_ENABLED=True,
 )

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from werkzeug.security import check_password_hash
 
-from app import app
+from app import app, session_cookie_should_be_secure
 from db import get_db, init_db, seed_db
 
 
@@ -51,6 +51,15 @@ def login(client, email, password, follow_redirects=True):
         data={"email": email, "password": password},
         follow_redirects=follow_redirects,
     )
+
+
+def test_render_runtime_enables_secure_session_cookies_by_default(monkeypatch):
+    monkeypatch.delenv("SESSION_COOKIE_SECURE", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    assert session_cookie_should_be_secure() is True
+
+    monkeypatch.setenv("SESSION_COOKIE_SECURE", "0")
+    assert session_cookie_should_be_secure() is False
 
 
 def test_render_config_uses_the_admin_password_variable_expected_by_the_app():
