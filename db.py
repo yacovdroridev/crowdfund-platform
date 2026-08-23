@@ -388,43 +388,61 @@ def seed_db():
     (?, 'דיסק פיזי + כרטיס למופע ההשקה', 'עותק דיסק מהודר עם חוברת מילים + כרטיס ישיבה זוגי למופע ההשקה בתל אביב או חיפה.', 180.0, 'אוקטובר 2026', 150, 65, 1, ?);
     """, (proj3_id, now_str, proj3_id, now_str))
 
-    # Seed Project 4: Or Latefila / Kavana Batfila
+    # Seed Project 4: Haor Shebatefila (Headstart 88929)
     end_date_4 = (now + timedelta(days=21)).strftime("%Y-%m-%d %H:%M:%S")
     story_or_latefila = """
-<div class="space-y-6 text-slate-800 leading-relaxed">
+<div class="space-y-6 text-slate-800 leading-relaxed font-sans">
   <div class="bg-amber-50 border border-amber-200/80 rounded-2xl p-6 mb-6">
-    <h3 class="text-xl font-bold text-amber-900 mb-2">להחזיר את הלב אל המילים ואל התפילה</h3>
-    <p class="text-amber-800 text-sm">
-      כולנו מכירים את הרגעים שבהם התפילה הופכת לקריאה מהירה מהשפתיים ולחוץ, כשהמחשבות נודדות וחסר החיבור העמוק. 
-      פרויקט <strong>"אור לתפילה"</strong> נולד מתוך רצון עמוק להחזיר את השקט, המחשבה והכוונה הטהורה אל מילות הסידור והסליחות.
+    <h3 class="text-2xl font-black text-amber-950 mb-3">מחזירים את הלב אל התפילה</h3>
+    <h4 class="text-lg font-bold text-amber-900 mb-2">החזון</h4>
+    <p class="text-amber-900/90 text-sm leading-relaxed mb-3">
+      <strong>האור שבתפילה</strong> נולד מתוך רצון לחבר מחדש בין חכמת התפילה היהודית לבין הכלים של העולם המודרני: מדיטציה, נשימה, התבוננות ועבודה עם הנפש.
+    </p>
+    <p class="text-amber-900/90 text-sm leading-relaxed">
+      המטרה היא להפוך את התפילה מחוויה של אמירת מילים בלבד, למרחב חי של חיבור, מודעות, צמיחה וריפוי - מקום שאפשר לעצור בו, לנשום, להקשיב ולהתחבר.
     </p>
   </div>
 
-  <h3 class="text-2xl font-bold text-slate-900">מה כולל הפרויקט?</h3>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-      <div class="text-emerald-600 font-bold text-base mb-1">🎙️ חדר שידור ומפגשים חיים</div>
-      <p class="text-xs text-slate-600">וובינרים יומיים פעמיים ביום (10:00 בבוקר ו-20:00 בערב) ללימוד, כוונה משותפת והכנה לימים הנוראים.</p>
-    </div>
-    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-      <div class="text-indigo-600 font-bold text-base mb-1">📱 אפליקציית כוונה והתבוננות</div>
-      <p class="text-xs text-slate-600">פיתוח אפליקציה מתקדמת עם כוונות מילים, התבוננות באותיות, צלילי רקע מרגיעים ותרגול נשימה בתפילה.</p>
-    </div>
+  <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+    <h3 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+      <span class="text-emerald-600">📖</span> מה כולל הפרויקט?
+    </h3>
+    <ul class="list-disc list-inside space-y-2 text-sm text-slate-700 font-medium">
+      <li><strong>הספר:</strong> מדיטציה יהודית דרך הסידור</li>
+      <li><strong>אפליקציית מובייל:</strong> כוונות מילים, התבוננות באותיות, צלילי רקע מרגיעים ותרגול נשימה בתפילה.</li>
+      <li><strong>חדר שידור ומפגשים חיים:</strong> ללימוד, כוונה משותפת והכנה לימים הנוראים.</li>
+    </ul>
   </div>
 
-  <h3 class="text-2xl font-bold text-slate-900">מבט אל מתוך האפליקציה וחדר השידור</h3>
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-4">
-    <img src="/static/images/tefila_screen_1.png" alt="מסך כוונה בתפילה" class="rounded-2xl border border-slate-200 shadow-md w-full object-cover">
-    <img src="/static/images/tefila_screen_2.png" alt="מסך התבוננות והעמקה" class="rounded-2xl border border-slate-200 shadow-md w-full object-cover">
+  <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3">
+    <h3 class="text-2xl font-bold text-slate-900">למה דווקא עכשיו?</h3>
+    <p class="text-sm text-slate-700 leading-relaxed">
+      אנחנו חיים בעולם רועש ומהיר, מלא בהסחות דעת, עומס וחיפוש אחר משמעות. יותר ויותר אנשים כמהים לעצור לרגע, לנוח ולהרגיש מחוברים לעצמם, לאחרים ולמשהו גדול מהם.
+    </p>
+    <p class="text-sm text-slate-700 leading-relaxed">
+      התפילה היהודית היא מתנה עמוקה שנמצאת איתנו כבר אלפי שנים. אבל רבים מאיתנו מעולם לא למדו איך להרגיש אותה.
+    </p>
+    <p class="text-sm font-semibold text-emerald-800 bg-emerald-50 p-4 rounded-xl border border-emerald-200/80">
+      <strong>האור שבתפילה</strong> מבקש לפתוח מחדש את השער הזה ולגלות שבתוך המילים העתיקות של הסידור מסתתרת דרך עמוקה ורלוונטית לחיים שלנו כאן ועכשיו.
+    </p>
   </div>
 
-  <h3 class="text-2xl font-bold text-slate-900">למה התמיכה שלכם קריטית עכשיו?</h3>
-  <p>אנחנו נמצאים בימים שלפני חודש אלול והימים הנוראים. הגיוס מאפשר לנו:</p>
-  <ul class="list-disc list-inside space-y-2 text-sm text-slate-700">
-    <li>להפעיל את שרתי השידור החי בחינם לכלל הציבור פעמיים ביום.</li>
-    <li>להשלים את פיתוח אפליקציית המובייל לכוונה בתפילה ולהפיץ אותה ללא עלות לתפוצה רחבה.</li>
-    <li>להקליט קטעי שמע והנחיות כוונה איכותיות באולפן מקצועי.</li>
-  </ul>
+  <div class="bg-emerald-900 text-white p-6 rounded-2xl shadow-md space-y-4">
+    <h3 class="text-2xl font-bold text-emerald-300">מדוע אנו זקוקים לתמיכתכם?</h3>
+    <p class="text-sm leading-relaxed text-emerald-100">
+      הספר כבר נכתב, וכעת בנוסף לשלבי עריכה אחרונים אנו עובדים על אפליקציה שתלווה את הספר ותוסיף לכם תכנים ותספק שקט פנימי.
+    </p>
+    <p class="text-xs font-bold text-emerald-300 uppercase tracking-wider">התמיכה שלכם תאפשר לנו להשלים:</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-emerald-50">
+      <div class="flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl"><span>✔</span> עריכה מקצועית והגהה</div>
+      <div class="flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl"><span>✔</span> עימוד הספר והכנתו לדפוס</div>
+      <div class="flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl"><span>✔</span> הדפסת הספר</div>
+      <div class="flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl"><span>✔</span> והשלמת האפליקציה</div>
+    </div>
+    <p class="text-sm font-bold text-center text-amber-300 pt-2 border-t border-emerald-800">
+      אתם לא רק תומכים בהוצאת ספר. אתם עוזרים להדליק אור ולהחזיר את הלב של העולם אל התפילה.
+    </p>
+  </div>
 </div>
 """
     cursor.execute("""
@@ -435,18 +453,18 @@ def seed_db():
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         'or-latefila',
-        'אור לתפילה: להחזיר את הלב והכוונה אל התפילה והסליחות',
-        'פרויקט קהילתי וטכנולוגי להעמקת הכוונה, חיבור פנימי, שידורים חיים יומיים ואפליקציית מדיטציה והתבוננות בתפילה.',
+        'האור שבתפילה',
+        'לגלות מחדש את התפילה - לעצור, לנשום ולהתחבר. ספר ואפליקציה עם מדיטציה יהודית, השראה ותרגילים יומיים. מסע אישי אל הלב, הנשמה והאור שבתפילה.',
         'community',
-        'מרים ויעקב דרורי',
-        'יוזמי פרויקט "אור לתפילה" וסטודיו SynApse Zero, מפתחים טכנולוגיות בעלות ערך ומשמעות.',
+        'מרים דרורי',
+        'מחברת "האור שבתפילה" - פרויקט להחזרת הלב, הכוונה והשקט אל מילות התפילה.',
         'https://headstart.co.il/image/635954728250575193.jpg',
         'miriam@drori.org',
         '054-8048602',
         'https://headstart.co.il/image/4a17c495-78a7-23b3-b755-5235b6e0c3ea.jpg',
         None,
         story_or_latefila,
-        50000.0,
+        70000.0,
         38450.0,
         148,
         30,
@@ -461,12 +479,20 @@ def seed_db():
     cursor.execute("""
     INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
     VALUES 
-    (?, 'ברכת כוונה דיגיטלית + הקדשה בשידור החי', 'רישום שמכם לברכה בלוח השידור החי של הוובינר היומי + גישה מוקדמת להקלטות המפגשים.', 36.0, 'אלול תשפ"ו (ספטמבר 2026)', NULL, 54, 0, ?),
-    (?, 'מארז כוונות הסליחות והתפילה (PDF + שמע)', 'מדריך דיגיטלי מעוצב לכוונה במילות התפילה + רצועות שמע להרפיה והתבוננות לפני התפילה.', 90.0, 'אלול תשפ"ו (ספטמבר 2026)', NULL, 42, 0, ?),
-    (?, 'גישת פרימיום לכל החיים באפליקציית "כוונה בתפילה"', 'מנוי פרימיום לכל החיים באפליקציה: כל מסלולי הכוונה, צלילי רקע מרגיעים, והתאמה אישית.', 180.0, 'תשרי תשפ"ז (אוקטובר 2026)', 200, 38, 0, ?),
-    (?, 'מפגש סדנה אישי בזום + הקדשת שידור בלעדית', 'השתתפות בסדנת עומק אינטימית על סודות הכוונה והתפילה + הקדשת שידור שלם לרפואה/הצלחה/לעילוי נשמת יקירכם.', 360.0, 'אלול תשפ"ו (ספטמבר 2026)', 30, 11, 0, ?),
-    (?, 'שותף אור וחסות ראשית בפרויקט', 'חסות רשמית בראש חדר השידור ובאפליקציה, תעודת הוקרה מהודרת ממוסגרת, וכל התשורות הקודמות.', 1000.0, 'אלול תשפ"ו (ספטמבר 2026)', 10, 3, 1, ?);
-    """, (proj4_id, now_str, proj4_id, now_str, proj4_id, now_str, proj4_id, now_str, proj4_id, now_str))
+    (?, 'טעימה מהדרך', '📱 הספר הדיגיטלי המלא "האור שבתפילה".', 18.0, 'ספטמבר 2026', NULL, 12, 0, ?),
+    (?, 'ברכת האור', '📱 הספר הדיגיטלי המלא + ברכה אישית מוקלטת והצטרפות לקהילת התומכים.', 36.0, 'ספטמבר 2026', NULL, 28, 0, ?),
+    (?, 'מייסד שותף', '📱 הספר הדיגיטלי + 🎧 סדרת מדיטציות מודרכות + 🎫 חוברת כרטיסי השראה דיגיטליים + 💬 הצטרפות לקבוצת הוואטסאפ עם תכנים יומיים.', 72.0, 'ספטמבר 2026', NULL, 45, 0, ?),
+    (?, 'שותף לאור', '📖 הספר המודפס בכריכה איכותית + 📱 הספר הדיגיטלי + 💬 קבוצת התוכן היומית.', 118.0, 'אוקטובר 2026', NULL, 62, 1, ?),
+    (?, 'חווית האור', '📖 הספר המודפס + 📱 הספר הדיגיטלי + 🎧 ספריית מדיטציות + 🎫 כרטיסי השראה דיגיטליים + 📱 גישה לאפליקציה לשנה שלמה.', 180.0, 'אוקטובר 2026', NULL, 34, 1, ?),
+    (?, 'שותפים לדרך', '📖📖 2 ספרים מודפסים + 📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים + 💛 הקדשה אישית.', 360.0, 'אוקטובר 2026', NULL, 19, 1, ?),
+    (?, 'מפיצי אור', '📖📖📖 3 ספרים מודפסים + 📱 גישה מלאה לאפליקציה לשלושה אנשים + 💛 הקדשה אישית.', 540.0, 'אוקטובר 2026', NULL, 14, 1, ?),
+    (?, 'מייסדי האור שבתפילה', '📖📖📖📖📖 5 ספרים מודפסים + 📱 גישה לאפליקציה לחמישה אנשים + 🎧 כל תכני השמע והמדיטציות + 🤝 מפגש אישי/קבוצתי עם המחברת.', 1200.0, 'אוקטובר 2026', NULL, 6, 1, ?),
+    (?, 'שותף פרימיום', '📖📖📖📖📖📖📖📖📖📖 10 ספרים מודפסים + 📱 גישה מלאה לאפליקציה ל-10 אנשים + 🎧 כל תכני השמע והמדיטציות + 🤝 מפגש אישי/קבוצתי עם המחברת.', 1800.0, 'אוקטובר 2026', NULL, 3, 1, ?);
+    """, (
+        proj4_id, now_str, proj4_id, now_str, proj4_id, now_str,
+        proj4_id, now_str, proj4_id, now_str, proj4_id, now_str,
+        proj4_id, now_str, proj4_id, now_str, proj4_id, now_str
+    ))
 
     cursor.execute("""
     INSERT INTO updates (project_id, title, content, author, created_at)
