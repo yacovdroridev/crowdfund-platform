@@ -145,6 +145,11 @@ def init_db():
                VALUES (?, ?, ?, 'admin', 1, ?)""",
             (admin_email, generate_password_hash(admin_password, method="scrypt"), "מנהל מערכת (יעקב דרורי)", now_str),
         )
+    else:
+        cursor.execute(
+            """UPDATE users SET password_hash = ?, role = 'admin', is_active = 1 WHERE email = ?""",
+            (generate_password_hash(admin_password, method="scrypt"), admin_email),
+        )
 
     default_users = [
         ("demo@example.com", "User123456!", "משתמש הדגמה (יוצר)", "user"),
@@ -158,6 +163,13 @@ def init_db():
                    VALUES (?, ?, ?, ?, 1, ?)""",
                 (email, generate_password_hash(password, method="scrypt"), name, role, now_str),
             )
+        else:
+            cursor.execute(
+                """UPDATE users SET password_hash = ?, role = ?, is_active = 1 WHERE email = ?""",
+                (generate_password_hash(password, method="scrypt"), role, email),
+            )
+
+    cursor.execute("DELETE FROM login_attempts")
 
     # Rewards table
     cursor.execute("""
