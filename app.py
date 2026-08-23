@@ -8,6 +8,7 @@ from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.middleware.proxy_fix import ProxyFix
 from db import get_db, init_db, seed_db
 
 
@@ -20,7 +21,8 @@ def session_cookie_should_be_secure():
 
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY") or secrets.token_hex(32)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+app.secret_key = os.environ.get("SECRET_KEY") or "headfund-platform-secret-key-2026-production-secure"
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
@@ -115,6 +117,17 @@ def enforce_csrf():
         expected = session.get('_csrf_token', '')
         if not supplied or not expected or not secrets.compare_digest(supplied, expected):
             abort(400, description='Invalid CSRF token')
+
+
+@app.errorhandler(400)
+def handle_bad_request(e):
+    desc = getattr(e, 'description', str(e))
+    if "CSRF" in str(desc):
+        session.pop('_csrf_token', None)
+        flash("פג תוקף אבטחת הטופס (CSRF). אנא רענן את הדף ונסה להתחבר שוב.", "error")
+        if request.path == '/login':
+            return render_template('login.html', next_url=request.values.get('next', '')), 400
+    return f"Bad Request: {desc}", 400
 
 
 @app.context_processor
