@@ -152,6 +152,7 @@ def init_db():
         )
 
     default_users = [
+        ("admin@example.com", "Admin123456!", "מנהל מערכת (הדגמה)", "admin"),
         ("demo@example.com", "User123456!", "משתמש הדגמה (יוצר)", "user"),
         ("backer@example.com", "User123456!", "תומך הדגמה", "user"),
     ]
