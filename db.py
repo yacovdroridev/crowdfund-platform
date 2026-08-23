@@ -137,14 +137,27 @@ def init_db():
     )
 
     admin_email = os.environ.get("ADMIN_EMAIL", "yacov@drori.org").strip().lower()
-    admin_password = os.environ.get("ADMIN_INITIAL_PASSWORD", "")
-    if admin_password and not cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,)).fetchone():
+    admin_password = os.environ.get("ADMIN_INITIAL_PASSWORD", "").strip() or "Admin123456!"
+    if not cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,)).fetchone():
         cursor.execute(
             """INSERT INTO users
                (email, password_hash, full_name, role, is_active, created_at)
                VALUES (?, ?, ?, 'admin', 1, ?)""",
-            (admin_email, generate_password_hash(admin_password, method="scrypt"), "יעקב דרורי", now_str),
+            (admin_email, generate_password_hash(admin_password, method="scrypt"), "מנהל מערכת (יעקב דרורי)", now_str),
         )
+
+    default_users = [
+        ("demo@example.com", "User123456!", "משתמש הדגמה (יוצר)", "user"),
+        ("backer@example.com", "User123456!", "תומך הדגמה", "user"),
+    ]
+    for email, password, name, role in default_users:
+        if not cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone():
+            cursor.execute(
+                """INSERT INTO users
+                   (email, password_hash, full_name, role, is_active, created_at)
+                   VALUES (?, ?, ?, ?, 1, ?)""",
+                (email, generate_password_hash(password, method="scrypt"), name, role, now_str),
+            )
 
     # Rewards table
     cursor.execute("""
