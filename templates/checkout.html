@@ -89,10 +89,14 @@
       <h3 class="text-base font-black text-slate-900 border-b border-slate-100 pb-2">3. אמצעי תשלום</h3>
       <input type="hidden" name="payment_method" id="co-payment-method" value="credit_card">
 
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
         <button type="button" onclick="selectCoMethod('credit_card')" id="co-btn-credit_card" class="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">💳</span>
           <span>כרטיס אשראי</span>
+        </button>
+        <button type="button" onclick="selectCoMethod('google_pay')" id="co-btn-google_pay" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+          <span class="text-lg">🌐</span>
+          <span>Google Pay</span>
         </button>
         <button type="button" onclick="selectCoMethod('bit')" id="co-btn-bit" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🔵</span>
@@ -122,6 +126,21 @@
 
         <button type="submit" class="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
           <span>💳 אישור וסליקת כרטיס אשראי עכשיו</span>
+        </button>
+      </div>
+
+      <!-- Google Pay Pane -->
+      <div id="co-pane-google_pay" class="hidden p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-100">
+          <span class="flex items-center gap-1.5"><span class="text-base">🌐</span> תשלום מהיר ב-Google Pay</span>
+          <span class="text-emerald-400 font-mono">🔒 Google Verified</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          תשלום מאובטח ומהיר בלחיצה אחת באמצעות חשבון Google שלכם, ללא צורך בהקלדת פרטי כרטיס.
+        </p>
+
+        <button type="submit" class="w-full py-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+          <span class="text-xl">💳</span> <span>לתשלום ב-Google Pay</span>
         </button>
       </div>
 
@@ -172,7 +191,7 @@
 
   function selectCoMethod(method) {
     document.getElementById('co-payment-method').value = method;
-    ['credit_card', 'bit', 'paybox', 'paypal'].forEach(m => {
+    ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal'].forEach(m => {
       const pane = document.getElementById('co-pane-' + m);
       const btn = document.getElementById('co-btn-' + m);
       if (pane) pane.classList.toggle('hidden', m !== method);

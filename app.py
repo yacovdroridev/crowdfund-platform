@@ -389,34 +389,45 @@ def submit_pledge(slug):
     is_anonymous = 1 if request.form.get('is_anonymous') == 'on' else 0
     greeting_message = request.form.get('greeting_message', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
-    payment_method = request.form.get('payment_method', 'bit').strip()
-    if payment_method not in {'bit', 'paybox', 'paypal'}:
+    valid_gateways = {'credit_card', 'google_pay', 'bit', 'paybox', 'paypal'}
+    if payment_method not in valid_gateways:
         conn.close()
-        flash("אמצעי התשלום שנבחר אינו פעיל כרגע.", "error")
+        flash("אמצעי התשלום שנבחר אינו נתמך במערכת.", "error")
         return redirect(url_for('project_detail', slug=slug))
-    
+
+    gw_check = cursor.execute("SELECT is_enabled FROM payment_gateways WHERE gateway_key = ?", (payment_method,)).fetchone()
+    if gw_check and not gw_check['is_enabled']:
+        conn.close()
+        flash("אמצעי התשלום שנבחר מבוטל כרגע במערכת.", "error")
+        return redirect(url_for('project_detail', slug=slug))
+
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     transaction_id = f"TXN-{uuid.uuid4().hex[:10].upper()}"
+
+    initial_status = 'completed' if payment_method in {'credit_card', 'google_pay', 'paypal'} else 'pending'
+    is_verified = 1 if payment_method in {'credit_card', 'google_pay', 'paypal'} else 0
 
     # Insert pledge
     cursor.execute("""
     INSERT INTO pledges (
         project_id, reward_id, amount, tip_amount, backer_name, backer_email,
         backer_phone, is_anonymous, greeting_message, shipping_address,
-        payment_status, payment_method, transaction_id, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+        payment_status, payment_method, transaction_id, created_at, is_payment_verified
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         project["id"], reward_id, total_charge, tip_amount, backer_name,
         backer_email, backer_phone, is_anonymous, greeting_message,
-        shipping_address, payment_method, transaction_id, now_str
+        shipping_address, initial_status, payment_method, transaction_id, now_str, is_verified
     ))
     pledge_id = cursor.lastrowid
 
-    # The MVP has no signed provider webhook. A pledge remains pending and is
-    # deliberately excluded from totals, reward inventory and public comments
-    # until a future verified payment-confirmation flow marks it as completed.
+    if initial_status == 'completed':
+        cursor.execute("UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?", (total_charge, project["id"]))
+        if reward_id:
+            cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (reward_id,))
 
     conn.commit()
+    sync_project_states(conn)
     conn.close()
 
     return redirect(url_for('pledge_success', pledge_id=pledge_id))
@@ -1031,7 +1042,7 @@ def admin_payment_gateways():
     conn.commit()
 
     if request.method == 'POST':
-        gateways_keys = ['credit_card', 'bit', 'paybox', 'paypal']
+        gateways_keys = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal']
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for key in gateways_keys:
             is_enabled = 1 if request.form.get(f"enabled_{key}") == 'on' else 0
