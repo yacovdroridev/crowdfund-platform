@@ -104,8 +104,37 @@
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 mb-1">הסיפור המלא של הפרויקט (HTML / טקסט עשיר) *</label>
-          <textarea name="story_html" rows="6" required class="w-full p-3.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none font-sans" placeholder="ספרו על הרקע, למה אתם מגייסים, מה ייחודי במוצר ולמה כדאי לתמוך..."></textarea>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-bold text-slate-700">הסיפור המלא של הפרויקט (עורך טקסט עשיר) *</label>
+            <button type="button" onclick="toggleHtmlMode()" id="btn-toggle-html" class="text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg border border-slate-300 transition-colors flex items-center gap-1">
+              <span>‹/› הצג קוד HTML</span>
+            </button>
+          </div>
+
+          <!-- Rich Text Formatting Toolbar -->
+          <div id="rte-toolbar" class="bg-slate-100 p-2.5 rounded-t-2xl border border-slate-300 border-b-0 flex flex-wrap items-center gap-1.5 text-xs font-bold text-slate-700">
+            <button type="button" onclick="formatRte('bold')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="מודגש (Bold)"><b>B</b></button>
+            <button type="button" onclick="formatRte('italic')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="נטוי (Italic)"><i>I</i></button>
+            <button type="button" onclick="formatRte('underline')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="קו תחתון"><u>U</u></button>
+            <span class="h-4 w-px bg-slate-300 mx-1"></span>
+            <button type="button" onclick="formatRte('h2')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="כותרת גדולה (H2)">H2</button>
+            <button type="button" onclick="formatRte('h3')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="כותרת משנה (H3)">H3</button>
+            <button type="button" onclick="formatRte('p')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="פסקה רגילה">P</button>
+            <span class="h-4 w-px bg-slate-300 mx-1"></span>
+            <button type="button" onclick="formatRte('ul')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="רשימת תבליטים">• רשימה</button>
+            <button type="button" onclick="formatRte('ol')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="רשימה ממוספרת">1. רשימה</button>
+            <button type="button" onclick="formatRte('quote')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors" title="ציטוט">” ציטוט</button>
+            <span class="h-4 w-px bg-slate-300 mx-1"></span>
+            <button type="button" onclick="formatRte('link')" class="p-1.5 px-2.5 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 shadow-sm transition-colors text-emerald-700" title="הוסף קישור">🔗 קישור</button>
+            <button type="button" onclick="formatRte('clear')" class="p-1.5 px-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors" title="נקה עיצוב">🧹 נקה עיצוב</button>
+          </div>
+
+          <!-- WYSIWYG Contenteditable Area -->
+          <div id="rte-editor" contenteditable="true" oninput="syncRteToTextarea()" class="w-full min-h-[220px] p-4 rounded-b-2xl border border-slate-300 bg-white text-sm text-slate-800 leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500 prose prose-slate max-w-none">
+          </div>
+
+          <!-- Hidden / Toggleable Textarea for Raw HTML -->
+          <textarea id="story_html_textarea" name="story_html" rows="8" oninput="syncTextareaToRte()" required class="hidden w-full p-4 rounded-2xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-900 text-slate-100" placeholder="ספרו על הרקע, למה אתם מגייסים, מה ייחודי במוצר ולמה כדאי לתמוך..."></textarea>
         </div>
       </div>
     </div>
@@ -248,5 +277,70 @@
     container.appendChild(newTier);
     lucide.createIcons();
   }
+
+  function formatRte(cmd) {
+    const editor = document.getElementById('rte-editor');
+    editor.focus();
+    if (cmd === 'h2') {
+      document.execCommand('formatBlock', false, '<h2>');
+    } else if (cmd === 'h3') {
+      document.execCommand('formatBlock', false, '<h3>');
+    } else if (cmd === 'p') {
+      document.execCommand('formatBlock', false, '<p>');
+    } else if (cmd === 'quote') {
+      document.execCommand('formatBlock', false, '<blockquote>');
+    } else if (cmd === 'ul') {
+      document.execCommand('insertUnorderedList');
+    } else if (cmd === 'ol') {
+      document.execCommand('insertOrderedList');
+    } else if (cmd === 'link') {
+      const url = prompt('הכנס כתובת URL לקישור:', 'https://');
+      if (url) document.execCommand('createLink', false, url);
+    } else if (cmd === 'clear') {
+      document.execCommand('removeFormat');
+    } else {
+      document.execCommand(cmd);
+    }
+    syncRteToTextarea();
+  }
+
+  function syncRteToTextarea() {
+    const editor = document.getElementById('rte-editor');
+    const textarea = document.getElementById('story_html_textarea');
+    textarea.value = editor.innerHTML;
+  }
+
+  function syncTextareaToRte() {
+    const editor = document.getElementById('rte-editor');
+    const textarea = document.getElementById('story_html_textarea');
+    editor.innerHTML = textarea.value;
+  }
+
+  function toggleHtmlMode() {
+    const editor = document.getElementById('rte-editor');
+    const toolbar = document.getElementById('rte-toolbar');
+    const textarea = document.getElementById('story_html_textarea');
+    const btn = document.getElementById('btn-toggle-html');
+
+    if (textarea.classList.contains('hidden')) {
+      syncRteToTextarea();
+      textarea.classList.remove('hidden');
+      editor.classList.add('hidden');
+      toolbar.classList.add('hidden');
+      btn.innerHTML = '✨ הצג עורך טקסט חזותי';
+      btn.className = 'text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1 rounded-lg border border-emerald-300 transition-colors';
+    } else {
+      syncTextareaToRte();
+      textarea.classList.add('hidden');
+      editor.classList.remove('hidden');
+      toolbar.classList.remove('hidden');
+      btn.innerHTML = '‹/› הצג קוד HTML';
+      btn.className = 'text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-lg border border-slate-300 transition-colors';
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    syncTextareaToRte();
+  });
 </script>
 {% endblock %}

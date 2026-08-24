@@ -220,7 +220,12 @@ def calculate_project_metrics(project):
 
     p["category_label"] = CATEGORIES.get(p.get("category"), "כללי")
     raw_video = p.get("video_url")
-    p["video_url"] = format_youtube_embed(raw_video)
+    if raw_video and str(raw_video).strip() and str(raw_video).strip().lower() not in ('none', 'null'):
+        p["video_url"] = str(raw_video).strip()
+        p["video_embed_url"] = format_youtube_embed(str(raw_video).strip())
+    else:
+        p["video_url"] = None
+        p["video_embed_url"] = None
     return p
 
 # --- HTML Routes ---
@@ -607,7 +612,7 @@ def edit_project(slug):
         uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
         cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or project['cover_image']
 
-        video_url = format_youtube_embed(request.form.get('video_url', ''))
+        video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         cursor.execute("""
@@ -708,7 +713,7 @@ def create_project():
 
         uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
         cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
-        video_url = format_youtube_embed(request.form.get('video_url', ''))
+        video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         # Generate slug
