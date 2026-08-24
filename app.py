@@ -422,14 +422,47 @@ def submit_pledge(slug):
     ))
     pledge_id = cursor.lastrowid
 
-    if initial_status == 'completed':
-        cursor.execute("UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?", (total_charge, project["id"]))
-        if reward_id:
-            cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (reward_id,))
+    payme_sale_url = None
+    if payment_method in {'credit_card', 'google_pay'}:
+        gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
+        seller_id = (gw_row['account_identifier'] if gw_row else None) or os.environ.get("PAYME_API_KEY", "")
+        if seller_id:
+            try:
+                import urllib.request
+                import json as json_lib
+                is_sandbox = gw_row['sandbox_mode'] if gw_row else 1
+                endpoint_url = "https://sandbox.payme.io/api/generate-sale" if is_sandbox else "https://ng.payme.io/api/generate-sale"
+
+                payload = {
+                    "seller_payme_id": seller_id,
+                    "sale_price": int(round(total_charge * 100)),
+                    "currency": "ILS",
+                    "product_name": f"תמיכה בפרויקט {project['title']}",
+                    "transaction_id": transaction_id,
+                    "installments": "1",
+                    "language": "he",
+                    "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True)
+                }
+                req = urllib.request.Request(
+                    endpoint_url,
+                    data=json_lib.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'application/json'}
+                )
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    resp_data = json_lib.loads(resp.read().decode('utf-8'))
+                    if resp_data.get("sale_url"):
+                        payme_sale_url = resp_data["sale_url"]
+                    elif resp_data.get("payme_sale_id"):
+                        cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
+            except Exception as ex:
+                print(f"PayMe API connection note: {ex}")
 
     conn.commit()
     sync_project_states(conn)
     conn.close()
+
+    if payme_sale_url:
+        return redirect(payme_sale_url)
 
     return redirect(url_for('pledge_success', pledge_id=pledge_id))
 

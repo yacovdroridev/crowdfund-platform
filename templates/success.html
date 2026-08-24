@@ -122,8 +122,10 @@
             🩵 פייבוקס (PayBox)
           {% elif pledge.payment_method == 'paypal' %}
             🅿️ PayPal
+          {% elif pledge.payment_method == 'google_pay' %}
+            🌐 Google Pay
           {% else %}
-            💳 כרטיס אשראי / Paperless
+            💳 כרטיס אשראי (PayMe API)
           {% endif %}
         </span>
       </div>
