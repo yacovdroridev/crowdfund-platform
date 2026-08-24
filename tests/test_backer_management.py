@@ -158,3 +158,58 @@ def test_guest_does_not_see_management_buttons():
     os.close(db_fd)
     if os.path.exists(db_path):
         os.unlink(db_path)
+
+def test_admin_payment_gateways_restricted_to_super_admin():
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_PATH"] = db_path
+    db.DB_PATH = db_path
+    db.init_db()
+    db.seed_db()
+
+    app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
+    with app.test_client() as client:
+        # Unauthenticated access redirected
+        rv = client.get('/admin/payment-gateways')
+        assert rv.status_code == 302
+
+        # Super admin login
+        client.post('/login', data={'email': 'yacov@drori.org', 'password': 'Admin123456!'}, follow_redirects=True)
+        rv = client.get('/admin/payment-gateways')
+        assert rv.status_code == 200
+        assert "ניהול אמצעי סליקה".encode('utf-8') in rv.data
+
+        # Post update
+        post_data = {
+            'enabled_credit_card': 'on',
+            'ident_credit_card': 'TERM-8800',
+            'sandbox_credit_card': 'on',
+            'instructions_credit_card': 'סליקה בדיקתית'
+        }
+        rv = client.post('/admin/payment-gateways', data=post_data, follow_redirects=True)
+        assert rv.status_code == 200
+        assert "עודכנו בהצלחה במערכת".encode('utf-8') in rv.data
+
+    os.close(db_fd)
+    if os.path.exists(db_path):
+        os.unlink(db_path)
+
+def test_standalone_checkout_page_renders_with_pay_button():
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_PATH"] = db_path
+    db.DB_PATH = db_path
+    db.init_db()
+    db.seed_db()
+
+    app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
+    with app.test_client() as client:
+        rv = client.get('/project/or-latefila/checkout')
+        assert rv.status_code == 200
+        assert "עמוד תשלום וסליקה מאובטח".encode('utf-8') in rv.data
+        assert "אישור וביצוע תשלום עכשיו".encode('utf-8') in rv.data
+
+    os.close(db_fd)
+    if os.path.exists(db_path):
+        os.unlink(db_path)
+

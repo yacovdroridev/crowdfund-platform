@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}תשלום וסליקה: {{ project.title }} | HeadFund{% endblock %}
+
+{% block content %}
+<section class="max-w-3xl mx-auto px-4 sm:px-6 py-10 space-y-8" dir="rtl">
+
+  <!-- Header Card -->
+  <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-3 text-right">
+    <a href="{{ url_for('project_detail', slug=project.slug) }}" class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-lg border border-emerald-200">
+      ‹ חזרה לדף הפרויקט
+    </a>
+    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-3">
+      <span>💳 עמוד תשלום וסליקה מאובטח</span>
+    </h1>
+    <p class="text-slate-600 text-xs sm:text-sm">הזנת פרטי תמיכה, בחירת תשורה וביצוע סליקה ישירה מאובטחת</p>
+  </div>
+
+  <!-- Form -->
+  <form action="{{ url_for('submit_pledge', slug=project.slug) }}" method="POST" class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-lg space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <!-- 1. Reward & Amount Selection -->
+    <div class="space-y-4">
+      <h3 class="text-base font-black text-slate-900 border-b border-slate-100 pb-2">1. בחירת תשורה וסכום תמיכה</h3>
+      
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">תשורה נבחרת</label>
+        <select name="reward_id" id="checkout-reward-select" onchange="updateCheckoutAmount(this)" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <option value="" data-amount="50">תמיכה חופשית בפרויקט (ללא תשורה)</option>
+          {% for r in rewards %}
+            <option value="{{ r.id }}" data-amount="{{ r.amount }}" {% if selected_reward and selected_reward.id == r.id %}selected{% endif %}>
+              {{ r.title }} (₪{{ "{:,.0f}".format(r.amount) }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">סכום התשורה (₪) *</label>
+          <input type="number" name="amount" id="checkout-amount" value="{{ selected_reward.amount if selected_reward else 50 }}" required min="1" class="w-full p-3 rounded-xl border border-slate-300 font-mono font-black text-slate-900 text-base focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">תוספת טיפ / תמיכה לפלטפורמה (₪)</label>
+          <input type="number" name="tip_amount" id="checkout-tip" value="0" min="0" class="w-full p-3 rounded-xl border border-slate-300 font-mono font-bold text-slate-900 text-base focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Backer Information -->
+    <div class="space-y-4 pt-4 border-t border-slate-100">
+      <h3 class="text-base font-black text-slate-900 border-b border-slate-100 pb-2">2. פרטי התומך</h3>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">שם מלא *</label>
+        <input type="text" name="backer_name" placeholder="ישראל ישראלי" required value="{{ current_user.full_name if current_user else '' }}" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">דוא"ל לקבלת קבלה ואישור *</label>
+          <input type="email" name="backer_email" dir="ltr" placeholder="you@domain.com" required value="{{ current_user.email if current_user else '' }}" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">טלפון נייד</label>
+          <input type="tel" name="backer_phone" dir="ltr" placeholder="050-1234567" value="{{ current_user.phone if current_user and current_user.phone else '' }}" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">כתובת למשלוח (עבור תשורות פיזיות)</label>
+        <input type="text" name="shipping_address" placeholder="רחוב, מספר בית, עיר, מיקוד" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">ברכה אישית ליוזם (תופיע בדף הפרויקט)</label>
+        <textarea name="greeting_message" rows="2" placeholder="בהצלחה רבה בפרויקט המבורך!" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input type="checkbox" name="is_anonymous" id="chk_anon" class="w-4 h-4 text-emerald-600 rounded">
+        <label for="chk_anon" class="text-xs text-slate-600 cursor-pointer">הצג את התמיכה שלי בעילום שם (תומך אנונימי)</label>
+      </div>
+    </div>
+
+    <!-- 3. Payment Method Selection -->
+    <div class="space-y-4 pt-4 border-t border-slate-100">
+      <h3 class="text-base font-black text-slate-900 border-b border-slate-100 pb-2">3. אמצעי תשלום</h3>
+      <input type="hidden" name="payment_method" id="co-payment-method" value="credit_card">
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button type="button" onclick="selectCoMethod('credit_card')" id="co-btn-credit_card" class="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-xs flex flex-col items-center gap-1">
+          <span class="text-lg">💳</span>
+          <span>כרטיס אשראי</span>
+        </button>
+        <button type="button" onclick="selectCoMethod('bit')" id="co-btn-bit" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+          <span class="text-lg">🔵</span>
+          <span>ביט (Bit)</span>
+        </button>
+        <button type="button" onclick="selectCoMethod('paybox')" id="co-btn-paybox" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+          <span class="text-lg">🩵</span>
+          <span>פייבוקס</span>
+        </button>
+        <button type="button" onclick="selectCoMethod('paypal')" id="co-btn-paypal" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+          <span class="text-lg">🅿️</span>
+          <span>PayPal</span>
+        </button>
+      </div>
+
+      <!-- Credit Card Pane -->
+      <div id="co-pane-credit_card" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+        <div class="flex items-center justify-between text-xs font-bold text-slate-800">
+          <span>פרטי כרטיס אשראי (סליקה מאובטחת Paperless/SSL)</span>
+          <span class="text-emerald-600 font-mono">🔒 SSL 256-bit</span>
+        </div>
+        <input type="text" dir="ltr" placeholder="4580 0000 0000 0000" value="4580 1234 5678 9012" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono">
+        <div class="grid grid-cols-2 gap-2">
+          <input type="text" dir="ltr" placeholder="MM/YY" value="12/28" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
+          <input type="text" dir="ltr" placeholder="CVV" value="770" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
+        </div>
+      </div>
+
+      <!-- Bit Pane -->
+      <div id="co-pane-bit" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
+        <div class="font-bold">תשלום ישיר באפליקציית ביט (Bit)</div>
+        <p>בלחיצה על אישור תועבר לביצוע העברה למספר: <strong dir="ltr" class="font-mono">{{ project.creator_phone or '054-8048602' }}</strong></p>
+      </div>
+
+      <!-- PayBox Pane -->
+      <div id="co-pane-paybox" class="hidden p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-2 text-xs text-sky-900">
+        <div class="font-bold">תשלום בקבוצת פייבוקס (PayBox)</div>
+        <p>קבוצת PayBox של הקמפיין: <strong dir="ltr" class="font-mono">{{ project.creator_phone or '054-8048602' }}</strong></p>
+      </div>
+
+      <!-- PayPal Pane -->
+      <div id="co-pane-paypal" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
+        <div class="font-bold">סליקת PayPal גלובלית</div>
+        <p>חשבון מקבל: <strong dir="ltr" class="font-mono">{{ project.creator_email or 'miriam@drori.org' }}</strong></p>
+      </div>
+    </div>
+
+    <!-- 4. Terms Acceptance -->
+    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-3">
+      <input type="checkbox" name="legal_accept" value="on" id="co_legal_accept" checked required class="mt-0.5 w-4 h-4 text-emerald-600 rounded">
+      <label for="co_legal_accept" class="text-xs text-slate-700 leading-relaxed cursor-pointer">
+        אני מאשר/ת את <a href="{{ url_for('legal_document', document='backer_terms') }}" target="_blank" class="text-emerald-700 underline font-bold">תנאי התומכים</a> ואת <a href="{{ url_for('legal_document', document='privacy') }}" target="_blank" class="text-emerald-700 underline font-bold">מדיניות הפרטיות</a> *
+      </label>
+    </div>
+
+    <!-- 5. Large Prominent Submit Button -->
+    <div class="pt-4">
+      <button type="submit" id="btn-co-submit" class="w-full py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2">
+        <span>אישור וביצוע תשלום עכשיו 💳</span>
+      </button>
+    </div>
+  </form>
+</section>
+
+<script>
+  function updateCheckoutAmount(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const amount = opt.getAttribute('data-amount');
+    if (amount) {
+      document.getElementById('checkout-amount').value = amount;
+    }
+  }
+
+  function selectCoMethod(method) {
+    document.getElementById('co-payment-method').value = method;
+    ['credit_card', 'bit', 'paybox', 'paypal'].forEach(m => {
+      const pane = document.getElementById('co-pane-' + m);
+      const btn = document.getElementById('co-btn-' + m);
+      if (pane) pane.classList.toggle('hidden', m !== method);
+      if (btn) {
+        if (m === method) {
+          btn.className = "p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-xs flex flex-col items-center gap-1 shadow-sm";
+        } else {
+          btn.className = "p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1";
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

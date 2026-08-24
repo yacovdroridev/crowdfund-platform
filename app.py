@@ -983,6 +983,77 @@ def delete_project_update(slug, update_id):
     return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
 
 
+@app.route('/project/<slug>/checkout', methods=['GET'])
+def checkout_page(slug):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    p = cursor.fetchone()
+    if not p or not p['is_active']:
+        conn.close()
+        abort(404)
+    project = calculate_project_metrics(p)
+    cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project['id'],))
+    rewards = [dict(r) for r in cursor.fetchall()]
+
+    selected_reward_id = request.args.get('reward_id')
+    selected_reward = None
+    if selected_reward_id and selected_reward_id.isdigit():
+        for r in rewards:
+            if r['id'] == int(selected_reward_id):
+                selected_reward = r
+                break
+
+    cursor.execute("SELECT * FROM payment_gateways WHERE is_enabled = 1 ORDER BY id ASC")
+    gateways = [dict(g) for g in cursor.fetchall()]
+    conn.close()
+
+    return render_template(
+        'checkout.html',
+        project=project,
+        rewards=rewards,
+        selected_reward=selected_reward,
+        gateways=gateways
+    )
+
+
+@app.route('/admin/payment-gateways', methods=['GET', 'POST'])
+def admin_payment_gateways():
+    if not is_admin():
+        flash("גישה לעמוד זה מורשית למנהל מערכת ראשי בלבד.", "error")
+        return redirect(url_for('index'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        gateways_keys = ['credit_card', 'bit', 'paybox', 'paypal']
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for key in gateways_keys:
+            is_enabled = 1 if request.form.get(f"enabled_{key}") == 'on' else 0
+            sandbox = 1 if request.form.get(f"sandbox_{key}") == 'on' else 0
+            ident = request.form.get(f"ident_{key}", "").strip()
+            instructions = request.form.get(f"instructions_{key}", "").strip()
+
+            cursor.execute("""
+                UPDATE payment_gateways SET
+                    is_enabled = ?,
+                    account_identifier = ?,
+                    sandbox_mode = ?,
+                    instructions = ?,
+                    updated_at = ?
+                WHERE gateway_key = ?
+            """, (is_enabled, ident, sandbox, instructions, now_str, key))
+        conn.commit()
+        flash("הגדרות אמצעי הסליקה עודכנו בהצלחה במערכת.", "success")
+
+    cursor.execute("SELECT * FROM payment_gateways ORDER BY id ASC")
+    gateways = [dict(g) for g in cursor.fetchall()]
+    conn.close()
+
+    return render_template('admin_payment_gateways.html', gateways=gateways)
+
+
 # --- Backer Management, Fulfillment & Payment Sandbox ---
 
 @app.route('/project/<slug>/manage/backers', methods=['GET'])

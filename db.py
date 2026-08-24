@@ -263,6 +263,33 @@ def init_db():
     );
     """)
 
+    # Payment Gateways config table (Super Admin only)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS payment_gateways (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gateway_key TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL,
+        is_enabled BOOLEAN NOT NULL DEFAULT 1,
+        account_identifier TEXT,
+        sandbox_mode BOOLEAN NOT NULL DEFAULT 1,
+        instructions TEXT,
+        updated_at TEXT
+    );
+    """)
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    default_gateways = [
+        ('credit_card', 'סליקת כרטיסי אשראי (Paperless / SSL)', 1, 'TERM-770192', 1, 'סליקת כרטיסי ויזה, מאסטרקארד, ישראכרט ו-AMEX מאובטחת SSL 256-bit'),
+        ('bit', 'תשלום באפליקציית ביט (Bit)', 1, '054-8048602', 0, 'העברה ישירה באפליקציית Bit למספר הטלפון של הפרויקט'),
+        ('paybox', 'תשלום בקבוצת פייבוקס (PayBox)', 1, '054-8048602', 0, 'תשלום בקבוצת PayBox של הקמפיין'),
+        ('paypal', 'תשלום מאובטח ב-PayPal', 1, 'miriam@drori.org', 1, 'סליקה גלובלית בחשבון PayPal')
+    ]
+    for key, name, enabled, ident, sandbox, inst in default_gateways:
+        cursor.execute("""
+            INSERT OR IGNORE INTO payment_gateways (gateway_key, display_name, is_enabled, account_identifier, sandbox_mode, instructions, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (key, name, enabled, ident, sandbox, inst, now_str))
+
     conn.commit()
     conn.close()
 
