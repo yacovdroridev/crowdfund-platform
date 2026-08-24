@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>מדבקות משלוח להדפסה - {{ project.title }}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Heebo', system-ui, sans-serif;
+      background-color: #f8fafc;
+    }
+    @media print {
+      body {
+        background-color: #ffffff;
+        padding: 0;
+        margin: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-after: always;
+      }
+      .label-card {
+        border: 1px solid #cbd5e1 !important;
+        break-inside: avoid;
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="p-6">
+
+  <!-- Printable Header Controls -->
+  <div class="no-print max-w-4xl mx-auto mb-8 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <div>
+      <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
+        <span>🏷️ מדבקות משלוח להדפסה</span>
+        <span class="text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-md">{{ project.title }}</span>
+      </h1>
+      <p class="text-xs text-slate-500 mt-1">נבחרו {{ pledges|length }} מדבקות משלוח. לחצו על כפתור ההדפסה למעבר לתצוגת הדפסה מותאמת.</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button onclick="window.print()" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-colors flex items-center gap-2 cursor-pointer">
+        <span>🖨️ הדפס מדבקות עכשיו</span>
+      </button>
+      <button onclick="window.close()" class="px-4 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+        סגירה
+      </button>
+    </div>
+  </div>
+
+  <!-- Shipping Sticker Sheet Grid -->
+  <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for p in pledges %}
+      <div class="label-card bg-white p-5 rounded-2xl border-2 border-slate-300 shadow-sm relative space-y-3 flex flex-col justify-between">
+        
+        <!-- Top Sticker Header -->
+        <div class="border-b border-slate-200 pb-2.5 flex items-center justify-between">
+          <div class="text-[11px] font-black text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            HeadFund • {{ project.title }}
+          </div>
+          <div class="text-[11px] font-mono font-bold text-slate-500">
+            #ORD-{{ p.id }}
+          </div>
+        </div>
+
+        <!-- Recipient Address Details -->
+        <div class="space-y-1.5 py-1">
+          <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">נמען / מקבל המשלוח:</div>
+          <div class="text-lg font-black text-slate-900 leading-tight">{{ p.backer_name }}</div>
+          
+          <div class="text-sm font-bold text-slate-800 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            📍 {{ p.shipping_address or 'לא הוזנה כתובת משלוח' }}
+          </div>
+
+          <div class="text-xs font-mono font-bold text-slate-700 flex items-center justify-between pt-1">
+            <span>📞 טלפון: {{ p.backer_phone or 'טרם הוזן' }}</span>
+            <span>✉️ {{ p.backer_email }}</span>
+          </div>
+        </div>
+
+        <!-- Reward Description Box -->
+        <div class="p-2.5 bg-slate-100/80 rounded-xl border border-slate-200 text-xs space-y-1">
+          <div class="font-bold text-slate-800 flex items-center justify-between">
+            <span>תשורה: {{ p.reward_title or 'תמיכה חופשית' }}</span>
+            <span class="font-mono text-emerald-700">₪{{ "{:.0f}".format(p.amount) }}</span>
+          </div>
+          {% if p.greeting_message %}
+            <div class="text-[10px] text-slate-600 italic">"{{ p.greeting_message }}"</div>
+          {% endif %}
+        </div>
+
+        <!-- Footer Barcode & Sender Details -->
+        <div class="pt-2 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
+          <div>
+            <strong>שולח:</strong> {{ project.creator_name }} ({{ project.creator_phone or '' }})
+          </div>
+          <div class="font-mono tracking-widest text-slate-400 font-bold text-xs select-none">
+            ||| |||| || | |||| |||
+          </div>
+        </div>
+
+      </div>
+    {% endfor %}
+  </div>
+
+</body>
+</html>

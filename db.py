@@ -81,6 +81,11 @@ def init_db():
         "ALTER TABLE projects ADD COLUMN owner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN main_media_type TEXT DEFAULT 'auto'",
+        "ALTER TABLE pledges ADD COLUMN fulfillment_status TEXT DEFAULT 'pending'",
+        "ALTER TABLE pledges ADD COLUMN fulfillment_notes TEXT",
+        "ALTER TABLE pledges ADD COLUMN shipped_at TEXT",
+        "ALTER TABLE pledges ADD COLUMN is_payment_verified BOOLEAN DEFAULT 0",
+        "ALTER TABLE pledges ADD COLUMN payment_reference TEXT",
     ):
         try:
             cursor.execute(migration)
@@ -208,6 +213,11 @@ def init_db():
         payment_method TEXT DEFAULT 'credit_card',
         transaction_id TEXT,
         created_at TEXT NOT NULL,
+        fulfillment_status TEXT DEFAULT 'pending',
+        fulfillment_notes TEXT,
+        shipped_at TEXT,
+        is_payment_verified BOOLEAN DEFAULT 0,
+        payment_reference TEXT,
         FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
         FOREIGN KEY (reward_id) REFERENCES rewards(id) ON DELETE SET NULL
     );
@@ -510,6 +520,28 @@ def seed_db():
         'מרים ויעקב דרורי',
         '2026-08-23 14:21:23'
     ))
+
+    # Seed sample pledges for testing donor management, shipping labels, and Bit/PayBox verification
+    cursor.execute("SELECT id FROM rewards WHERE project_id = ? ORDER BY amount ASC", (proj4_id,))
+    reward_rows = cursor.fetchall()
+    r_ids = [r['id'] for r in reward_rows] if reward_rows else [None]
+
+    sample_pledges = [
+        (proj4_id, r_ids[3] if len(r_ids) > 3 else None, 118.0, 10.0, 'דניאל כהן', 'daniel.c@example.com', '052-1234567', 0, 'בהצלחה רבה עם הספר והאפליקציה!', 'רחוב הרצל 14, דירה 5, תל אביב-יפו', 'completed', 'credit_card', 'TXN-984102', now_str, 'pending', None, None, 1, 'CONF-8891'),
+        (proj4_id, r_ids[4] if len(r_ids) > 4 else None, 180.0, 20.0, 'מיכל לוי', 'michal.levi@example.com', '054-9876543', 0, 'מחכים בקוצר רוח לשידורים ולספר המודפס.', 'שדרות הנשיא 42, חיפה', 'completed', 'bit', 'BIT-478192', now_str, 'shipped', 'נשלח בדואר רשום RR98471234IL', '2026-08-24 10:15:00', 1, 'BIT-REF-4781'),
+        (proj4_id, r_ids[5] if len(r_ids) > 5 else None, 360.0, 0.0, 'אברהם ושרה פרידמן', 'friedman.family@example.com', '050-5554433', 0, 'ישר כוח עצום על היוזמה המבורכת!', 'רחוב יפו 102, ירושלים', 'pending', 'bit', 'BIT-PENDING-99', now_str, 'pending', None, None, 0, 'BIT-TX-8831'),
+        (proj4_id, r_ids[2] if len(r_ids) > 2 else None, 72.0, 5.0, 'רחל מזרחי', 'rachel.m@example.com', '053-7778899', 1, 'ברכה והצלחה!', 'ת.ד. 512, נהריה', 'completed', 'paybox', 'PB-338210', now_str, 'delivered', 'נמסר ישירות באירוע', '2026-08-24 12:00:00', 1, 'PB-REF-9921'),
+        (proj4_id, r_ids[6] if len(r_ids) > 6 else None, 540.0, 50.0, 'יוסי ואורלי שוורץ', 'schwartz.y@example.com', '058-4443322', 0, 'בהערכה עמוקה!', 'רחוב הברוש 8, רעננה', 'completed', 'paypal', 'PAYPAL-88193021', now_str, 'pending', None, None, 1, 'PP-9901'),
+    ]
+
+    cursor.executemany("""
+    INSERT INTO pledges (
+        project_id, reward_id, amount, tip_amount, backer_name, backer_email,
+        backer_phone, is_anonymous, greeting_message, shipping_address,
+        payment_status, payment_method, transaction_id, created_at,
+        fulfillment_status, fulfillment_notes, shipped_at, is_payment_verified, payment_reference
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, sample_pledges)
 
     conn.commit()
     restore_project_states(conn)

@@ -53,6 +53,11 @@
           <span>תמיכה בפרויקט 💙</span>
         </button>
 
+        <a href="{{ url_for('manage_backers', slug=project.slug) }}" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm" title="ניהול תורמים, תשורות והדפסת מדבקות">
+          <i data-lucide="users" class="w-3.5 h-3.5 text-white"></i>
+          <span>👥 ניהול תורמים</span>
+        </a>
+
         <a href="{{ url_for('edit_project', slug=project.slug) }}" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold border border-slate-700 transition-colors shadow-sm">
           <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-400"></i>
           <span>עריכה</span>

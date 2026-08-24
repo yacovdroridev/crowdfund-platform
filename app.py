@@ -976,6 +976,219 @@ def delete_project_update(slug, update_id):
     flash("העדכון נמחק בהצלחה.", "success")
     return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
 
+
+# --- Backer Management, Fulfillment & Payment Sandbox ---
+
+@app.route('/project/<slug>/manage/backers', methods=['GET'])
+def manage_backers(slug):
+    if not is_project_authorized(slug):
+        flash("ניהול תורמים מחייב הרשאת יוצר או מנהל מערכת.", "error")
+        return redirect(url_for('login', next=url_for('manage_backers', slug=slug)))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    p = cursor.fetchone()
+    if not p:
+        conn.close()
+        abort(404)
+
+    project = calculate_project_metrics(p)
+
+    search_q = request.args.get('q', '').strip()
+    filter_reward = request.args.get('reward_id', 'all')
+    filter_payment_status = request.args.get('payment_status', 'all')
+    filter_payment_method = request.args.get('payment_method', 'all')
+    filter_fulfillment = request.args.get('fulfillment_status', 'all')
+
+    query = """
+    SELECT p.*, r.title as reward_title, r.amount as reward_amount
+    FROM pledges p
+    LEFT JOIN rewards r ON p.reward_id = r.id
+    WHERE p.project_id = ?
+    """
+    params = [project['id']]
+
+    if search_q:
+        query += " AND (p.backer_name LIKE ? OR p.backer_email LIKE ? OR p.backer_phone LIKE ? OR p.transaction_id LIKE ? OR p.payment_reference LIKE ?)"
+        like_str = f"%{search_q}%"
+        params.extend([like_str, like_str, like_str, like_str, like_str])
+
+    if filter_reward != 'all' and filter_reward.isdigit():
+        query += " AND p.reward_id = ?"
+        params.append(int(filter_reward))
+
+    if filter_payment_status != 'all':
+        query += " AND p.payment_status = ?"
+        params.append(filter_payment_status)
+
+    if filter_payment_method != 'all':
+        query += " AND p.payment_method = ?"
+        params.append(filter_payment_method)
+
+    if filter_fulfillment != 'all':
+        query += " AND p.fulfillment_status = ?"
+        params.append(filter_fulfillment)
+
+    query += " ORDER BY p.id DESC"
+    cursor.execute(query, params)
+    pledges = [dict(row) for row in cursor.fetchall()]
+
+    cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project['id'],))
+    rewards = [dict(r) for r in cursor.fetchall()]
+
+    cursor.execute("SELECT COUNT(*) as total_count, SUM(amount) as total_amount FROM pledges WHERE project_id = ?", (project['id'],))
+    summary_row = cursor.fetchone()
+    total_count = summary_row['total_count'] or 0
+    total_amount = summary_row['total_amount'] or 0.0
+
+    cursor.execute("SELECT COUNT(*) FROM pledges WHERE project_id = ? AND payment_method IN ('bit', 'paybox') AND (is_payment_verified = 0 OR is_payment_verified IS NULL)", (project['id'],))
+    pending_bit_paybox = cursor.fetchone()[0] or 0
+
+    cursor.execute("SELECT COUNT(*) FROM pledges WHERE project_id = ? AND fulfillment_status IN ('shipped', 'delivered')", (project['id'],))
+    shipped_count = cursor.fetchone()[0] or 0
+
+    conn.close()
+
+    return render_template(
+        'manage_backers.html',
+        project=project,
+        pledges=pledges,
+        rewards=rewards,
+        search_q=search_q,
+        filter_reward=filter_reward,
+        filter_payment_status=filter_payment_status,
+        filter_payment_method=filter_payment_method,
+        filter_fulfillment=filter_fulfillment,
+        total_count=total_count,
+        total_amount=total_amount,
+        pending_bit_paybox=pending_bit_paybox,
+        shipped_count=shipped_count
+    )
+
+
+@app.route('/project/<slug>/manage/backers/<int:pledge_id>/update-status', methods=['POST'])
+def update_backer_status(slug, pledge_id):
+    if not is_project_authorized(slug):
+        abort(403)
+
+    action_type = request.form.get('action_type', 'fulfillment').strip()
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT p.*, pr.slug FROM pledges p JOIN projects pr ON p.project_id = pr.id WHERE p.id = ? AND pr.slug = ?", (pledge_id, slug))
+    pledge = cursor.fetchone()
+    if not pledge:
+        conn.close()
+        abort(404)
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if action_type == 'verify_payment':
+        ref_num = request.form.get('payment_reference', '').strip() or pledge['payment_reference'] or f"VERIFIED-{uuid.uuid4().hex[:6]}"
+        
+        if pledge['payment_status'] != 'completed':
+            cursor.execute("UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?", (pledge['amount'], pledge['project_id']))
+            if pledge['reward_id']:
+                cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (pledge['reward_id'],))
+
+        cursor.execute("""
+        UPDATE pledges SET
+            is_payment_verified = 1,
+            payment_status = 'completed',
+            payment_reference = ?
+        WHERE id = ?
+        """, (ref_num, pledge_id))
+        
+        flash("התשלום בביט/פייבוקס אושר בהצלחה וסכום הפרויקט עודכן!", "success")
+
+    elif action_type == 'fulfillment':
+        new_fulfillment = request.form.get('fulfillment_status', 'pending').strip()
+        notes = request.form.get('fulfillment_notes', '').strip()
+        shipped_at = now_str if new_fulfillment in ('shipped', 'delivered') else pledge['shipped_at']
+
+        cursor.execute("""
+        UPDATE pledges SET
+            fulfillment_status = ?,
+            fulfillment_notes = ?,
+            shipped_at = ?
+        WHERE id = ?
+        """, (new_fulfillment, notes, shipped_at, pledge_id))
+
+        status_names = {'pending': 'בהכנה', 'shipped': 'נשלח בדואר', 'delivered': 'נמסר לתומך'}
+        flash(f"סטטוס אספקת התשורה עודכן ל-'{status_names.get(new_fulfillment, new_fulfillment)}'.", "success")
+
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('manage_backers', slug=slug))
+
+
+@app.route('/project/<slug>/manage/backers/labels', methods=['POST', 'GET'])
+def print_backer_labels(slug):
+    if not is_project_authorized(slug):
+        abort(403)
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    p = cursor.fetchone()
+    if not p:
+        conn.close()
+        abort(404)
+    project = calculate_project_metrics(p)
+
+    if request.method == 'POST':
+        pledge_ids = request.form.getlist('pledge_ids')
+    else:
+        pledge_ids = request.args.getlist('pledge_ids')
+
+    if not pledge_ids:
+        cursor.execute("""
+        SELECT p.*, r.title as reward_title
+        FROM pledges p
+        LEFT JOIN rewards r ON p.reward_id = r.id
+        WHERE p.project_id = ? AND (p.shipping_address IS NOT NULL AND p.shipping_address != '')
+        ORDER BY p.id DESC
+        """, (project['id'],))
+    else:
+        placeholders = ','.join(['?'] * len(pledge_ids))
+        cursor.execute(f"""
+        SELECT p.*, r.title as reward_title
+        FROM pledges p
+        LEFT JOIN rewards r ON p.reward_id = r.id
+        WHERE p.project_id = ? AND p.id IN ({placeholders})
+        ORDER BY p.id DESC
+        """, [project['id']] + pledge_ids)
+
+    pledges = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return render_template('shipping_labels.html', project=project, pledges=pledges)
+
+
+@app.route('/checkout/paypal/execute', methods=['POST'])
+def execute_paypal_sandbox():
+    pledge_id = request.form.get('pledge_id')
+    txn_ref = f"PAYPAL-SANDBOX-{uuid.uuid4().hex[:8].upper()}"
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT p.*, pr.slug FROM pledges p JOIN projects pr ON p.project_id = pr.id WHERE p.id = ?", (pledge_id,))
+    pledge = cursor.fetchone()
+    if pledge:
+        cursor.execute("UPDATE pledges SET payment_status = 'completed', payment_method = 'paypal', transaction_id = ?, is_payment_verified = 1 WHERE id = ?", (txn_ref, pledge_id))
+        cursor.execute("UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?", (pledge['amount'], pledge['project_id']))
+        if pledge['reward_id']:
+            cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (pledge['reward_id'],))
+        sync_project_states(conn)
+        conn.commit()
+        conn.close()
+        flash("תשלום ה-PayPal (Sandbox) אושר בהצלחה!", "success")
+        return redirect(url_for('pledge_success', pledge_id=pledge_id))
+    conn.close()
+    abort(404)
+
 # --- REST API Endpoints ---
 
 @app.route('/api/projects', methods=['GET'])
