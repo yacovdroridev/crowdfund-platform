@@ -403,15 +403,15 @@
         <!-- 1. Credit Card / PayMe Pane -->
         <div id="pane-credit_card" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
           <div class="flex items-center justify-between text-xs font-bold text-slate-800">
-            <span>פרטי כרטיס אשראי (סליקה מאובטחת PayMe / SSL)</span>
-            <span class="text-emerald-600 font-mono">🔒 SSL 256-bit</span>
+            <span>תשלום בכרטיס אשראי (PayMe Hosted Payment Page)</span>
+            <span class="text-emerald-600 font-mono">🔒 PCI-DSS & SSL</span>
           </div>
-          <input type="text" dir="ltr" placeholder="4580 0000 0000 0000" value="4580 1234 5678 9012" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono">
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" dir="ltr" placeholder="MM/YY" value="12/28" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
-            <input type="text" dir="ltr" placeholder="CVV" value="770" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
+          <p class="text-xs text-slate-600 leading-relaxed">
+            הסליקה מתבצעת בדף תשלום מאובטח של PayMe ברמת אבטחה תקן <strong>PCI-DSS Level 1</strong>. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.
+          </p>
+          <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
+            <span>💳 תומך בכל הכרטיסים: ויזה, מאסטרקארד, ישראכרט, Diners, AMEX ודביט ישראלי.</span>
           </div>
-          <div class="text-[11px] text-slate-500">תומך בכרטיסי ויזה, מאסטרקארד, ישראכרט, Diners ו-AMEX.</div>
         </div>
 
         <!-- Google Pay Pane -->

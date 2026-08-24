@@ -443,8 +443,10 @@ def submit_pledge(slug):
                     "product_name": f"תמיכה בפרויקט {project['title']}",
                     "transaction_id": transaction_id,
                     "installments": "1",
+                    "sale_payment_method": "multi" if payment_method in {'credit_card', 'google_pay'} else payment_method,
                     "language": "he",
                     "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True),
+                    "sale_callback_url": url_for('payment_callback', _external=True),
                     "buyer_name": backer_name,
                     "buyer_email": backer_email,
                     "buyer_phone": backer_phone
@@ -461,6 +463,8 @@ def submit_pledge(slug):
                             resp_data = json_lib.loads(resp.read().decode('utf-8'))
                             if resp_data.get("sale_url"):
                                 payme_sale_url = resp_data["sale_url"]
+                                if resp_data.get("payme_sale_id"):
+                                    cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
                                 break
                             elif resp_data.get("payme_sale_id"):
                                 cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
@@ -478,6 +482,31 @@ def submit_pledge(slug):
         return redirect(payme_sale_url)
 
     return redirect(url_for('pledge_success', pledge_id=pledge_id))
+
+@app.route('/payment/callback', methods=['POST'])
+def payment_callback():
+    data = request.form or request.json or {}
+    payme_sale_id = data.get('payme_sale_id') or data.get('sale_id')
+    transaction_id = data.get('transaction_id')
+    status_code = data.get('status_code') or data.get('sale_status')
+
+    if transaction_id or payme_sale_id:
+        conn = get_db()
+        cursor = conn.cursor()
+        if transaction_id:
+            pledge = cursor.execute("SELECT * FROM pledges WHERE transaction_id = ?", (transaction_id,)).fetchone()
+        else:
+            pledge = cursor.execute("SELECT * FROM pledges WHERE payment_reference = ?", (payme_sale_id,)).fetchone()
+
+        if pledge and pledge['payment_status'] != 'completed':
+            cursor.execute("UPDATE pledges SET payment_status = 'completed', is_payment_verified = 1, payment_reference = ? WHERE id = ?", (payme_sale_id or transaction_id, pledge['id']))
+            cursor.execute("UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?", (pledge['amount'], pledge['project_id']))
+            if pledge['reward_id']:
+                cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (pledge['reward_id'],))
+            sync_project_states(conn)
+            conn.commit()
+        conn.close()
+    return "OK", 200
 
 @app.route('/success/<int:pledge_id>')
 def pledge_success(pledge_id):
