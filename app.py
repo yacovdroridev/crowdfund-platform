@@ -601,6 +601,15 @@ def edit_project(slug):
         subtitle = request.form.get('subtitle', '').strip()
         category = request.form.get('category', 'technology')
         goal_amount = float(request.form.get('goal_amount', project['goal_amount']))
+        try:
+            current_amount = float(request.form.get('current_amount', project['current_amount']))
+        except (ValueError, TypeError):
+            current_amount = project['current_amount']
+        try:
+            backers_count = int(request.form.get('backers_count', project['backers_count']))
+        except (ValueError, TypeError):
+            backers_count = project['backers_count']
+
         creator_name = request.form.get('creator_name', '').strip()
         creator_email = request.form.get('creator_email', '').strip()
         creator_phone = request.form.get('creator_phone', '').strip()
@@ -617,12 +626,12 @@ def edit_project(slug):
 
         cursor.execute("""
         UPDATE projects SET
-            title = ?, subtitle = ?, category = ?, goal_amount = ?,
+            title = ?, subtitle = ?, category = ?, goal_amount = ?, current_amount = ?, backers_count = ?,
             creator_name = ?, creator_email = ?, creator_phone = ?, creator_bio = ?,
             creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?
         WHERE id = ?
         """, (
-            title, subtitle, category, goal_amount,
+            title, subtitle, category, goal_amount, current_amount, backers_count,
             creator_name, creator_email, creator_phone, creator_bio,
             creator_avatar, cover_image, video_url, story_html,
             project['id']
@@ -918,6 +927,30 @@ def add_project_update(slug):
     conn.close()
 
     flash("העדכון פורסם בהצלחה!", "success")
+    return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
+
+
+@app.route('/project/<slug>/update/<int:update_id>/delete', methods=['POST'])
+def delete_project_update(slug, update_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, user_id, owner_user_id FROM projects WHERE slug = ?", (slug,))
+    proj = cursor.fetchone()
+    if not proj:
+        conn.close()
+        abort(404)
+
+    user = current_user()
+    if not user or (proj['user_id'] != user['id'] and proj.get('owner_user_id') != user['id'] and user['role'] != 'admin'):
+        conn.close()
+        flash("אין לך הרשאה למחוק עדכון זה.", "error")
+        return redirect(url_for('project_detail', slug=slug))
+
+    cursor.execute("DELETE FROM updates WHERE id = ? AND project_id = ?", (update_id, proj["id"]))
+    conn.commit()
+    conn.close()
+
+    flash("העדכון נמחק בהצלחה.", "success")
     return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
 
 # --- REST API Endpoints ---

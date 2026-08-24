@@ -35,7 +35,7 @@
         <textarea name="subtitle" required rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">{{ project.subtitle }}</textarea>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">קטגוריה *</label>
           <select name="category" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -47,8 +47,18 @@
 
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">סכום יעד (₪) *</label>
-          <input type="number" name="goal_amount" required value="{{ "{:.0f}".format(project.goal_amount) }}" min="1000" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+          <input type="number" name="goal_amount" required value="{{ "{:.0f}".format(project.goal_amount) }}" min="1" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
         </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-2">סכום שנאסף בפועל (₪)</label>
+          <input type="number" name="current_amount" value="{{ "{:.0f}".format(project.current_amount) }}" min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="0">
+        </div>
+      </div>
+
+      <div class="max-w-xs">
+        <label class="block text-xs font-bold text-slate-700 mb-2">מספר תומכים רשום</label>
+        <input type="number" name="backers_count" value="{{ project.backers_count }}" min="0" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none" placeholder="0">
       </div>
     </div>
 
