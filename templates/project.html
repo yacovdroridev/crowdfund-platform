@@ -396,18 +396,22 @@
           </button>
         </div>
 
-        <!-- 1. Credit Card / Paperless Pane -->
+        <!-- 1. Credit Card / PayMe Pane -->
         <div id="pane-credit_card" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
           <div class="flex items-center justify-between text-xs font-bold text-slate-800">
-            <span>פרטי כרטיס אשראי (סליקה מאובטחת Paperless/SSL)</span>
+            <span>פרטי כרטיס אשראי (סליקה מאובטחת PayMe / SSL)</span>
             <span class="text-emerald-600 font-mono">🔒 SSL 256-bit</span>
           </div>
-          <input type="text" dir="ltr" placeholder="4580 0000 0000 0000" value="4580 1234 5678 9012" class="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-mono">
+          <input type="text" dir="ltr" placeholder="4580 0000 0000 0000" value="4580 1234 5678 9012" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono">
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" dir="ltr" placeholder="MM/YY" value="12/28" class="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-mono text-center">
-            <input type="text" dir="ltr" placeholder="CVV" value="770" class="w-full p-2.5 rounded-lg border border-slate-300 text-xs font-mono text-center">
+            <input type="text" dir="ltr" placeholder="MM/YY" value="12/28" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
+            <input type="text" dir="ltr" placeholder="CVV" value="770" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono text-center">
           </div>
           <div class="text-[11px] text-slate-500">תומך בכרטיסי ויזה, מאסטרקארד, ישראכרט, Diners ו-AMEX.</div>
+
+          <button type="submit" class="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+            <span>💳 אישור וביצוע תשלום באשראי</span>
+          </button>
         </div>
 
         <!-- 2. Bit Pane -->
@@ -421,8 +425,12 @@
           </p>
           <div class="bg-white p-3 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
             <span class="text-slate-600">טלפון לקבלת ביט של היוזם:</span>
-            <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_phone or "054-9103046" }}</span>
+            <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_phone or "054-8048602" }}</span>
           </div>
+
+          <button type="submit" class="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+            <span>💙 אישור והעברה ב-Bit</span>
+          </button>
         </div>
 
         <!-- 3. PayBox Pane -->
@@ -436,8 +444,12 @@
           </p>
           <div class="bg-white p-3 rounded-xl border border-cyan-200 flex items-center justify-between text-xs">
             <span class="text-slate-600">חשבון פייבוקס פרויקט:</span>
-            <span class="font-mono font-bold text-cyan-900" dir="ltr">{{ project.creator_phone or "054-9103046" }}</span>
+            <span class="font-mono font-bold text-cyan-900" dir="ltr">{{ project.creator_phone or "054-8048602" }}</span>
           </div>
+
+          <button type="submit" class="w-full py-4 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+            <span>🩵 אישור ותשלום ב-PayBox</span>
+          </button>
         </div>
 
         <!-- 4. PayPal Pane -->
@@ -451,8 +463,15 @@
           </p>
           <div class="bg-white p-3 rounded-xl border border-blue-200 flex items-center justify-between text-xs">
             <span class="text-slate-600">יעד חשבון PayPal:</span>
-            <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_email or "yacov@drori.org" }}</span>
+            <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_email or "miriam@drori.org" }}</span>
           </div>
+
+          <button type="submit" class="w-full py-4 rounded-xl bg-blue-700 hover:bg-blue-800 text-white font-black text-base shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+            <span>🅿️ אישור ותשלום ב-PayPal</span>
+          </button>
+        </div>
+      </div>
+
       <!-- Terms Acceptance -->
       <div class="mt-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-start gap-2.5">
         <input type="checkbox" name="legal_accept" value="on" id="modal_legal_accept" checked required class="mt-0.5 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
