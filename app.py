@@ -1307,6 +1307,79 @@ def print_backer_labels(slug):
     return render_template('shipping_labels.html', project=project, pledges=pledges)
 
 
+@app.route('/project/<slug>/manage/backers/<int:pledge_id>/refund', methods=['POST'])
+def refund_backer_pledge(slug, pledge_id):
+    if not is_admin():
+        flash("הרשאת החזר כספי (Refund) מוגבלת למנהל מערכת ראשי בלבד.", "error")
+        return redirect(url_for('manage_backers', slug=slug))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT p.*, pr.slug FROM pledges p JOIN projects pr ON p.project_id = pr.id WHERE p.id = ? AND pr.slug = ?", (pledge_id, slug))
+    pledge = cursor.fetchone()
+    if not pledge:
+        conn.close()
+        abort(404)
+
+    if pledge['payment_status'] == 'refunded':
+        conn.close()
+        flash("תמיכה זו כבר זוכתה והוחזרה בעבר.", "error")
+        return redirect(url_for('manage_backers', slug=slug))
+
+    gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
+    seller_id = (gw_row['account_identifier'] if gw_row else None) or os.environ.get("PAYME_API_KEY", "")
+
+    if seller_id and pledge['payment_method'] in ('credit_card', 'google_pay'):
+        try:
+            import urllib.request
+            import json as json_lib
+            is_sandbox = gw_row['sandbox_mode'] if gw_row else 1
+            refund_endpoint = "https://sandbox.payme.io/api/refund-sale" if is_sandbox else "https://ng.payme.io/api/refund-sale"
+
+            payload = {
+                "seller_payme_id": seller_id,
+                "payme_sale_id": pledge['payment_reference'] or pledge['transaction_id'],
+                "refund_amount": int(round(pledge['amount'] * 100)),
+                "language": "he"
+            }
+            req = urllib.request.Request(
+                refund_endpoint,
+                data=json_lib.dumps(payload).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resp_data = json_lib.loads(resp.read().decode('utf-8'))
+                if resp_data.get("status_code") not in (0, 200, None):
+                    print(f"PayMe refund API note: {resp_data}")
+        except Exception as ex:
+            print(f"PayMe Refund API call note: {ex}")
+
+    if pledge['payment_status'] == 'completed':
+        cursor.execute("UPDATE projects SET current_amount = MAX(0, current_amount - ?), backers_count = MAX(0, backers_count - 1) WHERE id = ?", (pledge['amount'], pledge['project_id']))
+        if pledge['reward_id']:
+            cursor.execute("UPDATE rewards SET quantity_claimed = MAX(0, quantity_claimed - 1) WHERE id = ?", (pledge['reward_id'],))
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute("""
+    UPDATE pledges SET
+        payment_status = 'refunded',
+        fulfillment_status = 'cancelled'
+    WHERE id = ?
+    """, (pledge_id,))
+
+    cursor.execute(
+        "INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at) VALUES (?, 'pledge.refunded', 'pledge', ?, ?, ?)",
+        (current_user()['id'], str(pledge_id), f"Refunded ₪{pledge['amount']} via PayMe API", now_str)
+    )
+
+    conn.commit()
+    sync_project_states(conn)
+    conn.close()
+
+    flash(f"החזר כספי (Refund) בסך ₪{pledge['amount']:.0f} עבור {pledge['backer_name']} בוצע בהצלחה מול PayMe API!", "success")
+    return redirect(url_for('manage_backers', slug=slug))
+
+
 @app.route('/checkout/paypal/execute', methods=['POST'])
 def execute_paypal_sandbox():
     pledge_id = request.form.get('pledge_id')

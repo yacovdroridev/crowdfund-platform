@@ -213,3 +213,36 @@ def test_standalone_checkout_page_renders_with_pay_button():
     if os.path.exists(db_path):
         os.unlink(db_path)
 
+
+def test_admin_refund_access_control():
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_PATH"] = db_path
+    db.DB_PATH = db_path
+    db.init_db()
+    db.seed_db()
+
+    app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
+
+    conn = db.get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM pledges WHERE payment_status = 'completed' LIMIT 1")
+    pledge = cursor.fetchone()
+    pledge_id = pledge['id']
+    conn.close()
+
+    with app.test_client() as client:
+        # Non-admin user cannot refund
+        rv = client.post(f'/project/or-latefila/manage/backers/{pledge_id}/refund', follow_redirects=True)
+        assert "הרשאת החזר כספי (Refund) מוגבלת למנהל מערכת ראשי בלבד.".encode('utf-8') in rv.data
+
+        # Super admin can refund
+        client.post('/login', data={'email': 'yacov@drori.org', 'password': 'A-very-strong-admin-password-2026!'}, follow_redirects=True)
+        rv = client.post(f'/project/or-latefila/manage/backers/{pledge_id}/refund', follow_redirects=True)
+        assert rv.status_code == 200
+        assert "החזר כספי (Refund)".encode('utf-8') in rv.data
+
+    os.close(db_fd)
+    if os.path.exists(db_path):
+        os.unlink(db_path)
+
