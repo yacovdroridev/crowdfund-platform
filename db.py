@@ -277,10 +277,10 @@ def init_db():
     );
     """)
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    payme_key_env = os.environ.get("PAYME_API_KEY", "")
     default_gateways = [
-        ('credit_card', 'סליקת כרטיסי אשראי (PayMe / SSL)', 1, 'MPL17875-682350WA-P6A0L2RP-YAGKZISY', 1, 'סליקת כרטיסי ויזה, מאסטרקארד, ישראכרט ו-AMEX מאובטחת באמצעות PayMe API'),
-        ('payme', 'סליקת כרטיסי אשראי PayMe API', 1, 'MPL17875-682350WA-P6A0L2RP-YAGKZISY', 1, 'מפתח ספק PayMe מורשה: MPL17875-682350WA-P6A0L2RP-YAGKZISY'),
+        ('credit_card', 'סליקת כרטיסי אשראי (PayMe / SSL)', 1, payme_key_env, 1, 'סליקת כרטיסי ויזה, מאסטרקארד, ישראכרט ו-AMEX מאובטחת באמצעות PayMe API'),
+        ('payme', 'סליקת כרטיסי אשראי PayMe API', 1, payme_key_env, 1, 'מנוע סליקת כרטיסי אשראי PayMe API'),
         ('bit', 'תשלום באפליקציית ביט (Bit)', 1, '054-8048602', 0, 'העברה ישירה באפליקציית Bit למספר הטלפון של הפרויקט'),
         ('paybox', 'תשלום בקבוצת פייבוקס (PayBox)', 1, '054-8048602', 0, 'תשלום בקבוצת PayBox של הקמפיין'),
         ('paypal', 'תשלום מאובטח ב-PayPal', 1, 'miriam@drori.org', 1, 'סליקה גלובלית בחשבון PayPal')
