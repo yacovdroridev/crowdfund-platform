@@ -462,7 +462,7 @@ def seed_db():
         'miriam@drori.org',
         '054-8048602',
         'https://headstart.co.il/image/4a17c495-78a7-23b3-b755-5235b6e0c3ea.jpg',
-        None,
+        'https://www.youtube.com/embed/BaWvbD6vLq8',
         story_or_latefila,
         70000.0,
         38450.0,

@@ -91,6 +91,19 @@ def authorize_project(slug):
     # now derived from project ownership or the admin role, never from a PIN.
     return is_project_authorized(slug)
 
+def format_youtube_embed(url):
+    if not url:
+        return None
+    url = url.strip()
+    shorts_match = re.search(r'youtube\.com/shorts/([a-zA-Z0-9_-]+)', url)
+    if shorts_match:
+        return f"https://www.youtube.com/embed/{shorts_match.group(1)}"
+    watch_match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)', url)
+    if watch_match:
+        return f"https://www.youtube.com/embed/{watch_match.group(1)}"
+    return url
+
+
 def sanitize_story_html(value):
     value = re.sub(r"<(script|style)\b[^>]*>.*?</\1\s*>", "", value or "", flags=re.IGNORECASE | re.DOTALL)
     return bleach.clean(
@@ -569,7 +582,7 @@ def edit_project(slug):
         creator_bio = request.form.get('creator_bio', '').strip()
         creator_avatar = request.form.get('creator_avatar', '').strip() or project['creator_avatar']
         cover_image = request.form.get('cover_image', '').strip() or project['cover_image']
-        video_url = request.form.get('video_url', '').strip() or None
+        video_url = format_youtube_embed(request.form.get('video_url', ''))
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         cursor.execute("""
@@ -646,7 +659,7 @@ def create_project():
         creator_bio = request.form.get('creator_bio', '').strip()
         creator_avatar = request.form.get('creator_avatar', '').strip() or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
         cover_image = request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
-        video_url = request.form.get('video_url', '').strip() or None
+        video_url = format_youtube_embed(request.form.get('video_url', ''))
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
         # Generate slug
