@@ -91,14 +91,32 @@ def authorize_project(slug):
     # now derived from project ownership or the admin role, never from a PIN.
     return is_project_authorized(slug)
 
-def format_youtube_embed(url):
-    if not url:
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+def save_uploaded_image(file_storage):
+    if not file_storage or not file_storage.filename or not allowed_file(file_storage.filename):
         return None
-    url = url.strip()
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    ext = file_storage.filename.rsplit('.', 1)[1].lower()
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file_storage.save(filepath)
+    return f"/static/uploads/{filename}"
+
+def format_youtube_embed(url):
+    if not url or not str(url).strip() or str(url).strip().lower() in ('none', 'null'):
+        return None
+    url = str(url).strip()
+    if 'youtube.com/embed/' in url:
+        return url
     shorts_match = re.search(r'youtube\.com/shorts/([a-zA-Z0-9_-]+)', url)
     if shorts_match:
         return f"https://www.youtube.com/embed/{shorts_match.group(1)}"
-    watch_match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/)([a-zA-Z0-9_-]+)', url)
+    watch_match = re.search(r'(?:youtube\.com/(?:watch\?v=|v/)|youtu\.be/)([a-zA-Z0-9_-]+)', url)
     if watch_match:
         return f"https://www.youtube.com/embed/{watch_match.group(1)}"
     return url
@@ -201,6 +219,8 @@ def calculate_project_metrics(project):
         p["is_expired"] = False
 
     p["category_label"] = CATEGORIES.get(p.get("category"), "כללי")
+    raw_video = p.get("video_url")
+    p["video_url"] = format_youtube_embed(raw_video)
     return p
 
 # --- HTML Routes ---
@@ -580,8 +600,13 @@ def edit_project(slug):
         creator_email = request.form.get('creator_email', '').strip()
         creator_phone = request.form.get('creator_phone', '').strip()
         creator_bio = request.form.get('creator_bio', '').strip()
-        creator_avatar = request.form.get('creator_avatar', '').strip() or project['creator_avatar']
-        cover_image = request.form.get('cover_image', '').strip() or project['cover_image']
+        # Check avatar and cover file uploads or URLs
+        uploaded_avatar = save_uploaded_image(request.files.get('avatar_file'))
+        creator_avatar = uploaded_avatar or request.form.get('creator_avatar', '').strip() or project['creator_avatar']
+
+        uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
+        cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or project['cover_image']
+
         video_url = format_youtube_embed(request.form.get('video_url', ''))
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
@@ -657,8 +682,12 @@ def create_project():
         creator_email = request.form.get('creator_email', '').strip()
         creator_phone = request.form.get('creator_phone', '').strip()
         creator_bio = request.form.get('creator_bio', '').strip()
-        creator_avatar = request.form.get('creator_avatar', '').strip() or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
-        cover_image = request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
+        # Check avatar and cover file uploads or URLs
+        uploaded_avatar = save_uploaded_image(request.files.get('avatar_file'))
+        creator_avatar = uploaded_avatar or request.form.get('creator_avatar', '').strip() or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
+
+        uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
+        cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
         video_url = format_youtube_embed(request.form.get('video_url', ''))
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
