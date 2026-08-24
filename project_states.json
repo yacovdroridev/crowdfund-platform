@@ -18,8 +18,8 @@
     "current_amount": 96500.0,
     "backers_count": 248,
     "days_total": 45,
-    "start_date": "2026-08-24 15:15:58",
-    "end_date": "2026-09-15 15:15:58",
+    "start_date": "2026-08-24 15:32:42",
+    "end_date": "2026-09-15 15:32:42",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
@@ -32,7 +32,7 @@
         "quantity_limit": 100,
         "quantity_claimed": 0,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       }
     ],
     "pledges": [],
@@ -41,7 +41,7 @@
         "title": "הגענו ל-80% מהיעד! תודה ענקית לכל התומכים",
         "content": "אנחנו נרגשים להודיע שתוך שבועיים בלבד חצינו את רף ה-90 אלף ש\"ח. כרטיסי ה-PCB הראשונים כבר בדרך לבדיקות מעבדה.",
         "author": "יעקב דרורי",
-        "created_at": "2026-08-22 15:15:58"
+        "created_at": "2026-08-22 15:32:42"
       }
     ]
   },
@@ -64,8 +64,8 @@
     "current_amount": 52300.0,
     "backers_count": 312,
     "days_total": 30,
-    "start_date": "2026-08-24 15:15:58",
-    "end_date": "2026-09-07 15:15:58",
+    "start_date": "2026-08-24 15:32:42",
+    "end_date": "2026-09-07 15:32:42",
     "status": "successful",
     "is_active": 1,
     "owner_user_id": null,
@@ -78,7 +78,7 @@
         "quantity_limit": null,
         "quantity_claimed": 110,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "הספר המודפס בכריכה קשה עם הקדשה",
@@ -88,7 +88,7 @@
         "quantity_limit": 300,
         "quantity_claimed": 185,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "מארז אספנים: 2 ספרים + פוסטר נוף ממוסגר",
@@ -98,7 +98,7 @@
         "quantity_limit": 50,
         "quantity_claimed": 45,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       }
     ],
     "pledges": [],
@@ -123,8 +123,8 @@
     "current_amount": 34200.0,
     "backers_count": 185,
     "days_total": 40,
-    "start_date": "2026-08-24 15:15:58",
-    "end_date": "2026-09-27 15:15:58",
+    "start_date": "2026-08-24 15:32:42",
+    "end_date": "2026-09-27 15:32:42",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
@@ -137,7 +137,7 @@
         "quantity_limit": null,
         "quantity_claimed": 80,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "דיסק פיזי + כרטיס למופע ההשקה",
@@ -147,7 +147,7 @@
         "quantity_limit": 150,
         "quantity_claimed": 65,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       }
     ],
     "pledges": [],
@@ -172,8 +172,8 @@
     "current_amount": 38450.0,
     "backers_count": 148,
     "days_total": 30,
-    "start_date": "2026-08-24 15:15:58",
-    "end_date": "2026-09-14 15:15:58",
+    "start_date": "2026-08-24 15:32:42",
+    "end_date": "2026-09-14 15:32:42",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
@@ -186,7 +186,7 @@
         "quantity_limit": null,
         "quantity_claimed": 12,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "אור יומי",
@@ -196,7 +196,7 @@
         "quantity_limit": null,
         "quantity_claimed": 28,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "מייסד שותף",
@@ -206,7 +206,7 @@
         "quantity_limit": null,
         "quantity_claimed": 45,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "שותף לאור",
@@ -216,7 +216,7 @@
         "quantity_limit": null,
         "quantity_claimed": 62,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "חווית האור",
@@ -226,7 +226,7 @@
         "quantity_limit": null,
         "quantity_claimed": 34,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "שותפים לדרך",
@@ -236,7 +236,7 @@
         "quantity_limit": null,
         "quantity_claimed": 19,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "מפיצי אור",
@@ -246,7 +246,7 @@
         "quantity_limit": null,
         "quantity_claimed": 14,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "מייסדי האור שבתפילה",
@@ -256,7 +256,7 @@
         "quantity_limit": null,
         "quantity_claimed": 6,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "שותף פרימיום",
@@ -266,7 +266,7 @@
         "quantity_limit": null,
         "quantity_claimed": 3,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       }
     ],
     "pledges": [
@@ -282,7 +282,7 @@
         "payment_status": "completed",
         "payment_method": "credit_card",
         "transaction_id": "TXN-984102",
-        "created_at": "2026-08-24 15:15:58",
+        "created_at": "2026-08-24 15:32:42",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -301,7 +301,7 @@
         "payment_status": "completed",
         "payment_method": "bit",
         "transaction_id": "BIT-478192",
-        "created_at": "2026-08-24 15:15:58",
+        "created_at": "2026-08-24 15:32:42",
         "fulfillment_status": "shipped",
         "fulfillment_notes": "נשלח בדואר רשום RR98471234IL",
         "shipped_at": "2026-08-24 10:15:00",
@@ -320,7 +320,7 @@
         "payment_status": "pending",
         "payment_method": "bit",
         "transaction_id": "BIT-PENDING-99",
-        "created_at": "2026-08-24 15:15:58",
+        "created_at": "2026-08-24 15:32:42",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -339,7 +339,7 @@
         "payment_status": "completed",
         "payment_method": "paybox",
         "transaction_id": "PB-338210",
-        "created_at": "2026-08-24 15:15:58",
+        "created_at": "2026-08-24 15:32:42",
         "fulfillment_status": "delivered",
         "fulfillment_notes": "נמסר ישירות באירוע",
         "shipped_at": "2026-08-24 12:00:00",
@@ -358,7 +358,7 @@
         "payment_status": "completed",
         "payment_method": "paypal",
         "transaction_id": "PAYPAL-88193021",
-        "created_at": "2026-08-24 15:15:58",
+        "created_at": "2026-08-24 15:32:42",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -371,7 +371,7 @@
         "title": "חצינו את 75% מהיעד! חדר השידור החי כבר באוויר",
         "content": "תודה עצומה לכל 148 התומכים שהצטרפו אלינו. השידורים היומיים (10:00 בבוקר ו-20:00 בערב) זוכים להיענות מרגשת. אנחנו ממשיכים בכל הכוח עד להשגת היעד המלא!",
         "author": "מרים ויעקב דרורי",
-        "created_at": "2026-08-24 15:15:58"
+        "created_at": "2026-08-24 15:32:42"
       },
       {
         "title": "עדכונים, צמיחה, תקווה",

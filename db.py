@@ -735,15 +735,32 @@ def restore_project_states(conn):
                 p_id = cursor.lastrowid
 
             if data.get('rewards'):
-                cursor.execute("DELETE FROM rewards WHERE project_id = ?", (p_id,))
                 for r in data['rewards']:
-                    cursor.execute("""
-                    INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        p_id, r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'אוקטובר 2026'),
-                        r.get('quantity_limit'), r.get('quantity_claimed', 0), 1 if r.get('includes_shipping') else 0, r.get('created_at', now_str)
-                    ))
+                    cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND (title = ? OR amount = ?)", (p_id, r['title'], r['amount']))
+                    existing_r = cursor.fetchone()
+                    if existing_r:
+                        cursor.execute("""
+                            UPDATE rewards SET
+                                title = ?,
+                                description = ?,
+                                amount = ?,
+                                estimated_delivery = ?,
+                                quantity_limit = ?,
+                                quantity_claimed = ?,
+                                includes_shipping = ?
+                            WHERE id = ?
+                        """, (
+                            r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'אוקטובר 2026'),
+                            r.get('quantity_limit'), r.get('quantity_claimed', 0), 1 if r.get('includes_shipping') else 0, existing_r['id']
+                        ))
+                    else:
+                        cursor.execute("""
+                            INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            p_id, r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'אוקטובר 2026'),
+                            r.get('quantity_limit'), r.get('quantity_claimed', 0), 1 if r.get('includes_shipping') else 0, r.get('created_at', now_str)
+                        ))
 
             if data.get('pledges'):
                 for pl in data['pledges']:
