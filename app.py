@@ -1027,7 +1027,7 @@ def admin_payment_gateways():
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        gateways_keys = ['credit_card', 'bit', 'paybox', 'paypal']
+        gateways_keys = ['credit_card', 'payme', 'bit', 'paybox', 'paypal']
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for key in gateways_keys:
             is_enabled = 1 if request.form.get(f"enabled_{key}") == 'on' else 0
