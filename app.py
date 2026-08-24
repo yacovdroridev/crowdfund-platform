@@ -1026,6 +1026,10 @@ def admin_payment_gateways():
     conn = get_db()
     cursor = conn.cursor()
 
+    # Automatically purge legacy duplicate 'payme' row from database
+    cursor.execute("DELETE FROM payment_gateways WHERE gateway_key = 'payme'")
+    conn.commit()
+
     if request.method == 'POST':
         gateways_keys = ['credit_card', 'bit', 'paybox', 'paypal']
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -1047,7 +1051,7 @@ def admin_payment_gateways():
         conn.commit()
         flash("הגדרות אמצעי הסליקה עודכנו בהצלחה במערכת.", "success")
 
-    cursor.execute("SELECT * FROM payment_gateways ORDER BY id ASC")
+    cursor.execute("SELECT * FROM payment_gateways WHERE gateway_key != 'payme' ORDER BY id ASC")
     gateways = [dict(g) for g in cursor.fetchall()]
     conn.close()
 
