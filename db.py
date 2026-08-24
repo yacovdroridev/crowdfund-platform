@@ -279,7 +279,7 @@ def init_db():
 
     cursor.execute("DELETE FROM payment_gateways WHERE gateway_key = 'payme'")
 
-    payme_key_env = os.environ.get("PAYME_API_KEY", "")
+    payme_key_env = os.environ.get("PAYME_API_KEY", "").strip() or 'MPLDEMO-MPLDEMO-MPLDEMO-1234567'
     default_gateways = [
         ('credit_card', 'סליקת כרטיסי אשראי (PayMe API)', 1, payme_key_env, 1, 'סליקת כרטיסי ויזה, מאסטרקארד, ישראכרט ו-AMEX מאובטחת באמצעות PayMe API'),
         ('google_pay', 'תשלום מהיר ב-Google Pay', 1, payme_key_env, 1, 'תשלום מאובטח בלחיצה אחת באמצעות Google Pay API'),

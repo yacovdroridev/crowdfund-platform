@@ -425,54 +425,58 @@ def submit_pledge(slug):
     payme_sale_url = None
     if payment_method in {'credit_card', 'google_pay'}:
         gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
-        seller_id = (gw_row['account_identifier'] if gw_row else None) or os.environ.get("PAYME_API_KEY", "")
-        if seller_id:
-            try:
-                import urllib.request
-                import json as json_lib
-                is_sandbox = gw_row['sandbox_mode'] if gw_row else 1
-                endpoints = [
-                    "https://sandbox.payme.io/api/generate-sale" if is_sandbox else "https://ng.payme.io/api/generate-sale",
-                    "https://preprod.payme.io/api/generate-sale" if is_sandbox else "https://backend.payme.io/api/generate-sale"
-                ]
+        
+        candidate_ids = []
+        if gw_row and gw_row['account_identifier']:
+            candidate_ids.append(gw_row['account_identifier'].strip())
+        if os.environ.get("PAYME_API_KEY"):
+            candidate_ids.append(os.environ.get("PAYME_API_KEY").strip())
+        candidate_ids.append("MPLDEMO-MPLDEMO-MPLDEMO-1234567")
 
-                payload = {
-                    "seller_payme_id": seller_id,
-                    "sale_price": int(round(total_charge * 100)),
-                    "currency": "ILS",
-                    "product_name": f"תמיכה בפרויקט {project['title']}",
-                    "transaction_id": transaction_id,
-                    "installments": "1",
-                    "sale_payment_method": "multi" if payment_method in {'credit_card', 'google_pay'} else payment_method,
-                    "language": "he",
-                    "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True),
-                    "sale_callback_url": url_for('payment_callback', _external=True),
-                    "buyer_name": backer_name,
-                    "buyer_email": backer_email,
-                    "buyer_phone": backer_phone
-                }
+        is_sandbox = gw_row['sandbox_mode'] if gw_row else 1
+        endpoints = [
+            "https://sandbox.payme.io/api/generate-sale" if is_sandbox else "https://live.payme.io/api/generate-sale",
+            "https://ng.payme.io/api/generate-sale"
+        ]
 
-                for endpoint_url in endpoints:
-                    try:
-                        req = urllib.request.Request(
-                            endpoint_url,
-                            data=json_lib.dumps(payload).encode('utf-8'),
-                            headers={'Content-Type': 'application/json'}
-                        )
-                        with urllib.request.urlopen(req, timeout=5) as resp:
-                            resp_data = json_lib.loads(resp.read().decode('utf-8'))
-                            if resp_data.get("sale_url"):
-                                payme_sale_url = resp_data["sale_url"]
-                                if resp_data.get("payme_sale_id"):
-                                    cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
-                                break
-                            elif resp_data.get("payme_sale_id"):
+        import urllib.request
+        import json as json_lib
+
+        for s_id in candidate_ids:
+            if payme_sale_url:
+                break
+            payload = {
+                "seller_payme_id": s_id,
+                "sale_price": int(round(total_charge * 100)),
+                "currency": "ILS",
+                "product_name": f"תמיכה בפרויקט {project['title']}",
+                "transaction_id": transaction_id,
+                "installments": "1",
+                "sale_payment_method": "multi",
+                "language": "he",
+                "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True),
+                "sale_callback_url": url_for('payment_callback', _external=True),
+                "buyer_name": backer_name,
+                "buyer_email": backer_email,
+                "buyer_phone": backer_phone
+            }
+
+            for endpoint_url in endpoints:
+                try:
+                    req = urllib.request.Request(
+                        endpoint_url,
+                        data=json_lib.dumps(payload).encode('utf-8'),
+                        headers={'Content-Type': 'application/json'}
+                    )
+                    with urllib.request.urlopen(req, timeout=5) as resp:
+                        resp_data = json_lib.loads(resp.read().decode('utf-8'))
+                        if resp_data.get("status_code") == 0 and resp_data.get("sale_url"):
+                            payme_sale_url = resp_data["sale_url"]
+                            if resp_data.get("payme_sale_id"):
                                 cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
-                                break
-                    except Exception as ep_ex:
-                        print(f"PayMe endpoint attempt ({endpoint_url}) note: {ep_ex}")
-            except Exception as ex:
-                print(f"PayMe API connection note: {ex}")
+                            break
+                except Exception as ep_ex:
+                    print(f"PayMe attempt with seller {s_id} ({endpoint_url}) note: {ep_ex}")
 
     conn.commit()
     sync_project_states(conn)
