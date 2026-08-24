@@ -612,7 +612,19 @@ def seed_db():
     restore_project_states(conn)
     conn.close()
 
-PROJECT_STATES_FILE = os.path.join(os.path.dirname(__file__), "project_states.json")
+def get_project_states_path():
+    if os.path.exists("/var/data") and os.access("/var/data", os.W_OK):
+        return "/var/data/project_states.json"
+    home_dir = os.path.expanduser("~/.crowdfund_data")
+    try:
+        os.makedirs(home_dir, exist_ok=True)
+        if os.access(home_dir, os.W_OK):
+            return os.path.join(home_dir, "project_states.json")
+    except Exception:
+        pass
+    return os.path.join(os.path.dirname(__file__), "project_states.json")
+
+PROJECT_STATES_FILE = get_project_states_path()
 
 def sync_project_states(conn):
     """Save all project states, rewards, pledges, and updates to project_states.json for 100% persistence on Render."""
@@ -651,17 +663,23 @@ def sync_project_states(conn):
 
             states[p_dict['slug']] = p_dict
 
-        with open(PROJECT_STATES_FILE, 'w', encoding='utf-8') as f:
-            json.dump(states, f, ensure_ascii=False, indent=2)
+        target_paths = {get_project_states_path(), os.path.join(os.path.dirname(__file__), "project_states.json")}
+        for target_path in target_paths:
+            with open(target_path, 'w', encoding='utf-8') as f:
+                json.dump(states, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Warning syncing project states: {e}")
 
 def restore_project_states(conn):
     """Restore all project states, rewards, pledges, and updates from project_states.json."""
-    if not os.path.exists(PROJECT_STATES_FILE) or os.environ.get("DATABASE_PATH"):
+    target_path = get_project_states_path()
+    if not os.path.exists(target_path):
+        target_path = os.path.join(os.path.dirname(__file__), "project_states.json")
+
+    if not os.path.exists(target_path) or os.environ.get("DATABASE_PATH"):
         return
     try:
-        with open(PROJECT_STATES_FILE, 'r', encoding='utf-8') as f:
+        with open(target_path, 'r', encoding='utf-8') as f:
             states = json.load(f)
         cursor = conn.cursor()
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
