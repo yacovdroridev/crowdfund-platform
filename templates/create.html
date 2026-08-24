@@ -13,7 +13,7 @@
     <p class="text-slate-500 text-sm mt-2">מלאו את פרטי הפרויקט, הגדירו יעדים ותשורות, וצאו לאוויר תוך דקות</p>
   </div>
 
-  <form action="{{ url_for('create_project') }}" method="POST" enctype="multipart/form-data" class="space-y-8 bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-xl">
+  <form action="{{ url_for('create_project') }}" method="POST" enctype="multipart/form-data" onsubmit="syncRteToTextarea()" class="space-y-8 bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-xl">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     
     <!-- Section 1: Basic Info -->
