@@ -101,31 +101,20 @@ def allowed_file(filename):
 def save_uploaded_image(file_storage):
     if not file_storage or not file_storage.filename or not allowed_file(file_storage.filename):
         return None
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    ext = file_storage.filename.rsplit('.', 1)[1].lower()
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    file_storage.save(filepath)
-    return f"/static/uploads/{filename}"
+    try:
+        data = file_storage.read()
+        ext = file_storage.filename.rsplit('.', 1)[1].lower()
+        mime = "image/svg+xml" if ext == "svg" else f"image/{ext}"
+        b64 = base64.b64encode(data).decode('utf-8')
+        return f"data:{mime};base64,{b64}"
+    except Exception as e:
+        print(f"Error encoding uploaded image: {e}")
+        return None
 
 def save_base64_image(base64_str):
     if not base64_str or not base64_str.startswith('data:image'):
         return None
-    try:
-        header, encoded = base64_str.split(',', 1)
-        data = base64.b64decode(encoded)
-        ext = 'jpg'
-        if 'png' in header:
-            ext = 'png'
-        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-        filename = f"{uuid.uuid4().hex}.{ext}"
-        filepath = os.path.join(UPLOAD_FOLDER, filename)
-        with open(filepath, 'wb') as f:
-            f.write(data)
-        return f"/static/uploads/{filename}"
-    except Exception as e:
-        print(f"Error saving base64 image: {e}")
-        return None
+    return base64_str
 
 def format_youtube_embed(url):
     if not url or not str(url).strip() or str(url).strip().lower() in ('none', 'null'):

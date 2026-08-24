@@ -546,8 +546,116 @@
     document.getElementById('preview-modal').classList.add('hidden');
   }
 
+  let cropperInstance = null;
+
+  function initCoverCropper(input) {
+    if (input.files && input.files[0]) {
+      // Automatically clear text URL field when uploading a file
+      const urlInput = document.querySelector('input[name="cover_image"]');
+      if (urlInput) urlInput.value = '';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        // Immediately store base64 data URL so save works instantly even before any crop adjustment
+        const hiddenField = document.getElementById('cropped_cover_base64');
+        if (hiddenField) hiddenField.value = e.target.result;
+
+        const cropperImg = document.getElementById('cropper-target-img');
+        cropperImg.src = e.target.result;
+        document.getElementById('cropper-wrapper').classList.remove('hidden');
+        document.getElementById('default-cover-preview')?.classList.add('hidden');
+
+        if (cropperInstance) {
+          cropperInstance.destroy();
+        }
+
+        cropperInstance = new Cropper(cropperImg, {
+          aspectRatio: 16 / 9,
+          viewMode: 1,
+          autoCropArea: 1,
+          responsive: true,
+          background: true,
+          zoomable: true,
+          scalable: true,
+          rotatable: true,
+          cropend: function() {
+            syncCroppedImage();
+          },
+          zoom: function() {
+            setTimeout(syncCroppedImage, 100);
+          }
+        });
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function previewEditCoverUrl(url) {
+    if (url && url.trim()) {
+      const fileInput = document.getElementById('cover_file_input');
+      if (fileInput) fileInput.value = '';
+      const croppedHidden = document.getElementById('cropped_cover_base64');
+      if (croppedHidden) croppedHidden.value = '';
+
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+      }
+      document.getElementById('cropper-wrapper')?.classList.add('hidden');
+
+      const img = document.getElementById('edit_cover_preview_img');
+      if (img) {
+        img.src = url.trim();
+        document.getElementById('default-cover-preview')?.classList.remove('hidden');
+      }
+    }
+  }
+
+  function cropperZoom(ratio) {
+    if (cropperInstance) {
+      cropperInstance.zoom(ratio);
+      setTimeout(syncCroppedImage, 100);
+    }
+  }
+
+  function cropperRotate(degree) {
+    if (cropperInstance) {
+      cropperInstance.rotate(degree);
+      setTimeout(syncCroppedImage, 100);
+    }
+  }
+
+  function cropperReset() {
+    if (cropperInstance) {
+      cropperInstance.reset();
+      setTimeout(syncCroppedImage, 100);
+    }
+  }
+
+  function syncCroppedImage() {
+    if (cropperInstance) {
+      try {
+        const canvas = cropperInstance.getCroppedCanvas({
+          width: 1280,
+          height: 720,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
+        });
+        if (canvas) {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+          if (dataUrl && dataUrl.length > 100) {
+            document.getElementById('cropped_cover_base64').value = dataUrl;
+          }
+        }
+      } catch (err) {
+        console.warn("Cropper export warning:", err);
+      }
+    }
+  }
+
   function validateProjectForm(event) {
     syncRteToTextarea();
+    syncCroppedImage();
     
     let hasErrors = false;
     const form = document.querySelector('form');
