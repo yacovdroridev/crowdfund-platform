@@ -623,7 +623,8 @@ def edit_project(slug):
             project['id']
         ))
 
-        # Handle rewards: remove old ones without pledges and update/insert
+        # Handle rewards: update existing rewards by ID, insert new ones, and remove deleted ones
+        existing_ids = request.form.getlist('existing_reward_id[]')
         tier_titles = request.form.getlist('reward_title[]')
         tier_amounts = request.form.getlist('reward_amount[]')
         tier_descriptions = request.form.getlist('reward_desc[]')
@@ -631,26 +632,45 @@ def edit_project(slug):
         tier_limits = request.form.getlist('reward_limit[]')
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Clear existing rewards that can be safely recreated or modified
-        cursor.execute("DELETE FROM rewards WHERE project_id = ? AND quantity_claimed = 0", (project['id'],))
+        submitted_reward_ids = []
 
         for i in range(len(tier_titles)):
-            if tier_titles[i].strip() and tier_amounts[i]:
-                try:
-                    amt = float(tier_amounts[i])
-                    lim = int(tier_limits[i]) if tier_limits[i] and tier_limits[i].isdigit() else None
+            title = tier_titles[i].strip()
+            if not title or not tier_amounts[i]:
+                continue
+            try:
+                amt = float(tier_amounts[i])
+                lim = int(tier_limits[i]) if (i < len(tier_limits) and tier_limits[i] and str(tier_limits[i]).isdigit()) else None
+                desc = tier_descriptions[i].strip() if i < len(tier_descriptions) else ""
+                delivery = tier_deliveries[i].strip() if (i < len(tier_deliveries) and tier_deliveries[i]) else "בקרוב"
+
+                reward_id = existing_ids[i].strip() if i < len(existing_ids) else ""
+
+                if reward_id and reward_id.isdigit():
+                    r_id = int(reward_id)
+                    cursor.execute("""
+                    UPDATE rewards SET
+                        title = ?, description = ?, amount = ?, estimated_delivery = ?, quantity_limit = ?
+                    WHERE id = ? AND project_id = ?
+                    """, (title, desc, amt, delivery, lim, r_id, project['id']))
+                    submitted_reward_ids.append(r_id)
+                else:
                     cursor.execute("""
                     INSERT INTO rewards (
                         project_id, title, description, amount, estimated_delivery,
                         quantity_limit, quantity_claimed, includes_shipping, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?)
-                    """, (
-                        project['id'], tier_titles[i].strip(), tier_descriptions[i].strip() if i < len(tier_descriptions) else "",
-                        amt, tier_deliveries[i].strip() if i < len(tier_deliveries) and tier_deliveries[i] else "בקרוב",
-                        lim, now_str
-                    ))
-                except ValueError:
-                    continue
+                    """, (project['id'], title, desc, amt, delivery, lim, now_str))
+                    submitted_reward_ids.append(cursor.lastrowid)
+            except ValueError:
+                continue
+
+        # Delete any reward for this project that was REMOVED by the creator in the edit form
+        if submitted_reward_ids:
+            placeholders = ','.join(['?'] * len(submitted_reward_ids))
+            cursor.execute(f"DELETE FROM rewards WHERE project_id = ? AND id NOT IN ({placeholders})", [project['id']] + submitted_reward_ids)
+        else:
+            cursor.execute("DELETE FROM rewards WHERE project_id = ?", (project['id'],))
 
         conn.commit()
         conn.close()

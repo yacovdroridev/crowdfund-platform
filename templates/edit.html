@@ -227,6 +227,7 @@
     const newTier = document.createElement('div');
     newTier.className = "reward-tier-box p-5 rounded-2xl border border-emerald-200 bg-emerald-50/40 space-y-4 relative";
     newTier.innerHTML = `
+      <input type="hidden" name="existing_reward_id[]" value="">
       <div class="flex items-center justify-between">
         <span class="text-xs font-black text-emerald-800">תשורה חדשה</span>
         <button type="button" onclick="removeRewardTier(this)" class="text-xs text-rose-500 hover:text-rose-700 font-bold flex items-center gap-1">
