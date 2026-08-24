@@ -4,7 +4,22 @@ import json
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
-DB_PATH = os.environ.get("DATABASE_PATH", os.path.join(os.path.dirname(__file__), "crowdfund.db"))
+def resolve_db_path():
+    env_path = os.environ.get("DATABASE_PATH")
+    if env_path:
+        return env_path
+    if os.path.exists("/var/data") and os.access("/var/data", os.W_OK):
+        return "/var/data/crowdfund.db"
+    home_dir = os.path.expanduser("~/.crowdfund_data")
+    try:
+        os.makedirs(home_dir, exist_ok=True)
+        if os.access(home_dir, os.W_OK):
+            return os.path.join(home_dir, "crowdfund.db")
+    except Exception:
+        pass
+    return os.path.join(os.path.dirname(__file__), "crowdfund.db")
+
+DB_PATH = resolve_db_path()
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -550,27 +565,49 @@ def seed_db():
 PROJECT_STATES_FILE = os.path.join(os.path.dirname(__file__), "project_states.json")
 
 def sync_project_states(conn):
-    """Save all project states (cover_image, video_url, is_active, amounts, titles, rewards) to project_states.json."""
+    """Save all project states, rewards, pledges, and updates to project_states.json for 100% persistence on Render."""
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT id, slug, title, subtitle, cover_image, video_url, main_media_type,
-                   story_html, goal_amount, current_amount, backers_count, is_active
+            SELECT id, slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
+                   creator_email, creator_phone, cover_image, video_url, main_media_type,
+                   story_html, goal_amount, current_amount, backers_count, days_total, start_date, end_date,
+                   status, is_active, owner_user_id
             FROM projects
         """)
         states = {}
         for row in cursor.fetchall():
             p_dict = dict(row)
-            cursor.execute("SELECT title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping FROM rewards WHERE project_id = ? ORDER BY amount ASC", (p_dict['id'],))
+            p_id = p_dict['id']
+
+            cursor.execute("""
+                SELECT title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at
+                FROM rewards WHERE project_id = ? ORDER BY amount ASC
+            """, (p_id,))
             p_dict['rewards'] = [dict(r) for r in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT amount, tip_amount, backer_name, backer_email, backer_phone, is_anonymous,
+                       greeting_message, shipping_address, payment_status, payment_method, transaction_id,
+                       created_at, fulfillment_status, fulfillment_notes, shipped_at, is_payment_verified, payment_reference
+                FROM pledges WHERE project_id = ? ORDER BY id ASC
+            """, (p_id,))
+            p_dict['pledges'] = [dict(pl) for pl in cursor.fetchall()]
+
+            cursor.execute("""
+                SELECT title, content, author, created_at FROM updates WHERE project_id = ? ORDER BY id ASC
+            """, (p_id,))
+            p_dict['updates'] = [dict(u) for u in cursor.fetchall()]
+
             states[p_dict['slug']] = p_dict
+
         with open(PROJECT_STATES_FILE, 'w', encoding='utf-8') as f:
             json.dump(states, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Warning syncing project states: {e}")
 
 def restore_project_states(conn):
-    """Restore all project states and rewards from project_states.json."""
+    """Restore all project states, rewards, pledges, and updates from project_states.json."""
     if not os.path.exists(PROJECT_STATES_FILE) or os.environ.get("DATABASE_PATH"):
         return
     try:
@@ -580,7 +617,14 @@ def restore_project_states(conn):
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         for slug, data in states.items():
-            if isinstance(data, dict):
+            if not isinstance(data, dict):
+                continue
+
+            cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
+            p_row = cursor.fetchone()
+
+            if p_row:
+                p_id = p_row['id']
                 cursor.execute("""
                     UPDATE projects SET
                         title = COALESCE(?, title),
@@ -592,39 +636,79 @@ def restore_project_states(conn):
                         goal_amount = COALESCE(?, goal_amount),
                         current_amount = COALESCE(?, current_amount),
                         backers_count = COALESCE(?, backers_count),
-                        is_active = COALESCE(?, is_active)
-                    WHERE slug = ?
+                        is_active = COALESCE(?, is_active),
+                        owner_user_id = COALESCE(?, owner_user_id)
+                    WHERE id = ?
                 """, (
-                    data.get('title'),
-                    data.get('subtitle'),
-                    data.get('cover_image'),
-                    data.get('video_url'),
-                    data.get('main_media_type'),
-                    data.get('story_html'),
-                    data.get('goal_amount'),
-                    data.get('current_amount'),
-                    data.get('backers_count'),
-                    1 if data.get('is_active') else 0,
-                    slug
+                    data.get('title'), data.get('subtitle'), data.get('cover_image'),
+                    data.get('video_url'), data.get('main_media_type'), data.get('story_html'),
+                    data.get('goal_amount'), data.get('current_amount'), data.get('backers_count'),
+                    1 if data.get('is_active') else 0, data.get('owner_user_id'), p_id
                 ))
+            else:
+                cursor.execute("""
+                    INSERT INTO projects (
+                        slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
+                        creator_email, creator_phone, cover_image, video_url, main_media_type, story_html,
+                        goal_amount, current_amount, backers_count, days_total, start_date, end_date,
+                        status, is_active, owner_user_id, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    slug, data.get('title', slug), data.get('subtitle', ''), data.get('category', 'community'),
+                    data.get('creator_name', 'יוצר'), data.get('creator_bio', ''), data.get('creator_avatar', ''),
+                    data.get('creator_email', ''), data.get('creator_phone', ''), data.get('cover_image', ''),
+                    data.get('video_url'), data.get('main_media_type', 'auto'), data.get('story_html', ''),
+                    data.get('goal_amount', 50000.0), data.get('current_amount', 0.0), data.get('backers_count', 0),
+                    data.get('days_total', 30), data.get('start_date', now_str), data.get('end_date', now_str),
+                    data.get('status', 'active'), 1 if data.get('is_active') else 0, data.get('owner_user_id'), now_str
+                ))
+                p_id = cursor.lastrowid
 
-                # Restore custom rewards if present
-                if data.get('rewards'):
-                    cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
-                    p_row = cursor.fetchone()
-                    if p_row:
-                        p_id = p_row['id']
-                        cursor.execute("DELETE FROM rewards WHERE project_id = ?", (p_id,))
-                        for r in data['rewards']:
-                            cursor.execute("""
-                            INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            """, (
-                                p_id, r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'בקרוב'),
-                                r.get('quantity_limit'), r.get('quantity_claimed', 0), r.get('includes_shipping', 1), now_str
-                            ))
-            elif isinstance(data, (bool, int)):
-                cursor.execute("UPDATE projects SET is_active = ? WHERE slug = ?", (1 if data else 0, slug))
+            if data.get('rewards'):
+                cursor.execute("DELETE FROM rewards WHERE project_id = ?", (p_id,))
+                for r in data['rewards']:
+                    cursor.execute("""
+                    INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        p_id, r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'אוקטובר 2026'),
+                        r.get('quantity_limit'), r.get('quantity_claimed', 0), 1 if r.get('includes_shipping') else 0, r.get('created_at', now_str)
+                    ))
+
+            if data.get('pledges'):
+                for pl in data['pledges']:
+                    txn = pl.get('transaction_id')
+                    if txn:
+                        cursor.execute("SELECT 1 FROM pledges WHERE project_id = ? AND transaction_id = ?", (p_id, txn))
+                    else:
+                        cursor.execute("SELECT 1 FROM pledges WHERE project_id = ? AND backer_email = ? AND amount = ?", (p_id, pl.get('backer_email'), pl.get('amount')))
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                        INSERT INTO pledges (
+                            project_id, reward_id, amount, tip_amount, backer_name, backer_email, backer_phone,
+                            is_anonymous, greeting_message, shipping_address, payment_status, payment_method,
+                            transaction_id, created_at, fulfillment_status, fulfillment_notes, shipped_at,
+                            is_payment_verified, payment_reference
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            p_id, None, pl.get('amount', 0.0), pl.get('tip_amount', 0.0),
+                            pl.get('backer_name', 'תומך'), pl.get('backer_email', ''), pl.get('backer_phone', ''),
+                            1 if pl.get('is_anonymous') else 0, pl.get('greeting_message', ''), pl.get('shipping_address', ''),
+                            pl.get('payment_status', 'completed'), pl.get('payment_method', 'credit_card'),
+                            txn, pl.get('created_at', now_str), pl.get('fulfillment_status', 'pending'),
+                            pl.get('fulfillment_notes'), pl.get('shipped_at'), 1 if pl.get('is_payment_verified') else 0,
+                            pl.get('payment_reference')
+                        ))
+
+            if data.get('updates'):
+                for u in data['updates']:
+                    cursor.execute("SELECT 1 FROM updates WHERE project_id = ? AND title = ?", (p_id, u.get('title')))
+                    if not cursor.fetchone():
+                        cursor.execute("""
+                        INSERT INTO updates (project_id, title, content, author, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """, (p_id, u.get('title'), u.get('content'), u.get('author', 'יוזם הפרויקט'), u.get('created_at', now_str)))
+
         conn.commit()
     except Exception as e:
         print(f"Warning restoring project states: {e}")

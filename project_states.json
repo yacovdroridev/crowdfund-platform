@@ -4,6 +4,12 @@
     "slug": "synapse-guardian-iot",
     "title": "SynApse Guardian: מכשיר הגנה מעודכן",
     "subtitle": "תקציר מעודכן לבדיקה",
+    "category": "technology",
+    "creator_name": "יעקב דרורי",
+    "creator_bio": "מהנדס מערכות ומפתח פתרונות AI",
+    "creator_avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
+    "creator_email": "yacov@drori.org",
+    "creator_phone": "054-9103046",
     "cover_image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200",
     "video_url": null,
     "main_media_type": "auto",
@@ -11,7 +17,12 @@
     "goal_amount": 150000.0,
     "current_amount": 96500.0,
     "backers_count": 248,
+    "days_total": 45,
+    "start_date": "2026-08-24 14:44:25",
+    "end_date": "2026-09-15 14:44:25",
+    "status": "active",
     "is_active": 1,
+    "owner_user_id": null,
     "rewards": [
       {
         "title": "תשורה מעודכנת",
@@ -20,7 +31,17 @@
         "estimated_delivery": "דצמבר 2026",
         "quantity_limit": 100,
         "quantity_claimed": 0,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
+      }
+    ],
+    "pledges": [],
+    "updates": [
+      {
+        "title": "הגענו ל-80% מהיעד! תודה ענקית לכל התומכים",
+        "content": "אנחנו נרגשים להודיע שתוך שבועיים בלבד חצינו את רף ה-90 אלף ש\"ח. כרטיסי ה-PCB הראשונים כבר בדרך לבדיקות מעבדה.",
+        "author": "יעקב דרורי",
+        "created_at": "2026-08-22 14:44:25"
       }
     ]
   },
@@ -29,6 +50,12 @@
     "slug": "nahariya-stories-book",
     "title": "ספר האמנות וההיסטוריה: \"גליל שלא הכרתם\"",
     "subtitle": "ספר אלבומי מרהיב המתעד 100 שנות התיישבות, תרבות וסודות גנוזים לאורך חופי נהריה והגליל המערבי.",
+    "category": "art_culture",
+    "creator_name": "מיכל שחר",
+    "creator_bio": "היסטוריונית וצלמת נוף גלילית.",
+    "creator_avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&auto=format&fit=crop&q=80",
+    "creator_email": "michal@galilbooks.co.il",
+    "creator_phone": "052-8889999",
     "cover_image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=1200&auto=format&fit=crop&q=80",
     "video_url": null,
     "main_media_type": "auto",
@@ -36,7 +63,12 @@
     "goal_amount": 45000.0,
     "current_amount": 52300.0,
     "backers_count": 312,
+    "days_total": 30,
+    "start_date": "2026-08-24 14:44:25",
+    "end_date": "2026-09-07 14:44:25",
+    "status": "successful",
     "is_active": 1,
+    "owner_user_id": null,
     "rewards": [
       {
         "title": "ספר דיגיטלי (PDF באיכות הדפסה)",
@@ -45,7 +77,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 110,
-        "includes_shipping": 0
+        "includes_shipping": 0,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "הספר המודפס בכריכה קשה עם הקדשה",
@@ -54,7 +87,8 @@
         "estimated_delivery": "נובמבר 2026",
         "quantity_limit": 300,
         "quantity_claimed": 185,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "מארז אספנים: 2 ספרים + פוסטר נוף ממוסגר",
@@ -63,15 +97,24 @@
         "estimated_delivery": "נובמבר 2026",
         "quantity_limit": 50,
         "quantity_claimed": 45,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       }
-    ]
+    ],
+    "pledges": [],
+    "updates": []
   },
   "music-for-healing": {
     "id": 3,
     "slug": "music-for-healing",
     "title": "אלבום הבכורה והסיבוב המוזיקלי: \"ניגוני תקווה\"",
     "subtitle": "הקלטת אלבום אקוסטי מרפא והופעות פתוחות לקהל הרחב במרכזים קהילתיים ברחבי הארץ.",
+    "category": "music",
+    "creator_name": "יונתן רז",
+    "creator_bio": "מוזיקאי, מלחין ונגן עוד וגיטרה.",
+    "creator_avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+    "creator_email": "yonatan@music.org",
+    "creator_phone": "050-1234567",
     "cover_image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80",
     "video_url": null,
     "main_media_type": "auto",
@@ -79,7 +122,12 @@
     "goal_amount": 60000.0,
     "current_amount": 34200.0,
     "backers_count": 185,
+    "days_total": 40,
+    "start_date": "2026-08-24 14:44:25",
+    "end_date": "2026-09-27 14:44:25",
+    "status": "active",
     "is_active": 1,
+    "owner_user_id": null,
     "rewards": [
       {
         "title": "הורדה דיגיטלית מוקדמת",
@@ -88,7 +136,8 @@
         "estimated_delivery": "ספטמבר 2026",
         "quantity_limit": null,
         "quantity_claimed": 80,
-        "includes_shipping": 0
+        "includes_shipping": 0,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "דיסק פיזי + כרטיס למופע ההשקה",
@@ -97,15 +146,24 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": 150,
         "quantity_claimed": 65,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       }
-    ]
+    ],
+    "pledges": [],
+    "updates": []
   },
   "or-latefila": {
     "id": 4,
     "slug": "or-latefila",
     "title": "האור שבתפילה",
     "subtitle": "לגלות מחדש את התפילה - לעצור, לנשום ולהתחבר. ספר ואפליקציה עם מדיטציה יהודית, השראה ותרגילים יומיים. מסע אישי אל הלב, הנשמה והאור שבתפילה.",
+    "category": "community",
+    "creator_name": "מרים דרורי",
+    "creator_bio": "מחברת \"האור שבתפילה\" - פרויקט להחזרת הלב, הכוונה והשקט אל מילות התפילה.",
+    "creator_avatar": "https://headstart.co.il/image/635954728250575193.jpg",
+    "creator_email": "miriam@drori.org",
+    "creator_phone": "054-8048602",
     "cover_image": "https://headstart.co.il/image/4a17c495-78a7-23b3-b755-5235b6e0c3ea.jpg",
     "video_url": "https://youtube.com/shorts/BaWvbD6vLq8",
     "main_media_type": "auto",
@@ -113,7 +171,12 @@
     "goal_amount": 70000.0,
     "current_amount": 38450.0,
     "backers_count": 148,
+    "days_total": 30,
+    "start_date": "2026-08-24 14:44:25",
+    "end_date": "2026-09-14 14:44:25",
+    "status": "active",
     "is_active": 1,
+    "owner_user_id": null,
     "rewards": [
       {
         "title": "טעימה מהדרך",
@@ -122,7 +185,8 @@
         "estimated_delivery": "ספטמבר 2026",
         "quantity_limit": null,
         "quantity_claimed": 12,
-        "includes_shipping": 0
+        "includes_shipping": 0,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "ברכת האור",
@@ -131,7 +195,8 @@
         "estimated_delivery": "ספטמבר 2026",
         "quantity_limit": null,
         "quantity_claimed": 28,
-        "includes_shipping": 0
+        "includes_shipping": 0,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "מייסד שותף",
@@ -140,7 +205,8 @@
         "estimated_delivery": "ספטמבר 2026",
         "quantity_limit": null,
         "quantity_claimed": 45,
-        "includes_shipping": 0
+        "includes_shipping": 0,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "שותף לאור",
@@ -149,7 +215,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 62,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "חווית האור",
@@ -158,7 +225,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 34,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "שותפים לדרך",
@@ -167,7 +235,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 19,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "מפיצי אור",
@@ -176,7 +245,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 14,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "מייסדי האור שבתפילה",
@@ -185,7 +255,8 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 6,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
       },
       {
         "title": "שותף פרימיום",
@@ -194,7 +265,119 @@
         "estimated_delivery": "אוקטובר 2026",
         "quantity_limit": null,
         "quantity_claimed": 3,
-        "includes_shipping": 1
+        "includes_shipping": 1,
+        "created_at": "2026-08-24 14:44:25"
+      }
+    ],
+    "pledges": [
+      {
+        "amount": 118.0,
+        "tip_amount": 10.0,
+        "backer_name": "דניאל כהן",
+        "backer_email": "daniel.c@example.com",
+        "backer_phone": "052-1234567",
+        "is_anonymous": 0,
+        "greeting_message": "בהצלחה רבה עם הספר והאפליקציה!",
+        "shipping_address": "רחוב הרצל 14, דירה 5, תל אביב-יפו",
+        "payment_status": "completed",
+        "payment_method": "credit_card",
+        "transaction_id": "TXN-984102",
+        "created_at": "2026-08-24 14:44:25",
+        "fulfillment_status": "pending",
+        "fulfillment_notes": null,
+        "shipped_at": null,
+        "is_payment_verified": 1,
+        "payment_reference": "CONF-8891"
+      },
+      {
+        "amount": 180.0,
+        "tip_amount": 20.0,
+        "backer_name": "מיכל לוי",
+        "backer_email": "michal.levi@example.com",
+        "backer_phone": "054-9876543",
+        "is_anonymous": 0,
+        "greeting_message": "מחכים בקוצר רוח לשידורים ולספר המודפס.",
+        "shipping_address": "שדרות הנשיא 42, חיפה",
+        "payment_status": "completed",
+        "payment_method": "bit",
+        "transaction_id": "BIT-478192",
+        "created_at": "2026-08-24 14:44:25",
+        "fulfillment_status": "shipped",
+        "fulfillment_notes": "נשלח בדואר רשום RR98471234IL",
+        "shipped_at": "2026-08-24 10:15:00",
+        "is_payment_verified": 1,
+        "payment_reference": "BIT-REF-4781"
+      },
+      {
+        "amount": 360.0,
+        "tip_amount": 0.0,
+        "backer_name": "אברהם ושרה פרידמן",
+        "backer_email": "friedman.family@example.com",
+        "backer_phone": "050-5554433",
+        "is_anonymous": 0,
+        "greeting_message": "ישר כוח עצום על היוזמה המבורכת!",
+        "shipping_address": "רחוב יפו 102, ירושלים",
+        "payment_status": "pending",
+        "payment_method": "bit",
+        "transaction_id": "BIT-PENDING-99",
+        "created_at": "2026-08-24 14:44:25",
+        "fulfillment_status": "pending",
+        "fulfillment_notes": null,
+        "shipped_at": null,
+        "is_payment_verified": 0,
+        "payment_reference": "BIT-TX-8831"
+      },
+      {
+        "amount": 72.0,
+        "tip_amount": 5.0,
+        "backer_name": "רחל מזרחי",
+        "backer_email": "rachel.m@example.com",
+        "backer_phone": "053-7778899",
+        "is_anonymous": 1,
+        "greeting_message": "ברכה והצלחה!",
+        "shipping_address": "ת.ד. 512, נהריה",
+        "payment_status": "completed",
+        "payment_method": "paybox",
+        "transaction_id": "PB-338210",
+        "created_at": "2026-08-24 14:44:25",
+        "fulfillment_status": "delivered",
+        "fulfillment_notes": "נמסר ישירות באירוע",
+        "shipped_at": "2026-08-24 12:00:00",
+        "is_payment_verified": 1,
+        "payment_reference": "PB-REF-9921"
+      },
+      {
+        "amount": 540.0,
+        "tip_amount": 50.0,
+        "backer_name": "יוסי ואורלי שוורץ",
+        "backer_email": "schwartz.y@example.com",
+        "backer_phone": "058-4443322",
+        "is_anonymous": 0,
+        "greeting_message": "בהערכה עמוקה!",
+        "shipping_address": "רחוב הברוש 8, רעננה",
+        "payment_status": "completed",
+        "payment_method": "paypal",
+        "transaction_id": "PAYPAL-88193021",
+        "created_at": "2026-08-24 14:44:25",
+        "fulfillment_status": "pending",
+        "fulfillment_notes": null,
+        "shipped_at": null,
+        "is_payment_verified": 1,
+        "payment_reference": "PP-9901"
+      }
+    ],
+    "updates": [
+      {
+        "title": "חצינו את 75% מהיעד! חדר השידור החי כבר באוויר",
+        "content": "תודה עצומה לכל 148 התומכים שהצטרפו אלינו. השידורים היומיים (10:00 בבוקר ו-20:00 בערב) זוכים להיענות מרגשת. אנחנו ממשיכים בכל הכוח עד להשגת היעד המלא!",
+        "author": "מרים ויעקב דרורי",
+        "created_at": "2026-08-24 14:44:25"
+      },
+      {
+        "title": "עדכונים, צמיחה, תקווה",
+        "content": "אנחנו נרגשים לשתף אתכם בהתקדמות הפרויקט, בצמיחה הקהילתית ובתקווה הגדולה שהלימוד והכוונות מביאים איתם.",
+        "author": "מרים ויעקב דרורי",
+        "created_at": "2026-08-23 14:21:23"
       }
     ]
   }
