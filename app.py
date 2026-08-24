@@ -431,7 +431,10 @@ def submit_pledge(slug):
                 import urllib.request
                 import json as json_lib
                 is_sandbox = gw_row['sandbox_mode'] if gw_row else 1
-                endpoint_url = "https://sandbox.payme.io/api/generate-sale" if is_sandbox else "https://ng.payme.io/api/generate-sale"
+                endpoints = [
+                    "https://sandbox.payme.io/api/generate-sale" if is_sandbox else "https://ng.payme.io/api/generate-sale",
+                    "https://preprod.payme.io/api/generate-sale" if is_sandbox else "https://backend.payme.io/api/generate-sale"
+                ]
 
                 payload = {
                     "seller_payme_id": seller_id,
@@ -441,19 +444,29 @@ def submit_pledge(slug):
                     "transaction_id": transaction_id,
                     "installments": "1",
                     "language": "he",
-                    "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True)
+                    "sale_return_url": url_for('pledge_success', pledge_id=pledge_id, _external=True),
+                    "buyer_name": backer_name,
+                    "buyer_email": backer_email,
+                    "buyer_phone": backer_phone
                 }
-                req = urllib.request.Request(
-                    endpoint_url,
-                    data=json_lib.dumps(payload).encode('utf-8'),
-                    headers={'Content-Type': 'application/json'}
-                )
-                with urllib.request.urlopen(req, timeout=5) as resp:
-                    resp_data = json_lib.loads(resp.read().decode('utf-8'))
-                    if resp_data.get("sale_url"):
-                        payme_sale_url = resp_data["sale_url"]
-                    elif resp_data.get("payme_sale_id"):
-                        cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
+
+                for endpoint_url in endpoints:
+                    try:
+                        req = urllib.request.Request(
+                            endpoint_url,
+                            data=json_lib.dumps(payload).encode('utf-8'),
+                            headers={'Content-Type': 'application/json'}
+                        )
+                        with urllib.request.urlopen(req, timeout=5) as resp:
+                            resp_data = json_lib.loads(resp.read().decode('utf-8'))
+                            if resp_data.get("sale_url"):
+                                payme_sale_url = resp_data["sale_url"]
+                                break
+                            elif resp_data.get("payme_sale_id"):
+                                cursor.execute("UPDATE pledges SET payment_reference = ? WHERE id = ?", (str(resp_data["payme_sale_id"]), pledge_id))
+                                break
+                    except Exception as ep_ex:
+                        print(f"PayMe endpoint attempt ({endpoint_url}) note: {ep_ex}")
             except Exception as ex:
                 print(f"PayMe API connection note: {ex}")
 
