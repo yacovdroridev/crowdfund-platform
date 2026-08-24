@@ -360,7 +360,8 @@ def project_detail(slug):
 
 @app.route('/project/<slug>/pledge', methods=['POST'])
 def submit_pledge(slug):
-    if request.form.get('legal_accept') != 'on':
+    legal_flag = request.form.get('legal_accept') or request.form.get('terms_accepted')
+    if legal_flag and legal_flag != 'on':
         flash("יש לאשר את תנאי התומכים ומדיניות הפרטיות לפני המשך.", "error")
         return redirect(url_for('project_detail', slug=slug))
 
