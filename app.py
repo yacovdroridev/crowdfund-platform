@@ -345,6 +345,7 @@ def project_detail(slug):
     """, (project["id"],))
     backers = [dict(b) for b in cursor.fetchall()]
 
+    is_auth = is_project_authorized(slug)
     conn.close()
 
     return render_template(
@@ -353,7 +354,8 @@ def project_detail(slug):
         rewards=rewards,
         updates=updates,
         comments=comments,
-        backers=backers
+        backers=backers,
+        is_authorized=is_auth
     )
 
 @app.route('/project/<slug>/pledge', methods=['POST'])
@@ -924,13 +926,18 @@ def admin_toggle_project(slug):
 
 @app.route('/project/<slug>/add-update', methods=['POST'])
 def add_project_update(slug):
+    if not is_project_authorized(slug):
+        flash("רק יוצר הפרויקט או מנהל מערכת רשאים לפרסם עדכון.", "error")
+        return redirect(url_for('login', next=url_for('project_detail', slug=slug)))
+
     title = request.form.get('update_title', '').strip()
     content = request.form.get('update_content', '').strip()
-    author = request.form.get('update_author', 'יוזם הפרויקט').strip()
+    user = current_user()
+    author = request.form.get('update_author', '').strip() or (user['full_name'] if user else 'יוזם הפרויקט')
 
     if not title or not content:
         flash("יש למלא כותרת ותוכן עדכון", "error")
-        return redirect(url_for('project_detail', slug=slug))
+        return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
 
     conn = get_db()
     cursor = conn.cursor()
@@ -955,19 +962,17 @@ def add_project_update(slug):
 
 @app.route('/project/<slug>/update/<int:update_id>/delete', methods=['POST'])
 def delete_project_update(slug, update_id):
+    if not is_project_authorized(slug):
+        flash("אין לך הרשאה למחוק עדכון זה.", "error")
+        return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
+
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, user_id, owner_user_id FROM projects WHERE slug = ?", (slug,))
+    cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
     proj = cursor.fetchone()
     if not proj:
         conn.close()
         abort(404)
-
-    user = current_user()
-    if not user or (proj['user_id'] != user['id'] and proj.get('owner_user_id') != user['id'] and user['role'] != 'admin'):
-        conn.close()
-        flash("אין לך הרשאה למחוק עדכון זה.", "error")
-        return redirect(url_for('project_detail', slug=slug))
 
     cursor.execute("DELETE FROM updates WHERE id = ? AND project_id = ?", (update_id, proj["id"]))
     conn.commit()

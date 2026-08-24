@@ -130,20 +130,24 @@
       <div id="tab-updates" class="bg-white rounded-2xl p-6 sm:p-10 border border-slate-200 shadow-sm hidden space-y-6">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <h2 class="text-xl font-black text-slate-900">עדכוני פרויקט</h2>
-          <button onclick="document.getElementById('post-update-form').classList.toggle('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg">
-            + פרסם עדכון חדש
-          </button>
+          {% if is_authorized %}
+            <button onclick="document.getElementById('post-update-form').classList.toggle('hidden')" class="text-xs font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg cursor-pointer">
+              + פרסם עדכון חדש
+            </button>
+          {% endif %}
         </div>
 
-        <!-- Quick Post Update Form (Creator) -->
-        <form id="post-update-form" action="{{ url_for('add_project_update', slug=project.slug) }}" method="POST" class="hidden bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="text" name="update_title" placeholder="כותרת העדכון..." required class="w-full p-2 text-sm rounded-lg border border-slate-300">
-          <textarea name="update_content" rows="3" placeholder="תוכן העדכון לתומכים..." required class="w-full p-2 text-sm rounded-lg border border-slate-300"></textarea>
-          <div class="flex justify-end">
-            <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg">פרסם עדכון</button>
-          </div>
-        </form>
+        {% if is_authorized %}
+          <!-- Quick Post Update Form (Creator/Admin Only) -->
+          <form id="post-update-form" action="{{ url_for('add_project_update', slug=project.slug) }}" method="POST" class="hidden bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="text" name="update_title" placeholder="כותרת העדכון..." required class="w-full p-2 text-sm rounded-lg border border-slate-300">
+            <textarea name="update_content" rows="3" placeholder="תוכן העדכון לתומכים..." required class="w-full p-2 text-sm rounded-lg border border-slate-300"></textarea>
+            <div class="flex justify-end">
+              <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-lg">פרסם עדכון</button>
+            </div>
+          </form>
+        {% endif %}
 
         {% if updates %}
           <div class="space-y-6">

@@ -106,3 +106,30 @@ def test_paypal_sandbox_execution(client):
     rv = client.post('/checkout/paypal/execute', data={'pledge_id': pledge_id}, follow_redirects=True)
     assert rv.status_code == 200
     assert "תשלום ה-PayPal (Sandbox) אושר בהצלחה".encode('utf-8') in rv.data
+
+def test_unauthorized_user_cannot_add_project_update():
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_PATH"] = db_path
+    db.DB_PATH = db_path
+    db.init_db()
+    db.seed_db()
+
+    app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
+    with app.test_client() as unauth_client:
+        rv = unauth_client.post('/project/or-latefila/add-update', data={
+            'update_title': 'Spam Title',
+            'update_content': 'Spam Content'
+        }, follow_redirects=True)
+        assert "רק יוצר הפרויקט או מנהל מערכת".encode('utf-8') in rv.data
+
+        unauth_client.post('/login', data={'email': 'backer@example.com', 'password': 'User123456!'})
+        rv2 = unauth_client.post('/project/or-latefila/add-update', data={
+            'update_title': 'Spam Title 2',
+            'update_content': 'Spam Content 2'
+        }, follow_redirects=True)
+        assert "רק יוצר הפרויקט או מנהל מערכת".encode('utf-8') in rv2.data
+
+    os.close(db_fd)
+    if os.path.exists(db_path):
+        os.unlink(db_path)
