@@ -294,7 +294,54 @@ def init_db():
         """, (key, name, enabled, ident, sandbox, inst, now_str))
 
     conn.commit()
+
+    ensure_or_latefila_rewards(conn)
+
     conn.close()
+
+
+def ensure_or_latefila_rewards(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db()
+        close_at_end = True
+
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM projects WHERE slug = 'or-latefila'")
+    p = cursor.fetchone()
+    if p:
+        proj_id = p['id']
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        target_rewards = [
+            ('טעימה מהדרך', 18.0, '📱 הספר הדיגיטלי המלא האור שבתפילה', 'ספטמבר 2026', 0),
+            ('אור יומי', 36.0, '📱 הספר הדיגיטלי\n🃏 כרטיסי השראה יומיים\n🎧 מדיטציה מודרכת במתנה', 'ספטמבר 2026', 0),
+            ('מייסד שותף', 72.0, '📱 הספר הדיגיטלי\n🎧 סדרת מדיטציות מודרכות\n🃏 חבילת כרטיסי השראה דיגיטליים\n💬 הצטרפות לקבוצת הווטסאפ עם תכנים יומיים', 'ספטמבר 2026', 0),
+            ('שותף לאור', 118.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n💬 קבוצת התוכן היומית', 'אוקטובר 2026', 1),
+            ('חווית האור', 180.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n🎧 ספריית מדיטציות\n🃏 כרטיסי השראה דיגיטליים\n📱 גישה לאפליקציה לשנה שלמה', 'אוקטובר 2026', 1),
+            ('שותפים לדרך', 360.0, '📖 2 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
+            ('מפיצי אור', 540.0, '📖 3 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לשלושה אנשים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
+            ('מייסדי האור שבתפילה', 1200.0, '📖 5 ספרים\n📱 גישה לאפליקציה לחמישה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת', 'אוקטובר 2026', 1),
+            ('שותף פרימיום', 1800.0, '📖 10 ספרים\n📱 גישה מלאה לאפליקציה לעשרה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת\n✨ הוקרה מיוחדת בספר לרפואת או לעילוי נשמת מישהו יקר לכם', 'אוקטובר 2026', 1)
+        ]
+
+        for title, amt, desc, delivery, shipping in target_rewards:
+            row = cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND amount = ?", (proj_id, amt)).fetchone()
+            if row:
+                cursor.execute("""
+                    UPDATE rewards SET title = ?, description = ?, estimated_delivery = ?, includes_shipping = ?
+                    WHERE id = ?
+                """, (title, desc, delivery, shipping, row['id']))
+            else:
+                cursor.execute("""
+                    INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
+                    VALUES (?, ?, ?, ?, ?, NULL, 0, ?, ?)
+                """, (proj_id, title, desc, amt, delivery, shipping, now_str))
+
+        conn.commit()
+
+    if close_at_end:
+        conn.close()
+
 
 def seed_db():
     conn = get_db()
