@@ -518,30 +518,35 @@ def seed_db():
 PROJECT_STATES_FILE = os.path.join(os.path.dirname(__file__), "project_states.json")
 
 def sync_project_states(conn):
-    """Save all project states (cover_image, video_url, is_active, amounts, titles) to project_states.json to survive deployments."""
+    """Save all project states (cover_image, video_url, is_active, amounts, titles, rewards) to project_states.json."""
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT slug, title, subtitle, cover_image, video_url, main_media_type,
+            SELECT id, slug, title, subtitle, cover_image, video_url, main_media_type,
                    story_html, goal_amount, current_amount, backers_count, is_active
             FROM projects
         """)
         states = {}
         for row in cursor.fetchall():
-            states[row['slug']] = dict(row)
+            p_dict = dict(row)
+            cursor.execute("SELECT title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping FROM rewards WHERE project_id = ? ORDER BY amount ASC", (p_dict['id'],))
+            p_dict['rewards'] = [dict(r) for r in cursor.fetchall()]
+            states[p_dict['slug']] = p_dict
         with open(PROJECT_STATES_FILE, 'w', encoding='utf-8') as f:
             json.dump(states, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Warning syncing project states: {e}")
 
 def restore_project_states(conn):
-    """Restore all project states from project_states.json after seed or init."""
+    """Restore all project states and rewards from project_states.json."""
     if not os.path.exists(PROJECT_STATES_FILE) or os.environ.get("DATABASE_PATH"):
         return
     try:
         with open(PROJECT_STATES_FILE, 'r', encoding='utf-8') as f:
             states = json.load(f)
         cursor = conn.cursor()
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         for slug, data in states.items():
             if isinstance(data, dict):
                 cursor.execute("""
@@ -570,6 +575,22 @@ def restore_project_states(conn):
                     1 if data.get('is_active') else 0,
                     slug
                 ))
+
+                # Restore custom rewards if present
+                if data.get('rewards'):
+                    cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
+                    p_row = cursor.fetchone()
+                    if p_row:
+                        p_id = p_row['id']
+                        cursor.execute("DELETE FROM rewards WHERE project_id = ?", (p_id,))
+                        for r in data['rewards']:
+                            cursor.execute("""
+                            INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            """, (
+                                p_id, r['title'], r['description'], r['amount'], r.get('estimated_delivery', 'בקרוב'),
+                                r.get('quantity_limit'), r.get('quantity_claimed', 0), r.get('includes_shipping', 1), now_str
+                            ))
             elif isinstance(data, (bool, int)):
                 cursor.execute("UPDATE projects SET is_active = ? WHERE slug = ?", (1 if data else 0, slug))
         conn.commit()

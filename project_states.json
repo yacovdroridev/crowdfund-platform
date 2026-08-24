@@ -1,5 +1,6 @@
 {
   "synapse-guardian-iot": {
+    "id": 1,
     "slug": "synapse-guardian-iot",
     "title": "SynApse Guardian: מכשיר הגנה מעודכן",
     "subtitle": "תקציר מעודכן לבדיקה",
@@ -10,9 +11,21 @@
     "goal_amount": 150000.0,
     "current_amount": 96500.0,
     "backers_count": 248,
-    "is_active": 1
+    "is_active": 1,
+    "rewards": [
+      {
+        "title": "תשורה מעודכנת",
+        "description": "תיאור מעודכן",
+        "amount": 120.0,
+        "estimated_delivery": "דצמבר 2026",
+        "quantity_limit": 100,
+        "quantity_claimed": 0,
+        "includes_shipping": 1
+      }
+    ]
   },
   "nahariya-stories-book": {
+    "id": 2,
     "slug": "nahariya-stories-book",
     "title": "ספר האמנות וההיסטוריה: \"גליל שלא הכרתם\"",
     "subtitle": "ספר אלבומי מרהיב המתעד 100 שנות התיישבות, תרבות וסודות גנוזים לאורך חופי נהריה והגליל המערבי.",
@@ -23,9 +36,39 @@
     "goal_amount": 45000.0,
     "current_amount": 52300.0,
     "backers_count": 312,
-    "is_active": 1
+    "is_active": 1,
+    "rewards": [
+      {
+        "title": "ספר דיגיטלי (PDF באיכות הדפסה)",
+        "description": "קובץ האלבום הדיגיטלי המלא באיכות 4K לטאבלט ולמחשב.",
+        "amount": 40.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 110,
+        "includes_shipping": 0
+      },
+      {
+        "title": "הספר המודפס בכריכה קשה עם הקדשה",
+        "description": "עותק מהודר בכריכה קשה עם הטבעת זהב והקדשה אישית בכתב יד מהמחברת.",
+        "amount": 130.0,
+        "estimated_delivery": "נובמבר 2026",
+        "quantity_limit": 300,
+        "quantity_claimed": 185,
+        "includes_shipping": 1
+      },
+      {
+        "title": "מארז אספנים: 2 ספרים + פוסטר נוף ממוסגר",
+        "description": "שני עותקים + הדפס אמנותי ממוסגר בגודל 50x70 ס\"מ.",
+        "amount": 320.0,
+        "estimated_delivery": "נובמבר 2026",
+        "quantity_limit": 50,
+        "quantity_claimed": 45,
+        "includes_shipping": 1
+      }
+    ]
   },
   "music-for-healing": {
+    "id": 3,
     "slug": "music-for-healing",
     "title": "אלבום הבכורה והסיבוב המוזיקלי: \"ניגוני תקווה\"",
     "subtitle": "הקלטת אלבום אקוסטי מרפא והופעות פתוחות לקהל הרחב במרכזים קהילתיים ברחבי הארץ.",
@@ -36,9 +79,30 @@
     "goal_amount": 60000.0,
     "current_amount": 34200.0,
     "backers_count": 185,
-    "is_active": 1
+    "is_active": 1,
+    "rewards": [
+      {
+        "title": "הורדה דיגיטלית מוקדמת",
+        "description": "קבלת שירי האלבום שבועיים לפני ההפצה הרשמית בספוטיפיי ואפל מיוזיק.",
+        "amount": 36.0,
+        "estimated_delivery": "ספטמבר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 80,
+        "includes_shipping": 0
+      },
+      {
+        "title": "דיסק פיזי + כרטיס למופע ההשקה",
+        "description": "עותק דיסק מהודר עם חוברת מילים + כרטיס ישיבה זוגי למופע ההשקה בתל אביב או חיפה.",
+        "amount": 180.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": 150,
+        "quantity_claimed": 65,
+        "includes_shipping": 1
+      }
+    ]
   },
   "or-latefila": {
+    "id": 4,
     "slug": "or-latefila",
     "title": "האור שבתפילה",
     "subtitle": "לגלות מחדש את התפילה - לעצור, לנשום ולהתחבר. ספר ואפליקציה עם מדיטציה יהודית, השראה ותרגילים יומיים. מסע אישי אל הלב, הנשמה והאור שבתפילה.",
@@ -49,6 +113,89 @@
     "goal_amount": 70000.0,
     "current_amount": 38450.0,
     "backers_count": 148,
-    "is_active": 1
+    "is_active": 1,
+    "rewards": [
+      {
+        "title": "טעימה מהדרך",
+        "description": "📱 הספר הדיגיטלי המלא \"האור שבתפילה\".",
+        "amount": 18.0,
+        "estimated_delivery": "ספטמבר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 12,
+        "includes_shipping": 0
+      },
+      {
+        "title": "ברכת האור",
+        "description": "📱 הספר הדיגיטלי המלא + ברכה אישית מוקלטת והצטרפות לקהילת התומכים.",
+        "amount": 36.0,
+        "estimated_delivery": "ספטמבר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 28,
+        "includes_shipping": 0
+      },
+      {
+        "title": "מייסד שותף",
+        "description": "📱 הספר הדיגיטלי + 🎧 סדרת מדיטציות מודרכות + 🎫 חוברת כרטיסי השראה דיגיטליים + 💬 הצטרפות לקבוצת הוואטסאפ עם תכנים יומיים.",
+        "amount": 72.0,
+        "estimated_delivery": "ספטמבר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 45,
+        "includes_shipping": 0
+      },
+      {
+        "title": "שותף לאור",
+        "description": "📖 הספר המודפס בכריכה איכותית + 📱 הספר הדיגיטלי + 💬 קבוצת התוכן היומית.",
+        "amount": 118.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 62,
+        "includes_shipping": 1
+      },
+      {
+        "title": "חווית האור",
+        "description": "📖 הספר המודפס + 📱 הספר הדיגיטלי + 🎧 ספריית מדיטציות + 🎫 כרטיסי השראה דיגיטליים + 📱 גישה לאפליקציה לשנה שלמה.",
+        "amount": 180.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 34,
+        "includes_shipping": 1
+      },
+      {
+        "title": "שותפים לדרך",
+        "description": "📖📖 2 ספרים מודפסים + 📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים + 💛 הקדשה אישית.",
+        "amount": 360.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 19,
+        "includes_shipping": 1
+      },
+      {
+        "title": "מפיצי אור",
+        "description": "📖📖📖 3 ספרים מודפסים + 📱 גישה מלאה לאפליקציה לשלושה אנשים + 💛 הקדשה אישית.",
+        "amount": 540.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 14,
+        "includes_shipping": 1
+      },
+      {
+        "title": "מייסדי האור שבתפילה",
+        "description": "📖📖📖📖📖 5 ספרים מודפסים + 📱 גישה לאפליקציה לחמישה אנשים + 🎧 כל תכני השמע והמדיטציות + 🤝 מפגש אישי/קבוצתי עם המחברת.",
+        "amount": 1200.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 6,
+        "includes_shipping": 1
+      },
+      {
+        "title": "שותף פרימיום",
+        "description": "📖📖📖📖📖📖📖📖📖📖 10 ספרים מודפסים + 📱 גישה מלאה לאפליקציה ל-10 אנשים + 🎧 כל תכני השמע והמדיטציות + 🤝 מפגש אישי/קבוצתי עם המחברת.",
+        "amount": 1800.0,
+        "estimated_delivery": "אוקטובר 2026",
+        "quantity_limit": null,
+        "quantity_claimed": 3,
+        "includes_shipping": 1
+      }
+    ]
   }
 }
