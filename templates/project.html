@@ -72,7 +72,7 @@
       
       <!-- Main Media (Video or Cover Image) -->
       <div class="bg-slate-950 rounded-2xl overflow-hidden shadow-lg border border-slate-200">
-        {% if project.video_embed_url or project.video_url %}
+        {% if project.show_video and (project.video_embed_url or project.video_url) %}
           <div class="aspect-video w-full">
             <iframe src="{{ project.video_embed_url or project.video_url }}" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>

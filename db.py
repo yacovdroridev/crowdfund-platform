@@ -80,6 +80,7 @@ def init_db():
     for migration in (
         "ALTER TABLE projects ADD COLUMN owner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
+        "ALTER TABLE projects ADD COLUMN main_media_type TEXT DEFAULT 'auto'",
     ):
         try:
             cursor.execute(migration)
@@ -511,7 +512,69 @@ def seed_db():
     ))
 
     conn.commit()
+    restore_project_states(conn)
     conn.close()
+
+PROJECT_STATES_FILE = os.path.join(os.path.dirname(__file__), "project_states.json")
+
+def sync_project_states(conn):
+    """Save all project states (cover_image, video_url, is_active, amounts, titles) to project_states.json to survive deployments."""
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT slug, title, subtitle, cover_image, video_url, main_media_type,
+                   story_html, goal_amount, current_amount, backers_count, is_active
+            FROM projects
+        """)
+        states = {}
+        for row in cursor.fetchall():
+            states[row['slug']] = dict(row)
+        with open(PROJECT_STATES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(states, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Warning syncing project states: {e}")
+
+def restore_project_states(conn):
+    """Restore all project states from project_states.json after seed or init."""
+    if not os.path.exists(PROJECT_STATES_FILE) or os.environ.get("DATABASE_PATH"):
+        return
+    try:
+        with open(PROJECT_STATES_FILE, 'r', encoding='utf-8') as f:
+            states = json.load(f)
+        cursor = conn.cursor()
+        for slug, data in states.items():
+            if isinstance(data, dict):
+                cursor.execute("""
+                    UPDATE projects SET
+                        title = COALESCE(?, title),
+                        subtitle = COALESCE(?, subtitle),
+                        cover_image = COALESCE(?, cover_image),
+                        video_url = ?,
+                        main_media_type = COALESCE(?, main_media_type),
+                        story_html = COALESCE(?, story_html),
+                        goal_amount = COALESCE(?, goal_amount),
+                        current_amount = COALESCE(?, current_amount),
+                        backers_count = COALESCE(?, backers_count),
+                        is_active = COALESCE(?, is_active)
+                    WHERE slug = ?
+                """, (
+                    data.get('title'),
+                    data.get('subtitle'),
+                    data.get('cover_image'),
+                    data.get('video_url'),
+                    data.get('main_media_type'),
+                    data.get('story_html'),
+                    data.get('goal_amount'),
+                    data.get('current_amount'),
+                    data.get('backers_count'),
+                    1 if data.get('is_active') else 0,
+                    slug
+                ))
+            elif isinstance(data, (bool, int)):
+                cursor.execute("UPDATE projects SET is_active = ? WHERE slug = ?", (1 if data else 0, slug))
+        conn.commit()
+    except Exception as e:
+        print(f"Warning restoring project states: {e}")
 
 if __name__ == "__main__":
     init_db()

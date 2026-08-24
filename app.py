@@ -3,13 +3,14 @@ import re
 import uuid
 import secrets
 import hashlib
+import base64
 import bleach
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
-from db import get_db, init_db, seed_db
+from db import get_db, init_db, seed_db, sync_project_states
 
 
 def session_cookie_should_be_secure():
@@ -106,6 +107,25 @@ def save_uploaded_image(file_storage):
     filepath = os.path.join(UPLOAD_FOLDER, filename)
     file_storage.save(filepath)
     return f"/static/uploads/{filename}"
+
+def save_base64_image(base64_str):
+    if not base64_str or not base64_str.startswith('data:image'):
+        return None
+    try:
+        header, encoded = base64_str.split(',', 1)
+        data = base64.b64decode(encoded)
+        ext = 'jpg'
+        if 'png' in header:
+            ext = 'png'
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        with open(filepath, 'wb') as f:
+            f.write(data)
+        return f"/static/uploads/{filename}"
+    except Exception as e:
+        print(f"Error saving base64 image: {e}")
+        return None
 
 def format_youtube_embed(url):
     if not url or not str(url).strip() or str(url).strip().lower() in ('none', 'null'):
@@ -226,6 +246,14 @@ def calculate_project_metrics(project):
     else:
         p["video_url"] = None
         p["video_embed_url"] = None
+
+    main_media_type = p.get('main_media_type', 'auto') or 'auto'
+    p['main_media_type'] = main_media_type
+    if main_media_type == 'image':
+        p['show_video'] = False
+    else:
+        p['show_video'] = bool(p.get('video_embed_url'))
+
     return p
 
 # --- HTML Routes ---
@@ -618,8 +646,10 @@ def edit_project(slug):
         uploaded_avatar = save_uploaded_image(request.files.get('avatar_file'))
         creator_avatar = uploaded_avatar or request.form.get('creator_avatar', '').strip() or project['creator_avatar']
 
+        main_media_type = request.form.get('main_media_type', 'auto').strip()
+        cropped_cover = save_base64_image(request.form.get('cropped_cover_base64'))
         uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
-        cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or project['cover_image']
+        cover_image = cropped_cover or uploaded_cover or request.form.get('cover_image', '').strip() or project['cover_image']
 
         video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
@@ -628,12 +658,12 @@ def edit_project(slug):
         UPDATE projects SET
             title = ?, subtitle = ?, category = ?, goal_amount = ?, current_amount = ?, backers_count = ?,
             creator_name = ?, creator_email = ?, creator_phone = ?, creator_bio = ?,
-            creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?
+            creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?, main_media_type = ?
         WHERE id = ?
         """, (
             title, subtitle, category, goal_amount, current_amount, backers_count,
             creator_name, creator_email, creator_phone, creator_bio,
-            creator_avatar, cover_image, video_url, story_html,
+            creator_avatar, cover_image, video_url, story_html, main_media_type,
             project['id']
         ))
 
@@ -686,6 +716,7 @@ def edit_project(slug):
         else:
             cursor.execute("DELETE FROM rewards WHERE project_id = ?", (project['id'],))
 
+        sync_project_states(conn)
         conn.commit()
         conn.close()
 
@@ -720,8 +751,10 @@ def create_project():
         uploaded_avatar = save_uploaded_image(request.files.get('avatar_file'))
         creator_avatar = uploaded_avatar or request.form.get('creator_avatar', '').strip() or 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'
 
+        main_media_type = request.form.get('main_media_type', 'auto').strip()
+        cropped_cover = save_base64_image(request.form.get('cropped_cover_base64'))
         uploaded_cover = save_uploaded_image(request.files.get('cover_file'))
-        cover_image = uploaded_cover or request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
+        cover_image = cropped_cover or uploaded_cover or request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
         video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
 
@@ -743,12 +776,12 @@ def create_project():
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
             goal_amount, current_amount, backers_count, days_total, start_date, end_date,
-            status, edit_pin, created_at, owner_user_id, is_active
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', NULL, ?, ?, 0)
+            status, edit_pin, created_at, owner_user_id, is_active, main_media_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', NULL, ?, ?, 0, ?)
         """, (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, days_total, now_str, end_date, now_str, user['id']
+            goal_amount, days_total, now_str, end_date, now_str, user['id'], main_media_type
         ))
         project_id = cursor.lastrowid
 
@@ -893,6 +926,7 @@ def admin_toggle_project(slug):
         "INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at) VALUES (?, ?, 'project', ?, ?, ?)",
         (current_user()['id'], 'project.activated' if new_state else 'project.deactivated', str(project['id']), slug, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
     )
+    sync_project_states(conn)
     conn.commit()
     conn.close()
     flash("הפרויקט הופעל וגלוי לציבור." if new_state else "הפרויקט הושבת ואינו גלוי לציבור.", "success")

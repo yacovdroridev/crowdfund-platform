@@ -1,0 +1,54 @@
+{
+  "synapse-guardian-iot": {
+    "slug": "synapse-guardian-iot",
+    "title": "SynApse Guardian: מכשיר הגנה מעודכן",
+    "subtitle": "תקציר מעודכן לבדיקה",
+    "cover_image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200",
+    "video_url": null,
+    "main_media_type": "auto",
+    "story_html": "<p>סיפור מעודכן</p>",
+    "goal_amount": 150000.0,
+    "current_amount": 96500.0,
+    "backers_count": 248,
+    "is_active": 1
+  },
+  "nahariya-stories-book": {
+    "slug": "nahariya-stories-book",
+    "title": "ספר האמנות וההיסטוריה: \"גליל שלא הכרתם\"",
+    "subtitle": "ספר אלבומי מרהיב המתעד 100 שנות התיישבות, תרבות וסודות גנוזים לאורך חופי נהריה והגליל המערבי.",
+    "cover_image": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=1200&auto=format&fit=crop&q=80",
+    "video_url": null,
+    "main_media_type": "auto",
+    "story_html": "<p class=\"mb-4\">במשך שלוש שנים נסענו בין מושבי הצפון, קיבוצי הגבול וסמטאות נהריה העתיקות כדי לאסוף תצלומים נדירים מיומני חלוצים וארכיונים משפחתיים.</p><p>התוצאה: אלבום כרומו עבה בן 280 עמודים עם סיפורים מרתקים, מפות עתיקות וצילומי רחפן פנורמיים מרהיבים.</p>",
+    "goal_amount": 45000.0,
+    "current_amount": 52300.0,
+    "backers_count": 312,
+    "is_active": 1
+  },
+  "music-for-healing": {
+    "slug": "music-for-healing",
+    "title": "אלבום הבכורה והסיבוב המוזיקלי: \"ניגוני תקווה\"",
+    "subtitle": "הקלטת אלבום אקוסטי מרפא והופעות פתוחות לקהל הרחב במרכזים קהילתיים ברחבי הארץ.",
+    "cover_image": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80",
+    "video_url": null,
+    "main_media_type": "auto",
+    "story_html": "<p class=\"mb-4\">המוזיקה היא הגשר החזק ביותר ללב האדם. בשנה האחרונה הופעתי בהתנדבות בפני אלפי אנשים וראיתי את כוחה המרפא של המנגינה.</p><p>אני מזמין אתכם להיות שותפים מלאים בהפקת אלבום אולפן מקצועי שיפיץ אור ותקווה.</p>",
+    "goal_amount": 60000.0,
+    "current_amount": 34200.0,
+    "backers_count": 185,
+    "is_active": 1
+  },
+  "or-latefila": {
+    "slug": "or-latefila",
+    "title": "האור שבתפילה",
+    "subtitle": "לגלות מחדש את התפילה - לעצור, לנשום ולהתחבר. ספר ואפליקציה עם מדיטציה יהודית, השראה ותרגילים יומיים. מסע אישי אל הלב, הנשמה והאור שבתפילה.",
+    "cover_image": "https://headstart.co.il/image/4a17c495-78a7-23b3-b755-5235b6e0c3ea.jpg",
+    "video_url": "https://youtube.com/shorts/BaWvbD6vLq8",
+    "main_media_type": "auto",
+    "story_html": "\n<div class=\"space-y-6 text-slate-800 leading-relaxed font-sans\">\n  <div class=\"bg-amber-50 border border-amber-200/80 rounded-2xl p-6 mb-6\">\n    <h3 class=\"text-2xl font-black text-amber-950 mb-3\">מחזירים את הלב אל התפילה</h3>\n    <h4 class=\"text-lg font-bold text-amber-900 mb-2\">החזון</h4>\n    <p class=\"text-amber-900/90 text-sm leading-relaxed mb-3\">\n      <strong>האור שבתפילה</strong> נולד מתוך רצון לחבר מחדש בין חכמת התפילה היהודית לבין הכלים של העולם המודרני: מדיטציה, נשימה, התבוננות ועבודה עם הנפש.\n    </p>\n    <p class=\"text-amber-900/90 text-sm leading-relaxed\">\n      המטרה היא להפוך את התפילה מחוויה של אמירת מילים בלבד, למרחב חי של חיבור, מודעות, צמיחה וריפוי - מקום שאפשר לעצור בו, לנשום, להקשיב ולהתחבר.\n    </p>\n  </div>\n\n  <div class=\"bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4\">\n    <h3 class=\"text-2xl font-bold text-slate-900 flex items-center gap-2\">\n      <span class=\"text-emerald-600\">📖</span> מה כולל הפרויקט?\n    </h3>\n    <ul class=\"list-disc list-inside space-y-2 text-sm text-slate-700 font-medium\">\n      <li><strong>הספר:</strong> מדיטציה יהודית דרך הסידור</li>\n      <li><strong>אפליקציית מובייל:</strong> כוונות מילים, התבוננות באותיות, צלילי רקע מרגיעים ותרגול נשימה בתפילה.</li>\n      <li><strong>חדר שידור ומפגשים חיים:</strong> ללימוד, כוונה משותפת והכנה לימים הנוראים.</li>\n    </ul>\n  </div>\n\n  <div class=\"bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3\">\n    <h3 class=\"text-2xl font-bold text-slate-900\">למה דווקא עכשיו?</h3>\n    <p class=\"text-sm text-slate-700 leading-relaxed\">\n      אנחנו חיים בעולם רועש ומהיר, מלא בהסחות דעת, עומס וחיפוש אחר משמעות. יותר ויותר אנשים כמהים לעצור לרגע, לנוח ולהרגיש מחוברים לעצמם, לאחרים ולמשהו גדול מהם.\n    </p>\n    <p class=\"text-sm text-slate-700 leading-relaxed\">\n      התפילה היהודית היא מתנה עמוקה שנמצאת איתנו כבר אלפי שנים. אבל רבים מאיתנו מעולם לא למדו איך להרגיש אותה.\n    </p>\n    <p class=\"text-sm font-semibold text-emerald-800 bg-emerald-50 p-4 rounded-xl border border-emerald-200/80\">\n      <strong>האור שבתפילה</strong> מבקש לפתוח מחדש את השער הזה ולגלות שבתוך המילים העתיקות של הסידור מסתתרת דרך עמוקה ורלוונטית לחיים שלנו כאן ועכשיו.\n    </p>\n  </div>\n\n  <div class=\"bg-emerald-900 text-white p-6 rounded-2xl shadow-md space-y-4\">\n    <h3 class=\"text-2xl font-bold text-emerald-300\">מדוע אנו זקוקים לתמיכתכם?</h3>\n    <p class=\"text-sm leading-relaxed text-emerald-100\">\n      הספר כבר נכתב, וכעת בנוסף לשלבי עריכה אחרונים אנו עובדים על אפליקציה שתלווה את הספר ותוסיף לכם תכנים ותספק שקט פנימי.\n    </p>\n    <p class=\"text-xs font-bold text-emerald-300 uppercase tracking-wider\">התמיכה שלכם תאפשר לנו להשלים:</p>\n    <div class=\"grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-emerald-50\">\n      <div class=\"flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl\"><span>✔</span> עריכה מקצועית והגהה</div>\n      <div class=\"flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl\"><span>✔</span> עימוד הספר והכנתו לדפוס</div>\n      <div class=\"flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl\"><span>✔</span> הדפסת הספר</div>\n      <div class=\"flex items-center gap-2 bg-emerald-800/80 p-3 rounded-xl\"><span>✔</span> והשלמת האפליקציה</div>\n    </div>\n    <p class=\"text-sm font-bold text-center text-amber-300 pt-2 border-t border-emerald-800\">\n      אתם לא רק תומכים בהוצאת ספר. אתם עוזרים להדליק אור ולהחזיר את הלב של העולם אל התפילה.\n    </p>\n  </div>\n</div>\n",
+    "goal_amount": 70000.0,
+    "current_amount": 38450.0,
+    "backers_count": 148,
+    "is_active": 1
+  }
+}
