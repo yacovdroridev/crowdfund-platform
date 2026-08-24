@@ -389,6 +389,7 @@ def submit_pledge(slug):
     is_anonymous = 1 if request.form.get('is_anonymous') == 'on' else 0
     greeting_message = request.form.get('greeting_message', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
+    payment_method = request.form.get('payment_method', 'bit').strip()
     valid_gateways = {'credit_card', 'google_pay', 'bit', 'paybox', 'paypal'}
     if payment_method not in valid_gateways:
         conn.close()
