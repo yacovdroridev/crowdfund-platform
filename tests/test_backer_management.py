@@ -133,3 +133,28 @@ def test_unauthorized_user_cannot_add_project_update():
     os.close(db_fd)
     if os.path.exists(db_path):
         os.unlink(db_path)
+
+def test_grant_and_claim_project_access_via_email(client):
+    rv = client.post('/project/or-latefila/grant-access', data={
+        'target_email': 'demo@example.com'
+    }, follow_redirects=True)
+    assert rv.status_code == 200
+    assert "הועברה בהצלחה למשתמש demo@example.com".encode('utf-8') in rv.data
+
+def test_guest_does_not_see_management_buttons():
+    db_fd, db_path = tempfile.mkstemp()
+    os.environ["DATABASE_PATH"] = db_path
+    db.DB_PATH = db_path
+    db.init_db()
+    db.seed_db()
+
+    app.config["TESTING"] = True
+    app.config["CSRF_ENABLED"] = False
+    with app.test_client() as guest_client:
+        rv = guest_client.get('/project/or-latefila')
+        assert rv.status_code == 200
+        assert "👥 ניהול תורמים".encode('utf-8') not in rv.data
+
+    os.close(db_fd)
+    if os.path.exists(db_path):
+        os.unlink(db_path)

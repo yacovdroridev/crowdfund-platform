@@ -1194,6 +1194,79 @@ def execute_paypal_sandbox():
     conn.close()
     abort(404)
 
+
+@app.route('/project/<slug>/grant-access', methods=['POST'])
+def grant_project_access(slug):
+    if not is_project_authorized(slug):
+        flash("אין לך הרשאה להעביר או לשלוח הרשאות ניהול לפרויקט זה.", "error")
+        return redirect(url_for('login', next=url_for('project_detail', slug=slug)))
+
+    target_email = request.form.get('target_email', '').strip().lower()
+    if not target_email or '@' not in target_email:
+        flash("נא להזין כתובת דוא\"ל תקינה למשלוח ההרשאה.", "error")
+        return redirect(request.referrer or url_for('project_detail', slug=slug))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    proj = cursor.fetchone()
+    if not proj:
+        conn.close()
+        abort(404)
+
+    cursor.execute("SELECT id, full_name FROM users WHERE email = ?", (target_email,))
+    target_user = cursor.fetchone()
+
+    token = secrets.token_urlsafe(16)
+    claim_url = url_for('claim_project_access', slug=slug, token=token, _external=True)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if target_user:
+        cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (target_user['id'], proj['id']))
+        cursor.execute("""
+        INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+        VALUES (?, 'project.access_granted', 'project', ?, ?, ?)
+        """, (current_user()['id'], str(proj['id']), f"Granted ownership to {target_email}", now_str))
+        sync_project_states(conn)
+        conn.commit()
+        conn.close()
+        flash(f"הרשאת הניהול לפרויקט '{proj['title']}' הועברה בהצלחה למשתמש {target_email}! הקישור הישיר לגישה: {claim_url}", "success")
+    else:
+        cursor.execute("""
+        INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+        VALUES (?, 'project.access_invited', 'project', ?, ?, ?)
+        """, (current_user()['id'], str(proj['id']), f"Invited {target_email} via token {token}", now_str))
+        sync_project_states(conn)
+        conn.commit()
+        conn.close()
+        flash(f"הזמנת הרשאת ניהול נשלחה ל-'{target_email}'! להפעלת ההרשאה, המשתמש יוכל להתחבר בקישור: {claim_url}", "success")
+
+    return redirect(request.referrer or url_for('manage_backers', slug=slug))
+
+
+@app.route('/project/<slug>/claim-access', methods=['GET'])
+def claim_project_access(slug):
+    user = current_user()
+    if not user:
+        flash("נא להתחבר או להירשם במערכת כדי לממש את הרשאת הניהול שנשלחה אלייך.", "error")
+        return redirect(url_for('login', next=url_for('claim_project_access', slug=slug, token=request.args.get('token'))))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+    proj = cursor.fetchone()
+    if not proj:
+        conn.close()
+        abort(404)
+
+    cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (user['id'], proj['id']))
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+
+    flash(f"הרשאת הניהול לפרויקט '{proj['title']}' שויכה בהצלחה לחשבונך!", "success")
+    return redirect(url_for('manage_backers', slug=slug))
+
 # --- REST API Endpoints ---
 
 @app.route('/api/projects', methods=['GET'])
