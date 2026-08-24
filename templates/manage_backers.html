@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}ניהול תורמים ותשורות: {{ project.title }} | HeadFund{% endblock %}
+{% block title %}לוח ניהול והגדרות: {{ project.title }} | HeadFund{% endblock %}
 
 {% block content %}
 <section class="max-w-7xl mx-auto px-4 sm:px-6 py-10 space-y-8">
@@ -16,275 +16,372 @@
         <span class="text-xs font-black text-slate-700 uppercase tracking-wider">לוח ניהול יוצר</span>
       </div>
       <h1 class="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-3">
-        <span>👥 ניהול תורמים ותשורות</span>
+        <span>⚙️ לוח ניהול והגדרות</span>
         <span class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full border border-slate-200">{{ project.title }}</span>
       </h1>
-      <p class="text-slate-600 text-xs sm:text-sm">מעקב אחר תמיכות, אישור תשלומים בביט/פייבוקס, עדכון סטטוס משלוח והדפסת מדבקות</p>
+      <p class="text-slate-600 text-xs sm:text-sm">ניהול תומכים, אישור תשלומי ביט/פייבוקס, הדפסת מדבקות משלוח והגדרות הרשאות ועיצוב</p>
     </div>
 
     <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-      <button type="submit" form="batch-labels-form" class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer">
-        <i data-lucide="printer" class="w-4 h-4"></i>
-        <span>🏷️ הדפסת מדבקות משלוח (לנבחרים)</span>
-      </button>
-    </div>
-  <!-- Grant Access to Email Card -->
-  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-    <div class="space-y-1">
-      <h3 class="text-sm font-black text-slate-900 flex items-center gap-2">
-        <span>✉️ משלוח / העברת הרשאת ניהול למייל</span>
-      </h3>
-      <p class="text-xs text-slate-500">הזינו דוא"ל של שותף או יוצר כדי לשלוח לו הרשאת ניהול מלאה לפרויקט זה</p>
-    </div>
-
-    <form method="POST" action="{{ url_for('grant_project_access', slug=project.slug) }}" class="flex items-center gap-2 w-full sm:w-auto">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <input type="email" name="target_email" placeholder="user@domain.com" required dir="ltr" class="p-2.5 rounded-xl border border-slate-300 text-xs w-full sm:w-64 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-      <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors whitespace-nowrap cursor-pointer">
-        שליחת הרשאה ✉️
-      </button>
-    </form>
-  </div>
-
-  <!-- Stat Summary Cards -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-        <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
-        <span>סה"כ תומכים</span>
-      </div>
-      <div class="text-2xl font-black text-slate-900 font-mono">{{ summary_total_count if summary_total_count is defined else total_count }}</div>
-    </div>
-
-    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-        <i data-lucide="coins" class="w-4 h-4 text-emerald-600"></i>
-        <span>סה"כ גויס בתמיכות</span>
-      </div>
-      <div class="text-2xl font-black text-emerald-700 font-mono">₪{{ "{:,.0f}".format(total_amount) }}</div>
-    </div>
-
-    <div class="p-5 bg-white rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm space-y-1">
-      <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-        <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
-        <span>ממתינים לאישור ביט/פייבוקס</span>
-      </div>
-      <div class="text-2xl font-black text-amber-800 font-mono">{{ pending_bit_paybox }}</div>
-    </div>
-
-    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-        <i data-lucide="package-check" class="w-4 h-4 text-emerald-600"></i>
-        <span>תשורות שנשלחו / נמסרו</span>
-      </div>
-      <div class="text-2xl font-black text-slate-900 font-mono">{{ shipped_count }}</div>
+      <a href="{{ url_for('edit_project', slug=project.slug) }}" class="w-full sm:w-auto px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2">
+        <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+        <span>עריכת פרטי פרויקט ✏️</span>
+      </a>
     </div>
   </div>
 
-  <!-- Search & Filter Bar -->
-  <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-    <form method="GET" action="{{ url_for('manage_backers', slug=project.slug) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-      <div>
-        <label class="block text-[11px] font-bold text-slate-600 mb-1">חיפוש חופשי</label>
-        <input type="text" name="q" value="{{ search_q }}" placeholder="שם, מייל, טלפון, אסמכתא..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-      </div>
+  <!-- Tab Navigation Bar -->
+  <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
+    <button type="button" onclick="switchManageTab('backers')" id="tab-btn-backers" class="px-6 py-3 rounded-2xl font-black text-xs transition-all bg-slate-900 text-white flex items-center gap-2 shadow-sm cursor-pointer">
+      <i data-lucide="users" class="w-4 h-4"></i>
+      <span>👥 ניהול תורמים ותשורות ({{ total_count }})</span>
+    </button>
 
-      <div>
-        <label class="block text-[11px] font-bold text-slate-600 mb-1">סינון לפי תשורה</label>
-        <select name="reward_id" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-          <option value="all" {% if filter_reward == 'all' %}selected{% endif %}>כל התשורות</option>
-          {% for r in rewards %}
-            <option value="{{ r.id }}" {% if filter_reward == r.id|string %}selected{% endif %}>{{ r.title }} (₪{{ "{:.0f}".format(r.amount) }})</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-bold text-slate-600 mb-1">אמצעי תשלום</label>
-        <select name="payment_method" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-          <option value="all" {% if filter_payment_method == 'all' %}selected{% endif %}>כל האמצעים</option>
-          <option value="credit_card" {% if filter_payment_method == 'credit_card' %}selected{% endif %}>כרטיס אשראי</option>
-          <option value="bit" {% if filter_payment_method == 'bit' %}selected{% endif %}>ביט (Bit)</option>
-          <option value="paybox" {% if filter_payment_method == 'paybox' %}selected{% endif %}>פייבוקס (PayBox)</option>
-          <option value="paypal" {% if filter_payment_method == 'paypal' %}selected{% endif %}>PayPal</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-[11px] font-bold text-slate-600 mb-1">סטטוס משלוח תאורטי</label>
-        <select name="fulfillment_status" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
-          <option value="all" {% if filter_fulfillment == 'all' %}selected{% endif %}>כל הסטטוסים</option>
-          <option value="pending" {% if filter_fulfillment == 'pending' %}selected{% endif %}>בהכנה / טרם נשלח</option>
-          <option value="shipped" {% if filter_fulfillment == 'shipped' %}selected{% endif %}>נשלח בדואר 📦</option>
-          <option value="delivered" {% if filter_fulfillment == 'delivered' %}selected{% endif %}>נמסר לתומך ✔️</option>
-        </select>
-      </div>
-
-      <div class="flex items-end gap-2">
-        <button type="submit" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
-          <i data-lucide="search" class="w-3.5 h-3.5"></i>
-          <span>סינון</span>
-        </button>
-        <a href="{{ url_for('manage_backers', slug=project.slug) }}" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors" title="איפוס">
-          🧹
-        </a>
-      </div>
-    </form>
+    <button type="button" onclick="switchManageTab('settings')" id="tab-btn-settings" class="px-6 py-3 rounded-2xl font-black text-xs transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-2 cursor-pointer">
+      <i data-lucide="settings" class="w-4 h-4 text-emerald-600"></i>
+      <span>⚙️ הגדרות הרשאות ועיצוב</span>
+    </button>
   </div>
 
-  <!-- Backers Table & Form -->
-  <form id="batch-labels-form" method="POST" action="{{ url_for('print_backer_labels', slug=project.slug) }}" target="_blank">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  <!-- TAB 1: DONORS & FULFILLMENT -->
+  <div id="tab-content-backers" class="space-y-8">
 
-    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-        <div class="flex items-center gap-3">
-          <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
-          <label for="select-all" class="text-xs font-bold text-slate-700 cursor-pointer">בחר הכל להדפסת מדבקות משלוח</label>
+    <!-- Stat Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+          <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
+          <span>סה"כ תומכים</span>
         </div>
-        <span class="text-xs font-bold text-slate-500">מוצגים {{ pledges|length }} תומכים</span>
+        <div class="text-2xl font-black text-slate-900 font-mono">{{ summary_total_count if summary_total_count is defined else total_count }}</div>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-right border-collapse">
-          <thead>
-            <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-black text-slate-600 uppercase tracking-wider">
-              <th class="p-3.5 text-center w-10">#</th>
-              <th class="p-3.5">פרטי התומך</th>
-              <th class="p-3.5">תשורה שנבחרה</th>
-              <th class="p-3.5">סכום ואמצעי תשלום</th>
-              <th class="p-3.5">אישור תשלום (ביט/פייבוקס)</th>
-              <th class="p-3.5">סטטוס משלוח ותשורה</th>
-              <th class="p-3.5 text-center">פעולות ניהול</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 text-xs">
-            {% if not pledges %}
-              <tr>
-                <td colspan="7" class="p-8 text-center text-slate-500 font-bold">
-                  לא נמצאו תומכים העונים לקריטריוני החיפוש והסינון.
-                </td>
-              </tr>
-            {% endif %}
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+          <i data-lucide="coins" class="w-4 h-4 text-emerald-600"></i>
+          <span>סה"כ גויס בתמיכות</span>
+        </div>
+        <div class="text-2xl font-black text-emerald-700 font-mono">₪{{ "{:,.0f}".format(total_amount) }}</div>
+      </div>
 
-            {% for p in pledges %}
-              <tr class="hover:bg-slate-50/80 transition-colors">
-                <!-- Checkbox -->
-                <td class="p-3.5 text-center">
-                  <input type="checkbox" name="pledge_ids" value="{{ p.id }}" class="pledge-checkbox w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
-                </td>
+      <div class="p-5 bg-white rounded-2xl border border-amber-200 bg-amber-50/50 shadow-sm space-y-1">
+        <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600"></i>
+          <span>ממתינים לאישור ביט/פייבוקס</span>
+        </div>
+        <div class="text-2xl font-black text-amber-800 font-mono">{{ pending_bit_paybox }}</div>
+      </div>
 
-                <!-- Backer Contact Info -->
-                <td class="p-3.5 space-y-1">
-                  <div class="font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>{{ p.backer_name }}</span>
-                    {% if p.is_anonymous %}
-                      <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 font-normal">אנונימי</span>
-                    {% endif %}
-                  </div>
-                  <div class="text-[11px] font-mono text-slate-600">{{ p.backer_email }}</div>
-                  {% if p.backer_phone %}
-                    <div class="text-[11px] font-mono text-slate-500 flex items-center gap-1">
-                      <span>📞 {{ p.backer_phone }}</span>
-                      <a href="https://wa.me/972{{ p.backer_phone|replace('-', '')|replace(' ', '') }}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-bold text-[10px]">WhatsApp</a>
-                    </div>
-                  {% endif %}
-                  {% if p.shipping_address %}
-                    <div class="text-[11px] text-slate-700 font-medium bg-slate-100/70 p-1.5 rounded-lg border border-slate-200/60 mt-1">
-                      📍 <strong>כתובת:</strong> {{ p.shipping_address }}
-                    </div>
-                  {% endif %}
-                </td>
-
-                <!-- Reward Info -->
-                <td class="p-3.5">
-                  {% if p.reward_title %}
-                    <div class="font-bold text-slate-900">{{ p.reward_title }}</div>
-                    <div class="text-[11px] text-slate-500 font-mono">ערך: ₪{{ "{:.0f}".format(p.reward_amount or 0) }}</div>
-                  {% else %}
-                    <span class="text-slate-400 italic">תמיכה חופשית (ללא תשורה)</span>
-                  {% endif %}
-                  {% if p.greeting_message %}
-                    <div class="text-[11px] italic text-amber-800 bg-amber-50 p-1.5 rounded-md border border-amber-200/80 mt-1">
-                      💬 "{{ p.greeting_message }}"
-                    </div>
-                  {% endif %}
-                </td>
-
-                <!-- Amount & Payment Method -->
-                <td class="p-3.5 space-y-1">
-                  <div class="font-black text-sm text-emerald-700 font-mono">₪{{ "{:,.0f}".format(p.amount) }}</div>
-                  
-                  <div class="flex items-center gap-1">
-                    {% if p.payment_method == 'bit' %}
-                      <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-black border border-blue-200">🔵 Bit</span>
-                    {% elif p.payment_method == 'paybox' %}
-                      <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200">🟦 PayBox</span>
-                    {% elif p.payment_method == 'paypal' %}
-                      <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-black border border-blue-200">🅿️ PayPal</span>
-                    {% else %}
-                      <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-black border border-slate-200">💳 כרטיס אשראי</span>
-                    {% endif %}
-                  </div>
-                </td>
-
-                <!-- Payment Verification (Bit / PayBox) -->
-                <td class="p-3.5 space-y-1.5">
-                  {% if p.is_payment_verified or p.payment_status == 'completed' %}
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      <span>✔️ תשלום מאושר</span>
-                    </span>
-                    {% if p.payment_reference %}
-                      <div class="text-[10px] font-mono text-slate-500">אסמכתא: {{ p.payment_reference }}</div>
-                    {% endif %}
-                  {% else %}
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">
-                      <span>⏳ ממתין לאישור</span>
-                    </span>
-                    
-                    <!-- Quick Verify Bit/PayBox Money Received Form -->
-                    <button type="button" onclick="openVerifyModal('{{ p.id }}', '{{ p.backer_name }}', '{{ p.amount }}', '{{ p.payment_method }}')" class="block w-full text-center text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 rounded-lg shadow-sm transition-colors mt-1">
-                      ✔️ אישור קבלת כסף
-                    </button>
-                  {% endif %}
-                </td>
-
-                <!-- Fulfillment Status -->
-                <td class="p-3.5 space-y-1.5">
-                  {% if p.fulfillment_status == 'shipped' %}
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
-                      <span>📦 נשלח בדואר</span>
-                    </span>
-                  {% elif p.fulfillment_status == 'delivered' %}
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                      <span>🎉 נמסר לתומך</span>
-                    </span>
-                  {% else %}
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
-                      <span>⏳ בהכנה / טרם נשלח</span>
-                    </span>
-                  {% endif %}
-
-                  {% if p.fulfillment_notes %}
-                    <div class="text-[10px] text-slate-600 font-mono truncate max-w-[150px]" title="{{ p.fulfillment_notes }}">
-                      {{ p.fulfillment_notes }}
-                    </div>
-                  {% endif %}
-                </td>
-
-                <!-- Management Actions -->
-                <td class="p-3.5 text-center">
-                  <button type="button" onclick="openFulfillmentModal('{{ p.id }}', '{{ p.backer_name }}', '{{ p.fulfillment_status }}', '{{ p.fulfillment_notes or '' }}')" class="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 transition-colors">
-                    ⚙️ עדכון סטטוס
-                  </button>
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+          <i data-lucide="package-check" class="w-4 h-4 text-emerald-600"></i>
+          <span>תשורות שנשלחו / נמסרו</span>
+        </div>
+        <div class="text-2xl font-black text-slate-900 font-mono">{{ shipped_count }}</div>
       </div>
     </div>
-  </form>
+
+    <!-- Search & Filter Bar -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <form method="GET" action="{{ url_for('manage_backers', slug=project.slug) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">חיפוש חופשי</label>
+          <input type="text" name="q" value="{{ search_q }}" placeholder="שם, מייל, טלפון, אסמכתא..." class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">סינון לפי תשורה</label>
+          <select name="reward_id" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="all" {% if filter_reward == 'all' %}selected{% endif %}>כל התשורות</option>
+            {% for r in rewards %}
+              <option value="{{ r.id }}" {% if filter_reward == r.id|string %}selected{% endif %}>{{ r.title }} (₪{{ "{:.0f}".format(r.amount) }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">אמצעי תשלום</label>
+          <select name="payment_method" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="all" {% if filter_payment_method == 'all' %}selected{% endif %}>כל האמצעים</option>
+            <option value="credit_card" {% if filter_payment_method == 'credit_card' %}selected{% endif %}>כרטיס אשראי</option>
+            <option value="bit" {% if filter_payment_method == 'bit' %}selected{% endif %}>ביט (Bit)</option>
+            <option value="paybox" {% if filter_payment_method == 'paybox' %}selected{% endif %}>פייבוקס (PayBox)</option>
+            <option value="paypal" {% if filter_payment_method == 'paypal' %}selected{% endif %}>PayPal</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">סטטוס משלוח תאורטי</label>
+          <select name="fulfillment_status" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+            <option value="all" {% if filter_fulfillment == 'all' %}selected{% endif %}>כל הסטטוסים</option>
+            <option value="pending" {% if filter_fulfillment == 'pending' %}selected{% endif %}>בהכנה / טרם נשלח</option>
+            <option value="shipped" {% if filter_fulfillment == 'shipped' %}selected{% endif %}>נשלח בדואר 📦</option>
+            <option value="delivered" {% if filter_fulfillment == 'delivered' %}selected{% endif %}>נמסר לתומך ✔️</option>
+          </select>
+        </div>
+
+        <div class="flex items-end gap-2">
+          <button type="submit" class="w-full p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>סינון</span>
+          </button>
+          <a href="{{ url_for('manage_backers', slug=project.slug) }}" class="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors" title="איפוס">
+            🧹
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Backers Table & Batch Labels Form -->
+    <form id="batch-labels-form" method="POST" action="{{ url_for('print_backer_labels', slug=project.slug) }}" target="_blank">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
+            <label for="select-all" class="text-xs font-bold text-slate-700 cursor-pointer">בחר הכל להדפסת מדבקות משלוח</label>
+          </div>
+          
+          <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-2 cursor-pointer">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>🏷️ הדפסת מדבקות משלוח (לנבחרים)</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-right border-collapse">
+            <thead>
+              <tr class="bg-slate-100/70 border-b border-slate-200 text-[11px] font-black text-slate-600 uppercase tracking-wider">
+                <th class="p-3.5 text-center w-10">#</th>
+                <th class="p-3.5">פרטי התומך</th>
+                <th class="p-3.5">תשורה שנבחרה</th>
+                <th class="p-3.5">סכום ואמצעי תשלום</th>
+                <th class="p-3.5">אישור תשלום (ביט/פייבוקס)</th>
+                <th class="p-3.5">סטטוס משלוח ותשורה</th>
+                <th class="p-3.5 text-center">פעולות ניהול</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              {% if not pledges %}
+                <tr>
+                  <td colspan="7" class="p-8 text-center text-slate-500 font-bold">
+                    לא נמצאו תומכים העונים לקריטריוני החיפוש והסינון.
+                  </td>
+                </tr>
+              {% endif %}
+
+              {% for p in pledges %}
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                  <!-- Checkbox -->
+                  <td class="p-3.5 text-center">
+                    <input type="checkbox" name="pledge_ids" value="{{ p.id }}" class="pledge-checkbox w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer">
+                  </td>
+
+                  <!-- Backer Contact Info -->
+                  <td class="p-3.5 space-y-1">
+                    <div class="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>{{ p.backer_name }}</span>
+                      {% if p.is_anonymous %}
+                        <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded border border-slate-200 font-normal">אנונימי</span>
+                      {% endif %}
+                    </div>
+                    <div class="text-[11px] font-mono text-slate-600">{{ p.backer_email }}</div>
+                    {% if p.backer_phone %}
+                      <div class="text-[11px] font-mono text-slate-500 flex items-center gap-1">
+                        <span>📞 {{ p.backer_phone }}</span>
+                        <a href="https://wa.me/972{{ p.backer_phone|replace('-', '')|replace(' ', '') }}" target="_blank" class="text-emerald-600 hover:text-emerald-700 font-bold text-[10px]">WhatsApp</a>
+                      </div>
+                    {% endif %}
+                    {% if p.shipping_address %}
+                      <div class="text-[11px] text-slate-700 font-medium bg-slate-100/70 p-1.5 rounded-lg border border-slate-200/60 mt-1">
+                        📍 <strong>כתובת:</strong> {{ p.shipping_address }}
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <!-- Reward Info -->
+                  <td class="p-3.5">
+                    {% if p.reward_title %}
+                      <div class="font-bold text-slate-900">{{ p.reward_title }}</div>
+                      <div class="text-[11px] text-slate-500 font-mono">ערך: ₪{{ "{:.0f}".format(p.reward_amount or 0) }}</div>
+                    {% else %}
+                      <span class="text-slate-400 italic">תמיכה חופשית (ללא תשורה)</span>
+                    {% endif %}
+                    {% if p.greeting_message %}
+                      <div class="text-[11px] italic text-amber-800 bg-amber-50 p-1.5 rounded-md border border-amber-200/80 mt-1">
+                        💬 "{{ p.greeting_message }}"
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <!-- Amount & Payment Method -->
+                  <td class="p-3.5 space-y-1">
+                    <div class="font-black text-sm text-emerald-700 font-mono">₪{{ "{:,.0f}".format(p.amount) }}</div>
+                    
+                    <div class="flex items-center gap-1">
+                      {% if p.payment_method == 'bit' %}
+                        <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-black border border-blue-200">🔵 Bit</span>
+                      {% elif p.payment_method == 'paybox' %}
+                        <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200">🟦 PayBox</span>
+                      {% elif p.payment_method == 'paypal' %}
+                        <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-black border border-blue-200">🅿️ PayPal</span>
+                      {% else %}
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-black border border-slate-200">💳 כרטיס אשראי</span>
+                      {% endif %}
+                    </div>
+                  </td>
+
+                  <!-- Payment Verification (Bit / PayBox) -->
+                  <td class="p-3.5 space-y-1.5">
+                    {% if p.is_payment_verified or p.payment_status == 'completed' %}
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                        <span>✔️ תשלום מאושר</span>
+                      </span>
+                      {% if p.payment_reference %}
+                        <div class="text-[10px] font-mono text-slate-500">אסמכתא: {{ p.payment_reference }}</div>
+                      {% endif %}
+                    {% else %}
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">
+                        <span>⏳ ממתין לאישור</span>
+                      </span>
+                      
+                      <button type="button" onclick="openVerifyModal('{{ p.id }}', '{{ p.backer_name }}', '{{ p.amount }}', '{{ p.payment_method }}')" class="block w-full text-center text-[11px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 rounded-lg shadow-sm transition-colors mt-1">
+                        ✔️ אישור קבלת כסף
+                      </button>
+                    {% endif %}
+                  </td>
+
+                  <!-- Fulfillment Status -->
+                  <td class="p-3.5 space-y-1.5">
+                    {% if p.fulfillment_status == 'shipped' %}
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                        <span>📦 נשלח בדואר</span>
+                      </span>
+                    {% elif p.fulfillment_status == 'delivered' %}
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                        <span>🎉 נמסר לתומך</span>
+                      </span>
+                    {% else %}
+                      <span class="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">
+                        <span>⏳ בהכנה / טרם נשלח</span>
+                      </span>
+                    {% endif %}
+
+                    {% if p.fulfillment_notes %}
+                      <div class="text-[10px] text-slate-600 font-mono truncate max-w-[150px]" title="{{ p.fulfillment_notes }}">
+                        {{ p.fulfillment_notes }}
+                      </div>
+                    {% endif %}
+                  </td>
+
+                  <!-- Management Actions -->
+                  <td class="p-3.5 text-center">
+                    <button type="button" onclick="openFulfillmentModal('{{ p.id }}', '{{ p.backer_name }}', '{{ p.fulfillment_status }}', '{{ p.fulfillment_notes or '' }}')" class="text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-300 transition-colors">
+                      ⚙️ עדכון סטטוס
+                    </button>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- TAB 2: SETTINGS, PERMISSIONS & DESIGN -->
+  <div id="tab-content-settings" class="hidden space-y-8">
+    
+    <!-- 1. Send/Grant Permission via Email Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      <div class="border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <span>✉️ משלוח / העברת הרשאת ניהול למייל</span>
+        </h3>
+        <p class="text-xs text-slate-500 mt-1">הזינו כתובת דוא"ל של שותף או יוצר כדי לשלוח לו הרשאת ניהול מלאה לפרויקט זה (כולל קישור הפעלה ישיר מאובטח)</p>
+      </div>
+
+      <form method="POST" action="{{ url_for('grant_project_access', slug=project.slug) }}" class="space-y-4 max-w-xl">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">דוא"ל היוצר / השותף המורשה *</label>
+          <input type="email" name="target_email" placeholder="user@domain.com" required dir="ltr" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none font-mono">
+        </div>
+
+        <div class="pt-2 flex items-center gap-3">
+          <button type="submit" class="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>שליחת הרשאה ✉️</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 2. Display & Styling Settings Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <div class="border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <span>🎨 הגדרות תצוגה, מדיה ועיצוב</span>
+        </h3>
+        <p class="text-xs text-slate-500 mt-1">בחירת סוג המדיה הראשית בראש העמוד, חיתוך תמונה (Crop/Pan/Zoom) וקביעת מראה הקמפיין</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+          <div class="text-xs font-bold text-slate-800">תצוגת מדיה ראשית בדף הפרויקט</div>
+          <div class="text-xs text-slate-600 leading-relaxed">
+            תוכל לבחור אם בראש העמוד יוצג **סרטון היוטיוב** (אם קיים) או **תמונת הנושא המעוצבת והמחתוכה**.
+          </div>
+          <a href="{{ url_for('edit_project', slug=project.slug) }}" class="inline-flex items-center gap-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-4 py-2.5 rounded-xl border border-emerald-200">
+            <span>לשינוי סוג המדיה וכלי ה-Crop ←</span>
+          </a>
+        </div>
+
+        <div class="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+          <div class="text-xs font-bold text-slate-800">תמונת נושא נוכחית של הפרויקט</div>
+          {% if project.cover_image %}
+            <img src="{{ project.cover_image }}" class="w-full h-32 rounded-xl object-cover border border-slate-300 shadow-sm">
+          {% else %}
+            <div class="w-full h-32 rounded-xl bg-slate-200 flex items-center justify-center text-xs text-slate-500">ללא תמונת נושא</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Campaign Visibility & Status Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      <div class="border-b border-slate-100 pb-4">
+        <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+          <span>🛡️ סטטוס פעילות הפרויקט וניהול אבטחה</span>
+        </h3>
+        <p class="text-xs text-slate-500 mt-1">צפייה בסטטוס החשיפה לציבור והגדרות אבטחה</p>
+      </div>
+
+      <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
+        <div>
+          <div class="text-xs font-bold text-slate-900">סטטוס פרויקט לציבור:</div>
+          <div class="text-xs text-slate-500">
+            {% if project.is_active %}
+              <span class="text-emerald-700 font-bold">🟢 פעיל וגלוי לציבור לתמיכות</span>
+            {% else %}
+              <span class="text-rose-700 font-bold">🔴 מושבת / מוסתר לציבור</span>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if current_user and current_user.role == 'admin' %}
+          <form method="POST" action="{{ url_for('admin_toggle_project', slug=project.slug) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="px-4 py-2 rounded-xl text-xs font-bold {{ 'bg-rose-100 text-rose-800' if project.is_active else 'bg-emerald-100 text-emerald-800' }}">
+              {{ 'השבתת פרויקט' if project.is_active else 'הפעלת פרויקט' }}
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
 </section>
 
 <!-- Verify Payment Modal -->
@@ -358,6 +455,25 @@
 </div>
 
 <script>
+  function switchManageTab(tab) {
+    const btnBackers = document.getElementById('tab-btn-backers');
+    const btnSettings = document.getElementById('tab-btn-settings');
+    const contentBackers = document.getElementById('tab-content-backers');
+    const contentSettings = document.getElementById('tab-content-settings');
+
+    if (tab === 'backers') {
+      btnBackers.className = 'px-6 py-3 rounded-2xl font-black text-xs transition-all bg-slate-900 text-white flex items-center gap-2 shadow-sm cursor-pointer';
+      btnSettings.className = 'px-6 py-3 rounded-2xl font-black text-xs transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-2 cursor-pointer';
+      contentBackers.classList.remove('hidden');
+      contentSettings.classList.add('hidden');
+    } else {
+      btnSettings.className = 'px-6 py-3 rounded-2xl font-black text-xs transition-all bg-slate-900 text-white flex items-center gap-2 shadow-sm cursor-pointer';
+      btnBackers.className = 'px-6 py-3 rounded-2xl font-black text-xs transition-all bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center gap-2 cursor-pointer';
+      contentSettings.classList.remove('hidden');
+      contentBackers.classList.add('hidden');
+    }
+  }
+
   function toggleSelectAll(master) {
     const checkboxes = document.querySelectorAll('.pledge-checkbox');
     checkboxes.forEach(cb => cb.checked = master.checked);
