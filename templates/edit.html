@@ -14,7 +14,7 @@
     <p class="text-slate-600 text-sm max-w-xl mx-auto">עדכנו את סיפור הפרויקט, התשורות, התמונות והפרטים המוצגים לתומכים</p>
   </div>
 
-  <form method="POST" action="{{ url_for('edit_project', slug=project.slug) }}" enctype="multipart/form-data" onsubmit="syncRteToTextarea()" class="space-y-8">
+  <form method="POST" action="{{ url_for('edit_project', slug=project.slug) }}" enctype="multipart/form-data" onsubmit="return validateProjectForm(event)" class="space-y-8">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     
     <!-- Step 1: Basic Info -->
@@ -27,6 +27,7 @@
       <div>
         <label class="block text-xs font-bold text-slate-700 mb-2">כותרת הפרויקט *</label>
         <input type="text" name="title" required value="{{ project.title }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        <p id="error-title" class="hidden text-xs font-bold text-rose-600 mt-1.5 flex items-center gap-1">⚠️ נא להזין כותרת לפרויקט</p>
       </div>
 
       <div>
@@ -128,7 +129,8 @@
           </div>
 
           <!-- Hidden / Toggleable Textarea for Raw HTML -->
-          <textarea id="story_html_textarea" name="story_html" rows="10" oninput="syncTextareaToRte()" required class="hidden w-full p-4 rounded-2xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-900 text-slate-100">{{ project.story_html }}</textarea>
+          <textarea id="story_html_textarea" name="story_html" rows="10" oninput="syncTextareaToRte()" required class="hidden w-full p-4 rounded-2xl border border-slate-300 text-xs font-mono text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white shadow-inner">{{ project.story_html }}</textarea>
+          <p id="error-story_html" class="hidden text-xs font-bold text-rose-600 mt-1.5 flex items-center gap-1">⚠️ נא להזין את תוכן סיפור הפרויקט המלא</p>
         </div>
       </div>
 
@@ -199,10 +201,12 @@
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">שם מלא / שם הארגון *</label>
           <input type="text" name="creator_name" required value="{{ project.creator_name }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm">
+          <p id="error-creator_name" class="hidden text-xs font-bold text-rose-600 mt-1.5 flex items-center gap-1">⚠️ נא להזין שם יוצר / ארגון</p>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">דוא"ל ליצירת קשר *</label>
           <input type="email" name="creator_email" required value="{{ project.creator_email or '' }}" class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono" dir="ltr">
+          <p id="error-creator_email" class="hidden text-xs font-bold text-rose-600 mt-1.5 flex items-center gap-1">⚠️ נא להזין כתובת אימייל תקינה ליצירת קשר</p>
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-700 mb-2">טלפון / וואטסאפ</label>
@@ -227,13 +231,19 @@
         ביטול וחזרה לפרויקט
       </a>
 
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <!-- Error Message next to Save Button -->
+        <div id="save-error-msg" class="hidden flex items-center gap-2 p-3 px-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold animate-pulse">
+          <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
+          <span id="save-error-text">❌ השמירה לא התבצעה: ישנם שדות חובה שלא מולאו!</span>
+        </div>
+
         <button type="button" onclick="openProjectPreview()" class="px-6 py-3.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 shadow-sm hover:shadow transition-all flex items-center gap-2">
           <i data-lucide="eye" class="w-4 h-4 text-amber-600"></i>
           <span>👁️ תצוגה מקדימה (Preview)</span>
         </button>
 
-        <button type="submit" onclick="syncRteToTextarea()" class="px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+        <button type="submit" class="px-8 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-sm shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
           <i data-lucide="save" class="w-4 h-4"></i>
           <span>💾 שמור שינויים ועדכן פרויקט</span>
         </button>
@@ -471,9 +481,74 @@
     document.getElementById('preview-modal').classList.add('hidden');
   }
 
-  function submitProjectForm() {
+  function validateProjectForm(event) {
     syncRteToTextarea();
-    document.querySelector('form').submit();
+    
+    let hasErrors = false;
+    const form = document.querySelector('form');
+    
+    // Reset previous error indicators
+    document.querySelectorAll('[id^="error-"]').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.border-rose-500').forEach(el => {
+      el.classList.remove('border-rose-500', 'ring-2', 'ring-rose-200');
+    });
+    const saveErrorMsg = document.getElementById('save-error-msg');
+    if (saveErrorMsg) saveErrorMsg.classList.add('hidden');
+
+    // Validate Title
+    const titleInput = form.querySelector('[name="title"]');
+    if (!titleInput || !titleInput.value.trim()) {
+      hasErrors = true;
+      if (titleInput) titleInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      document.getElementById('error-title')?.classList.remove('hidden');
+    }
+
+    // Validate Story HTML
+    const textarea = document.getElementById('story_html_textarea');
+    const rteEditor = document.getElementById('rte-editor');
+    const storyContent = (rteEditor && !rteEditor.classList.contains('hidden')) ? rteEditor.innerText.trim() : (textarea ? textarea.value.trim() : '');
+    if (!storyContent || storyContent.length < 5) {
+      hasErrors = true;
+      if (rteEditor) rteEditor.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      if (textarea) textarea.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      document.getElementById('error-story_html')?.classList.remove('hidden');
+    }
+
+    // Validate Creator Name
+    const creatorNameInput = form.querySelector('[name="creator_name"]');
+    if (!creatorNameInput || !creatorNameInput.value.trim()) {
+      hasErrors = true;
+      if (creatorNameInput) creatorNameInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      document.getElementById('error-creator_name')?.classList.remove('hidden');
+    }
+
+    // Validate Creator Email
+    const creatorEmailInput = form.querySelector('[name="creator_email"]');
+    if (!creatorEmailInput || !creatorEmailInput.value.trim()) {
+      hasErrors = true;
+      if (creatorEmailInput) creatorEmailInput.classList.add('border-rose-500', 'ring-2', 'ring-rose-200');
+      document.getElementById('error-creator_email')?.classList.remove('hidden');
+    }
+
+    if (hasErrors) {
+      if (event) event.preventDefault();
+      if (saveErrorMsg) {
+        saveErrorMsg.classList.remove('hidden');
+        saveErrorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  function submitProjectForm() {
+    const isValid = validateProjectForm();
+    if (isValid) {
+      document.querySelector('form').submit();
+    } else {
+      closeProjectPreview();
+    }
   }
 </script>
 {% endblock %}
