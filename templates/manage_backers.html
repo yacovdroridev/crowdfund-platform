@@ -357,7 +357,54 @@
       </div>
     </div>
 
-    <!-- 3. Campaign Visibility & Status Card -->
+    <!-- 3. Support / Reward Tiers Management Card -->
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+      <div class="border-b border-slate-100 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
+            <span>🎁 עריכת מדרגות תמיכה ותשורות ({{ rewards|length }})</span>
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">צפייה ועדכון סכומי מדרגות התמיכה (Support Tiers), כותרות, תיאורים ומגבלות כמות</p>
+        </div>
+        <button type="button" onclick="openAddRewardModal()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>הוספת מדרגת תמיכה חדשה</span>
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+              <th class="p-3">כותרת התשורה</th>
+              <th class="p-3">סכום תמיכה</th>
+              <th class="p-3">מועד אספקה</th>
+              <th class="p-3">נתמכו</th>
+              <th class="p-3">מגבלת מלאי</th>
+              <th class="p-3 text-center">פעולות</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            {% for r in rewards %}
+              <tr class="hover:bg-slate-50/60 transition-colors">
+                <td class="p-3 font-bold text-slate-900">{{ r.title }}</td>
+                <td class="p-3 font-black text-emerald-700 font-mono text-sm">₪{{ "{:.0f}".format(r.amount) }}</td>
+                <td class="p-3 text-slate-600">{{ r.estimated_delivery }}</td>
+                <td class="p-3 text-slate-700 font-mono">{{ r.quantity_claimed }}</td>
+                <td class="p-3 text-slate-500">{% if r.quantity_limit %}{{ r.quantity_limit }}{% else %}ללא הגבלה{% endif %}</td>
+                <td class="p-3 text-center">
+                  <button type="button" onclick="openEditRewardModal({{ r.id }}, '{{ r.title|replace('\'', '\\\'') }}', {{ r.amount }}, '{{ (r.description or '')|replace('\n', '\\n')|replace('\'', '\\\'') }}', '{{ r.estimated_delivery|replace('\'', '\\\'') }}', '{{ r.quantity_limit or '' }}')" class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-300 transition-colors cursor-pointer">
+                    ✏️ עריכת סכום ופרטים
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 4. Campaign Visibility & Status Card -->
     <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
       <div class="border-b border-slate-100 pb-4">
         <h3 class="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -462,6 +509,100 @@
   </div>
 </div>
 
+<!-- Edit Reward Tier Modal -->
+<div id="edit-reward-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+        <span>✏️</span> עריכת מדרגת תמיכה
+      </h3>
+      <button type="button" onclick="closeEditRewardModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+    </div>
+
+    <form id="edit-reward-form" method="POST" action="" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">כותרת התשורה *</label>
+        <input type="text" name="title" id="edit_reward_title" required class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">סכום תמיכה בש"ח (חיובי) *</label>
+        <input type="number" name="amount" id="edit_reward_amount" required min="1" step="any" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">תיאור התשורה</label>
+        <textarea name="description" id="edit_reward_desc" rows="3" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">מועד אספקה</label>
+          <input type="text" name="estimated_delivery" id="edit_reward_delivery" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">מגבלת כמות (רשות)</label>
+          <input type="number" name="quantity_limit" id="edit_reward_limit" min="1" placeholder="ללא הגבלה" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <button type="button" onclick="closeEditRewardModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 cursor-pointer">ביטול</button>
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer">שמירת שינויים</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Reward Tier Modal -->
+<div id="add-reward-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+        <span>➕</span> הוספת מדרגת תמיכה חדשה
+      </h3>
+      <button type="button" onclick="closeAddRewardModal()" class="text-slate-400 hover:text-slate-600 font-bold text-lg cursor-pointer">✕</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('add_reward_tier', slug=project.slug) }}" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">כותרת התשורה *</label>
+        <input type="text" name="title" required class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">סכום תמיכה בש"ח (חיובי) *</label>
+        <input type="number" name="amount" required min="1" step="any" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">תיאור התשורה</label>
+        <textarea name="description" rows="3" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"></textarea>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">מועד אספקה</label>
+          <input type="text" name="estimated_delivery" placeholder="דצמבר 2026" class="w-full p-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">מגבלת כמות (רשות)</label>
+          <input type="number" name="quantity_limit" min="1" placeholder="ללא הגבלה" class="w-full p-3 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+      </div>
+
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <button type="button" onclick="closeAddRewardModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 cursor-pointer">ביטול</button>
+        <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md cursor-pointer">הוספת תשורה</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   function switchManageTab(tab) {
     const btnBackers = document.getElementById('tab-btn-backers');
@@ -508,6 +649,28 @@
 
   function closeFulfillmentModal() {
     document.getElementById('fulfillment-modal').classList.add('hidden');
+  }
+
+  function openEditRewardModal(id, title, amount, description, delivery, limit) {
+    document.getElementById('edit_reward_title').value = title;
+    document.getElementById('edit_reward_amount').value = amount;
+    document.getElementById('edit_reward_desc').value = description || '';
+    document.getElementById('edit_reward_delivery').value = delivery || '';
+    document.getElementById('edit_reward_limit').value = limit || '';
+    document.getElementById('edit_reward-form').action = '/project/{{ project.slug }}/rewards/' + id + '/edit';
+    document.getElementById('edit-reward-modal').classList.remove('hidden');
+  }
+
+  function closeEditRewardModal() {
+    document.getElementById('edit-reward-modal').classList.add('hidden');
+  }
+
+  function openAddRewardModal() {
+    document.getElementById('add-reward-modal').classList.remove('hidden');
+  }
+
+  function closeAddRewardModal() {
+    document.getElementById('add-reward-modal').classList.add('hidden');
   }
 </script>
 {% endblock %}

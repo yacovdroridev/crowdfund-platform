@@ -46,7 +46,23 @@
       <div class="text-2xl font-black text-slate-900 font-mono">{{ total_projects }}</div>
       <div class="text-[11px] text-slate-400 mt-2">במערכת</div>
     </div>
-  </div>
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">סך הכל משתמשים</div>
+      <div class="text-2xl font-black text-slate-900 font-mono">{{ total_users }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">משתמשים רשומים</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">קמפיינים פעילים</div>
+      <div class="text-2xl font-black text-emerald-600 font-mono">{{ active_projects }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">קמפיינים גלויים לציבור</div>
+    </div>
+
+    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+      <div class="text-xs text-slate-500 font-bold mb-1">תמיכות ממתינות</div>
+      <div class="text-2xl font-black text-orange-500 font-mono">{{ pending_pledges }}</div>
+      <div class="text-[11px] text-slate-400 mt-2">ממתינות לאישור תשלום</div>
+    </div></div>
 
   <!-- Projects List Table -->
   <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden mb-10">

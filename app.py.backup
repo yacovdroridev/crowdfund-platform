@@ -534,7 +534,13 @@ def payment_callback():
 def pledge_success(pledge_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""SELECT p.*, pr.title as project_title, pr.slug as project_slug, pr.cover_image,\n                   pr.creator_phone, pr.creator_email,\n                   r.title as reward_title, p.payment_status, p.payment_method\n            FROM pledges p\n            JOIN projects pr ON p.project_id = pr.id\n            LEFT JOIN rewards r ON r.project_id = pr.id AND r.id = p.reward_id\n            WHERE p.id = ?\n""", (pledge_id,))\n    pledge = cursor.fetchone()\n    conn.close()\n    pledge_dict = dict(pledge)
+
+    cursor.execute("""SELECT p.*, pr.title as project_title, pr.slug as project_slug, pr.cover_image,\n                   pr.creator_phone, pr.creator_email,\n                   r.title as reward_title, p.payment_status, p.payment_method\n            FROM pledges p\n            JOIN projects pr ON p.project_id = pr.id\n            LEFT JOIN rewards r ON r.project_id = pr.id AND r.id = p.reward_id\n            WHERE p.id = ?\n""", (pledge_id,))\n        pledge = cursor.fetchone()\n    conn.close()
+
+    if not pledge:
+        abort(404)
+
+    pledge_dict = dict(pledge)
         if pledge_dict.get("payment_status") == "completed":
             log_action("pledge_succeeded", "pledge", pledge_id, "project=" + pledge_dict.get("project_slug", "") + "," + "amount=" + str(pledge_dict.get("amount", 0)) + "," + "payment_method=" + pledge_dict.get("payment_method", ""))
         raw_phone = pledge_dict.get('creator_phone') or '054-9103046'
