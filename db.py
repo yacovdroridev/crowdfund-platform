@@ -168,8 +168,8 @@ def init_db():
         )
     else:
         cursor.execute(
-            """UPDATE users SET password_hash = ?, role = 'admin', is_active = 1 WHERE email = ?""",
-            (generate_password_hash(admin_password, method="scrypt"), admin_email),
+            """UPDATE users SET role = 'admin', is_active = 1 WHERE email = ?""",
+            (admin_email,),
         )
 
     default_users = [
@@ -187,8 +187,8 @@ def init_db():
             )
         else:
             cursor.execute(
-                """UPDATE users SET password_hash = ?, role = ?, is_active = 1 WHERE email = ?""",
-                (generate_password_hash(password, method="scrypt"), role, email),
+                """UPDATE users SET role = ?, is_active = 1 WHERE email = ?""",
+                (role, email),
             )
 
     cursor.execute("DELETE FROM login_attempts")
@@ -311,33 +311,28 @@ def ensure_or_latefila_rewards(conn=None):
     p = cursor.fetchone()
     if p:
         proj_id = p['id']
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        target_rewards = [
-            ('טעימה מהדרך', 18.0, '📱 הספר הדיגיטלי המלא האור שבתפילה', 'ספטמבר 2026', 0),
-            ('אור יומי', 36.0, '📱 הספר הדיגיטלי\n🃏 כרטיסי השראה יומיים\n🎧 מדיטציה מודרכת במתנה', 'ספטמבר 2026', 0),
-            ('מייסד שותף', 72.0, '📱 הספר הדיגיטלי\n🎧 סדרת מדיטציות מודרכות\n🃏 חבילת כרטיסי השראה דיגיטליים\n💬 הצטרפות לקבוצת הווטסאפ עם תכנים יומיים', 'ספטמבר 2026', 0),
-            ('שותף לאור', 118.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n💬 קבוצת התוכן היומית', 'אוקטובר 2026', 1),
-            ('חווית האור', 180.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n🎧 ספריית מדיטציות\n🃏 כרטיסי השראה דיגיטליים\n📱 גישה לאפליקציה לשנה שלמה', 'אוקטובר 2026', 1),
-            ('שותפים לדרך', 360.0, '📖 2 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
-            ('מפיצי אור', 540.0, '📖 3 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לשלושה אנשים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
-            ('מייסדי האור שבתפילה', 1200.0, '📖 5 ספרים\n📱 גישה לאפליקציה לחמישה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת', 'אוקטובר 2026', 1),
-            ('שותף פרימיום', 1800.0, '📖 10 ספרים\n📱 גישה מלאה לאפליקציה לעשרה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת\n✨ הוקרה מיוחדת בספר לרפואת או לעילוי נשמת מישהו יקר לכם', 'אוקטובר 2026', 1)
-        ]
+        cursor.execute("SELECT COUNT(*) FROM rewards WHERE project_id = ?", (proj_id,))
+        if cursor.fetchone()[0] == 0:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            target_rewards = [
+                ('טעימה מהדרך', 18.0, '📱 הספר הדיגיטלי המלא האור שבתפילה', 'ספטמבר 2026', 0),
+                ('אור יומי', 36.0, '📱 הספר הדיגיטלי\n🃏 כרטיסי השראה יומיים\n🎧 מדיטציה מודרכת במתנה', 'ספטמבר 2026', 0),
+                ('מייסד שותף', 72.0, '📱 הספר הדיגיטלי\n🎧 סדרת מדיטציות מודרכות\n🃏 חבילת כרטיסי השראה דיגיטליים\n💬 הצטרפות לקבוצת הווטסאפ עם תכנים יומיים', 'ספטמבר 2026', 0),
+                ('שותף לאור', 118.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n💬 קבוצת התוכן היומית', 'אוקטובר 2026', 1),
+                ('חווית האור', 180.0, '📖 הספר המודפס\n📱 הספר הדיגיטלי\n🎧 ספריית מדיטציות\n🃏 כרטיסי השראה דיגיטליים\n📱 גישה לאפליקציה לשנה שלמה', 'אוקטובר 2026', 1),
+                ('שותפים לדרך', 360.0, '📖 2 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
+                ('מפיצי אור', 540.0, '📖 3 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לשלושה אנשים\n💛 הקדשה אישית', 'אוקטובר 2026', 1),
+                ('מייסדי האור שבתפילה', 1200.0, '📖 5 ספרים\n📱 גישה לאפליקציה לחמישה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת', 'אוקטובר 2026', 1),
+                ('שותף פרימיום', 1800.0, '📖 10 ספרים\n📱 גישה מלאה לאפליקציה לעשרה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת\n✨ הוקרה מיוחדת בספר לרפואת או לעילוי נשמת מישהו יקר לכם', 'אוקטובר 2026', 1)
+            ]
 
-        for title, amt, desc, delivery, shipping in target_rewards:
-            row = cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND amount = ?", (proj_id, amt)).fetchone()
-            if row:
-                cursor.execute("""
-                    UPDATE rewards SET title = ?, description = ?, estimated_delivery = ?, includes_shipping = ?
-                    WHERE id = ?
-                """, (title, desc, delivery, shipping, row['id']))
-            else:
+            for title, amt, desc, delivery, shipping in target_rewards:
                 cursor.execute("""
                     INSERT INTO rewards (project_id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at)
                     VALUES (?, ?, ?, ?, ?, NULL, 0, ?, ?)
                 """, (proj_id, title, desc, amt, delivery, shipping, now_str))
 
-        conn.commit()
+            conn.commit()
 
     if close_at_end:
         conn.close()
@@ -676,7 +671,7 @@ def get_project_states_path():
 PROJECT_STATES_FILE = get_project_states_path()
 
 def sync_project_states(conn):
-    """Save all project states, rewards, pledges, and updates to project_states.json for 100% persistence on Render."""
+    """Save all project states, rewards, pledges, updates, and users to project_states.json for 100% persistence on Render."""
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -692,7 +687,7 @@ def sync_project_states(conn):
             p_id = p_dict['id']
 
             cursor.execute("""
-                SELECT title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at
+                SELECT id, title, description, amount, estimated_delivery, quantity_limit, quantity_claimed, includes_shipping, created_at
                 FROM rewards WHERE project_id = ? ORDER BY amount ASC
             """, (p_id,))
             p_dict['rewards'] = [dict(r) for r in cursor.fetchall()]
@@ -712,6 +707,9 @@ def sync_project_states(conn):
 
             states[p_dict['slug']] = p_dict
 
+        cursor.execute("SELECT id, email, password_hash, full_name, phone, role, is_active, created_at FROM users")
+        states["_users"] = [dict(u) for u in cursor.fetchall()]
+
         target_paths = {get_project_states_path(), os.path.join(os.path.dirname(__file__), "project_states.json")}
         for target_path in target_paths:
             with open(target_path, 'w', encoding='utf-8') as f:
@@ -720,7 +718,7 @@ def sync_project_states(conn):
         print(f"Warning syncing project states: {e}")
 
 def restore_project_states(conn):
-    """Restore all project states, rewards, pledges, and updates from project_states.json."""
+    """Restore all project states, rewards, pledges, updates, and users from project_states.json."""
     target_path = get_project_states_path()
     if not os.path.exists(target_path):
         target_path = os.path.join(os.path.dirname(__file__), "project_states.json")
@@ -733,8 +731,36 @@ def restore_project_states(conn):
         cursor = conn.cursor()
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+        # Restore users safely without overwriting passwords of existing accounts
+        if "_users" in states and isinstance(states["_users"], list):
+            for u in states["_users"]:
+                if not isinstance(u, dict) or not u.get("email"):
+                    continue
+                user_email = u["email"].strip().lower()
+                cursor.execute("SELECT id FROM users WHERE email = ?", (user_email,))
+                existing_u = cursor.fetchone()
+                if not existing_u:
+                    cursor.execute("""
+                        INSERT INTO users (id, email, password_hash, full_name, phone, role, is_active, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        u.get("id"), user_email, u.get("password_hash", ""),
+                        u.get("full_name", ""), u.get("phone", ""),
+                        u.get("role", "user"), 1 if u.get("is_active", 1) else 0,
+                        u.get("created_at", now_str)
+                    ))
+                else:
+                    cursor.execute("""
+                        UPDATE users SET full_name = COALESCE(?, full_name), phone = COALESCE(?, phone),
+                                         role = COALESCE(?, role), is_active = COALESCE(?, is_active)
+                        WHERE id = ?
+                    """, (
+                        u.get("full_name"), u.get("phone"), u.get("role"),
+                        1 if u.get("is_active", 1) else 0, existing_u["id"]
+                    ))
+
         for slug, data in states.items():
-            if not isinstance(data, dict):
+            if slug == "_users" or not isinstance(data, dict):
                 continue
 
             cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
@@ -783,8 +809,17 @@ def restore_project_states(conn):
 
             if data.get('rewards'):
                 for r in data['rewards']:
-                    cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND (title = ? OR amount = ?)", (p_id, r['title'], r['amount']))
-                    existing_r = cursor.fetchone()
+                    existing_r = None
+                    if r.get('id'):
+                        cursor.execute("SELECT id FROM rewards WHERE id = ? AND project_id = ?", (r['id'], p_id))
+                        existing_r = cursor.fetchone()
+                    if not existing_r and r.get('title'):
+                        cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND title = ?", (p_id, r['title']))
+                        existing_r = cursor.fetchone()
+                    if not existing_r and r.get('amount') is not None:
+                        cursor.execute("SELECT id FROM rewards WHERE project_id = ? AND amount = ?", (p_id, r['amount']))
+                        existing_r = cursor.fetchone()
+
                     if existing_r:
                         cursor.execute("""
                             UPDATE rewards SET

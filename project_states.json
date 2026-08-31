@@ -18,13 +18,14 @@
     "current_amount": 96500.0,
     "backers_count": 248,
     "days_total": 45,
-    "start_date": "2026-08-24 15:32:42",
-    "end_date": "2026-09-15 15:32:42",
+    "start_date": "2026-08-26 13:20:57",
+    "end_date": "2026-09-17 13:20:57",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
     "rewards": [
       {
+        "id": 19,
         "title": "תשורה מעודכנת",
         "description": "תיאור מעודכן",
         "amount": 120.0,
@@ -32,7 +33,7 @@
         "quantity_limit": 100,
         "quantity_claimed": 0,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       }
     ],
     "pledges": [],
@@ -41,7 +42,7 @@
         "title": "הגענו ל-80% מהיעד! תודה ענקית לכל התומכים",
         "content": "אנחנו נרגשים להודיע שתוך שבועיים בלבד חצינו את רף ה-90 אלף ש\"ח. כרטיסי ה-PCB הראשונים כבר בדרך לבדיקות מעבדה.",
         "author": "יעקב דרורי",
-        "created_at": "2026-08-22 15:32:42"
+        "created_at": "2026-08-24 13:20:57"
       }
     ]
   },
@@ -64,13 +65,14 @@
     "current_amount": 52300.0,
     "backers_count": 312,
     "days_total": 30,
-    "start_date": "2026-08-24 15:32:42",
-    "end_date": "2026-09-07 15:32:42",
+    "start_date": "2026-08-26 13:20:57",
+    "end_date": "2026-09-09 13:20:57",
     "status": "successful",
     "is_active": 1,
     "owner_user_id": null,
     "rewards": [
       {
+        "id": 5,
         "title": "ספר דיגיטלי (PDF באיכות הדפסה)",
         "description": "קובץ האלבום הדיגיטלי המלא באיכות 4K לטאבלט ולמחשב.",
         "amount": 40.0,
@@ -78,9 +80,10 @@
         "quantity_limit": null,
         "quantity_claimed": 110,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 6,
         "title": "הספר המודפס בכריכה קשה עם הקדשה",
         "description": "עותק מהודר בכריכה קשה עם הטבעת זהב והקדשה אישית בכתב יד מהמחברת.",
         "amount": 130.0,
@@ -88,9 +91,10 @@
         "quantity_limit": 300,
         "quantity_claimed": 185,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 7,
         "title": "מארז אספנים: 2 ספרים + פוסטר נוף ממוסגר",
         "description": "שני עותקים + הדפס אמנותי ממוסגר בגודל 50x70 ס\"מ.",
         "amount": 320.0,
@@ -98,7 +102,7 @@
         "quantity_limit": 50,
         "quantity_claimed": 45,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       }
     ],
     "pledges": [],
@@ -123,13 +127,14 @@
     "current_amount": 34200.0,
     "backers_count": 185,
     "days_total": 40,
-    "start_date": "2026-08-24 15:32:42",
-    "end_date": "2026-09-27 15:32:42",
+    "start_date": "2026-08-26 13:20:57",
+    "end_date": "2026-09-29 13:20:57",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
     "rewards": [
       {
+        "id": 8,
         "title": "הורדה דיגיטלית מוקדמת",
         "description": "קבלת שירי האלבום שבועיים לפני ההפצה הרשמית בספוטיפיי ואפל מיוזיק.",
         "amount": 36.0,
@@ -137,9 +142,10 @@
         "quantity_limit": null,
         "quantity_claimed": 80,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 9,
         "title": "דיסק פיזי + כרטיס למופע ההשקה",
         "description": "עותק דיסק מהודר עם חוברת מילים + כרטיס ישיבה זוגי למופע ההשקה בתל אביב או חיפה.",
         "amount": 180.0,
@@ -147,7 +153,7 @@
         "quantity_limit": 150,
         "quantity_claimed": 65,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       }
     ],
     "pledges": [],
@@ -172,13 +178,14 @@
     "current_amount": 38450.0,
     "backers_count": 148,
     "days_total": 30,
-    "start_date": "2026-08-24 15:32:42",
-    "end_date": "2026-09-14 15:32:42",
+    "start_date": "2026-08-26 13:20:57",
+    "end_date": "2026-09-16 13:20:57",
     "status": "active",
     "is_active": 1,
     "owner_user_id": null,
     "rewards": [
       {
+        "id": 10,
         "title": "טעימה מהדרך",
         "description": "📱 הספר הדיגיטלי המלא האור שבתפילה.",
         "amount": 18.0,
@@ -186,9 +193,10 @@
         "quantity_limit": null,
         "quantity_claimed": 12,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 11,
         "title": "אור יומי",
         "description": "📱 הספר הדיגיטלי\n🃏 כרטיסי השראה יומיים\n🎧 מדיטציה מודרכת במתנה",
         "amount": 36.0,
@@ -196,9 +204,10 @@
         "quantity_limit": null,
         "quantity_claimed": 28,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 12,
         "title": "מייסד שותף",
         "description": "📱 הספר הדיגיטלי\n🎧 סדרת מדיטציות מודרכות\n🃏 חבילת כרטיסי השראה דיגיטליים\n💬 הצטרפות לקבוצת הווטסאפ עם תכנים יומיים",
         "amount": 72.0,
@@ -206,9 +215,10 @@
         "quantity_limit": null,
         "quantity_claimed": 45,
         "includes_shipping": 0,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 13,
         "title": "שותף לאור",
         "description": "📖 הספר המודפס\n📱 הספר הדיגיטלי\n💬 קבוצת התוכן היומית",
         "amount": 118.0,
@@ -216,9 +226,10 @@
         "quantity_limit": null,
         "quantity_claimed": 62,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 14,
         "title": "חווית האור",
         "description": "📖 הספר המודפס\n📱 הספר הדיגיטלי\n🎧 ספריית מדיטציות\n🃏 כרטיסי השראה דיגיטליים\n📱 גישה לאפליקציה לשנה שלמה",
         "amount": 180.0,
@@ -226,9 +237,10 @@
         "quantity_limit": null,
         "quantity_claimed": 34,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 15,
         "title": "שותפים לדרך",
         "description": "📖 2 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לך ולעוד מישהו שאתם אוהבים\n💛 הקדשה אישית",
         "amount": 360.0,
@@ -236,9 +248,10 @@
         "quantity_limit": null,
         "quantity_claimed": 19,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 16,
         "title": "מפיצי אור",
         "description": "📖 3 ספרים מודפסים\n📱 גישה מלאה לאפליקציה לשלושה אנשים\n💛 הקדשה אישית",
         "amount": 540.0,
@@ -246,9 +259,10 @@
         "quantity_limit": null,
         "quantity_claimed": 14,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 17,
         "title": "מייסדי האור שבתפילה",
         "description": "📖 5 ספרים\n📱 גישה לאפליקציה לחמישה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת",
         "amount": 1200.0,
@@ -256,9 +270,10 @@
         "quantity_limit": null,
         "quantity_claimed": 6,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
+        "id": 18,
         "title": "שותף פרימיום",
         "description": "📖 10 ספרים\n📱 גישה מלאה לאפליקציה לעשרה אנשים\n🎧 כל תכני השמע והמדיטציות\n🕊️ מפגש אישי/קבוצתי עם המחברת\n✨ הוקרה מיוחדת בספר לרפואת או לעילוי נשמת מישהו יקר לכם",
         "amount": 1800.0,
@@ -266,7 +281,7 @@
         "quantity_limit": null,
         "quantity_claimed": 3,
         "includes_shipping": 1,
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       }
     ],
     "pledges": [
@@ -282,7 +297,7 @@
         "payment_status": "completed",
         "payment_method": "credit_card",
         "transaction_id": "TXN-984102",
-        "created_at": "2026-08-24 15:32:42",
+        "created_at": "2026-08-26 13:20:57",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -301,7 +316,7 @@
         "payment_status": "completed",
         "payment_method": "bit",
         "transaction_id": "BIT-478192",
-        "created_at": "2026-08-24 15:32:42",
+        "created_at": "2026-08-26 13:20:57",
         "fulfillment_status": "shipped",
         "fulfillment_notes": "נשלח בדואר רשום RR98471234IL",
         "shipped_at": "2026-08-24 10:15:00",
@@ -320,7 +335,7 @@
         "payment_status": "pending",
         "payment_method": "bit",
         "transaction_id": "BIT-PENDING-99",
-        "created_at": "2026-08-24 15:32:42",
+        "created_at": "2026-08-26 13:20:57",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -339,7 +354,7 @@
         "payment_status": "completed",
         "payment_method": "paybox",
         "transaction_id": "PB-338210",
-        "created_at": "2026-08-24 15:32:42",
+        "created_at": "2026-08-26 13:20:57",
         "fulfillment_status": "delivered",
         "fulfillment_notes": "נמסר ישירות באירוע",
         "shipped_at": "2026-08-24 12:00:00",
@@ -358,7 +373,7 @@
         "payment_status": "completed",
         "payment_method": "paypal",
         "transaction_id": "PAYPAL-88193021",
-        "created_at": "2026-08-24 15:32:42",
+        "created_at": "2026-08-26 13:20:57",
         "fulfillment_status": "pending",
         "fulfillment_notes": null,
         "shipped_at": null,
@@ -371,7 +386,7 @@
         "title": "חצינו את 75% מהיעד! חדר השידור החי כבר באוויר",
         "content": "תודה עצומה לכל 148 התומכים שהצטרפו אלינו. השידורים היומיים (10:00 בבוקר ו-20:00 בערב) זוכים להיענות מרגשת. אנחנו ממשיכים בכל הכוח עד להשגת היעד המלא!",
         "author": "מרים ויעקב דרורי",
-        "created_at": "2026-08-24 15:32:42"
+        "created_at": "2026-08-26 13:20:57"
       },
       {
         "title": "עדכונים, צמיחה, תקווה",
@@ -380,5 +395,47 @@
         "created_at": "2026-08-23 14:21:23"
       }
     ]
-  }
+  },
+  "_users": [
+    {
+      "id": 1,
+      "email": "yacov@drori.org",
+      "password_hash": "scrypt:32768:8:1$spAFmek0mIMS12Ef$ecbd5bf0c250c852cbb2bbf44a6715b8d8e7ed6e6a73b8d8ca740988eaf0bd77b4e43da3e45049a7395908304036498ff2382d4925edd96de86a7d059416a0c6",
+      "full_name": "מנהל מערכת (יעקב דרורי)",
+      "phone": null,
+      "role": "admin",
+      "is_active": 1,
+      "created_at": "2026-08-26 13:20:56"
+    },
+    {
+      "id": 2,
+      "email": "admin@example.com",
+      "password_hash": "scrypt:32768:8:1$YXh2hnYGAGcy5MBe$0c4ea5272d80d878e4b06e431f2836a2bf37e12467f6c5c203142574731446f63264c267ff17c3318adaa791c27e004c1eaae976b3828ee24576c85407d57fd3",
+      "full_name": "מנהל מערכת (הדגמה)",
+      "phone": null,
+      "role": "admin",
+      "is_active": 1,
+      "created_at": "2026-08-26 13:20:56"
+    },
+    {
+      "id": 3,
+      "email": "demo@example.com",
+      "password_hash": "scrypt:32768:8:1$LcquZ8Dz24ZZ7mWh$fe89bb86d30bb53c41427dbb9941a5ce7ea5150035cfff6de085b48013b917de08ab0e08aa08787b57f430b365b13c8f2553650c725fd625d34d4075dcac1237",
+      "full_name": "משתמש הדגמה (יוצר)",
+      "phone": null,
+      "role": "user",
+      "is_active": 1,
+      "created_at": "2026-08-26 13:20:56"
+    },
+    {
+      "id": 4,
+      "email": "backer@example.com",
+      "password_hash": "scrypt:32768:8:1$xlB17lNPxVk1Iwfj$c61f09979a5fa0a0b41d6d31126165ace9f01275dc726f4cdf6aa99e999d386004a7f07929de6391b8ee6c12c65bea103551f6b4df54ee76c2d404b6817e792e",
+      "full_name": "תומך הדגמה",
+      "phone": null,
+      "role": "user",
+      "is_active": 1,
+      "created_at": "2026-08-26 13:20:56"
+    }
+  ]
 }

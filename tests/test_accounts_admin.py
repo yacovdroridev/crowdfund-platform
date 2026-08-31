@@ -371,3 +371,236 @@ def test_inactive_project_is_hidden_from_public_api_but_visible_to_admin(client)
 
     login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
     assert client.get("/api/projects/synapse-guardian-iot").status_code == 200
+
+
+def test_existing_account_password_is_preserved_across_db_reinit(client):
+    # Register a new user with a distinct password
+    register(client, email="persistent_user@example.com", password="My-Unique-Password-2026!")
+    client.get("/logout")
+
+    conn = get_db()
+    original_hash = conn.execute("SELECT password_hash FROM users WHERE email = 'persistent_user@example.com'").fetchone()[0]
+    conn.close()
+
+    # Simulate app reboot / re-initialization
+    init_db()
+
+    conn = get_db()
+    reinit_hash = conn.execute("SELECT password_hash FROM users WHERE email = 'persistent_user@example.com'").fetchone()[0]
+    conn.close()
+
+    assert original_hash == reinit_hash
+
+    # Login must succeed with the original password
+    res = login(client, "persistent_user@example.com", "My-Unique-Password-2026!")
+    assert res.status_code == 200
+    assert "ישראל ישראלי".encode() in res.data
+
+
+def test_admin_account_password_is_preserved_across_db_reinit(client, monkeypatch):
+    conn = get_db()
+    original_admin_hash = conn.execute("SELECT password_hash FROM users WHERE email = 'yacov@drori.org'").fetchone()[0]
+    conn.close()
+
+    # Change ADMIN_INITIAL_PASSWORD in env and run init_db
+    monkeypatch.setenv("ADMIN_INITIAL_PASSWORD", "Some-New-Env-Password-2026!")
+    init_db()
+
+    conn = get_db()
+    reinit_admin_hash = conn.execute("SELECT password_hash FROM users WHERE email = 'yacov@drori.org'").fetchone()[0]
+    conn.close()
+
+    # Password hash must NOT be clobbered by init_db
+    assert original_admin_hash == reinit_admin_hash
+
+    # Admin must still be able to log in with their existing password
+    res = login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
+    assert res.status_code == 200
+    assert "לוח ניהול ומעקב גיוסים".encode() in res.data
+
+
+def test_project_owner_can_edit_reward_tier_amount(client):
+    # Register project owner and create a project with a reward
+    register(client, email="reward_owner@example.com", password="Owner-Password-2026!")
+    client.post("/create", data={
+        "title": "פרויקט תשורות",
+        "subtitle": "בדיקת עריכת סכומי תשורות",
+        "category": "technology",
+        "goal_amount": "5000",
+        "days_total": "30",
+        "creator_name": "בעל הפרויקט",
+        "creator_email": "reward_owner@example.com",
+        "creator_phone": "050-1112233",
+        "creator_bio": "יוצר",
+        "cover_image": "https://example.com/cover.jpg",
+        "story_html": "<p>סיפור</p>",
+        "reward_title[]": ["תשורה ראשונית"],
+        "reward_amount[]": ["50"],
+        "reward_desc[]": ["תיאור ראשוני"],
+        "reward_delivery[]": ["ינואר 2027"],
+        "reward_limit[]": ["10"],
+        "legal_accept": "on",
+    })
+
+    conn = get_db()
+    reward = conn.execute("SELECT r.id, r.amount FROM rewards r JOIN projects p ON r.project_id = p.id WHERE p.title = 'פרויקט תשורות'").fetchone()
+    conn.close()
+    assert reward is not None
+    assert reward["amount"] == 50.0
+    reward_id = reward["id"]
+
+    # Owner edits reward tier amount to 125.0
+    edit_res = client.post(f"/project/reward_owner-project/rewards/{reward_id}/edit", data={
+        "title": "תשורה מעודכנת",
+        "amount": "125.0",
+        "description": "תיאור מעודכן",
+        "estimated_delivery": "פברואר 2027",
+        "quantity_limit": "25",
+    }, follow_redirects=True)
+
+    # Note slug might be generated as "reward_owner-project" or derived from title
+    # Let's verify via slug from DB
+    conn = get_db()
+    proj = conn.execute("SELECT slug FROM projects WHERE title = 'פרויקט תשורות'").fetchone()
+    slug = proj["slug"]
+    conn.close()
+
+    edit_res = client.post(f"/project/{slug}/rewards/{reward_id}/edit", data={
+        "title": "תשורה מעודכנת",
+        "amount": "125.0",
+        "description": "תיאור מעודכן",
+        "estimated_delivery": "פברואר 2027",
+        "quantity_limit": "25",
+    }, follow_redirects=True)
+
+    assert edit_res.status_code == 200
+
+    conn = get_db()
+    updated = conn.execute("SELECT amount, title FROM rewards WHERE id = ?", (reward_id,)).fetchone()
+    conn.close()
+
+    assert updated["amount"] == 125.0
+    assert updated["title"] == "תשורה מעודכנת"
+
+
+def test_admin_can_edit_reward_tier_amount(client):
+    login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
+
+    conn = get_db()
+    reward = conn.execute("SELECT id FROM rewards WHERE project_id = 1 LIMIT 1").fetchone()
+    conn.close()
+    reward_id = reward["id"]
+
+    # Admin updates amount via JSON API
+    res = client.post(
+        f"/project/synapse-guardian-iot/rewards/{reward_id}/edit",
+        json={"amount": 99.0, "title": "תשורה לאדמין"},
+        headers={"Accept": "application/json"},
+    )
+    assert res.status_code == 200
+    assert res.json["success"] is True
+    assert res.json["reward"]["amount"] == 99.0
+
+    conn = get_db()
+    updated = conn.execute("SELECT amount FROM rewards WHERE id = ?", (reward_id,)).fetchone()
+    conn.close()
+    assert updated["amount"] == 99.0
+
+
+def test_unauthenticated_and_unauthorized_users_cannot_edit_reward_tier_amount(client):
+    # Unauthenticated user
+    conn = get_db()
+    reward = conn.execute("SELECT id FROM rewards WHERE project_id = 1 LIMIT 1").fetchone()
+    conn.close()
+    reward_id = reward["id"]
+
+    anon_res = client.post(
+        f"/project/synapse-guardian-iot/rewards/{reward_id}/edit",
+        data={"amount": "200"},
+    )
+    assert anon_res.status_code in (302, 401, 403)
+
+    # Log in as unrelated regular user
+    register(client, email="other_user@example.com", password="Other-User-Pass-2026!")
+    unauth_res = client.post(
+        f"/project/synapse-guardian-iot/rewards/{reward_id}/edit",
+        data={"amount": "200"},
+    )
+    assert unauth_res.status_code == 403
+
+
+def test_reward_tier_amount_validation_rejects_negative_or_zero(client):
+    login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
+
+    conn = get_db()
+    reward = conn.execute("SELECT id, amount FROM rewards WHERE project_id = 1 LIMIT 1").fetchone()
+    conn.close()
+    reward_id = reward["id"]
+    orig_amount = reward["amount"]
+
+    for bad_amount in ["0", "-50", "abc", ""]:
+        res = client.post(
+            f"/project/synapse-guardian-iot/rewards/{reward_id}/edit",
+            json={"amount": bad_amount},
+            headers={"Accept": "application/json"},
+        )
+        assert res.status_code == 400
+        assert res.json["success"] is False
+
+    conn = get_db()
+    current = conn.execute("SELECT amount FROM rewards WHERE id = ?", (reward_id,)).fetchone()
+    conn.close()
+    assert current["amount"] == orig_amount
+
+
+def test_add_reward_tier_authorization_and_validation(client):
+    # Unauthenticated attempt
+    res = client.post("/project/synapse-guardian-iot/rewards/add", data={"title": "תשורה חדשה", "amount": "80"})
+    assert res.status_code in (302, 401, 403)
+
+    # Admin attempt with invalid amount
+    login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
+    bad_res = client.post(
+        "/project/synapse-guardian-iot/rewards/add",
+        json={"title": "תשורה שגויה", "amount": "-10"},
+        headers={"Accept": "application/json"},
+    )
+    assert bad_res.status_code == 400
+    assert bad_res.json["success"] is False
+
+    # Admin attempt with valid data
+    good_res = client.post(
+        "/project/synapse-guardian-iot/rewards/add",
+        json={"title": "תשורה מעולה", "amount": "150.0", "description": "תיאור תשורה", "estimated_delivery": "מרץ 2027"},
+        headers={"Accept": "application/json"},
+    )
+    assert good_res.status_code == 201
+    assert good_res.json["success"] is True
+    assert good_res.json["reward"]["amount"] == 150.0
+
+
+def test_api_patch_and_put_reward_tier(client):
+    login(client, "yacov@drori.org", "A-very-strong-admin-password-2026!")
+
+    conn = get_db()
+    reward = conn.execute("SELECT id FROM rewards WHERE project_id = 1 LIMIT 1").fetchone()
+    conn.close()
+    reward_id = reward["id"]
+
+    # PATCH request
+    patch_res = client.patch(
+        f"/api/projects/synapse-guardian-iot/rewards/{reward_id}",
+        json={"amount": 333.0},
+        headers={"Accept": "application/json"},
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.json["reward"]["amount"] == 333.0
+
+    # PUT request
+    put_res = client.put(
+        f"/api/projects/synapse-guardian-iot/rewards/{reward_id}",
+        json={"amount": 444.0, "title": "תשורה מעודכנת API"},
+        headers={"Accept": "application/json"},
+    )
+    assert put_res.status_code == 200
+    assert put_res.json["reward"]["amount"] == 444.0

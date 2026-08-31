@@ -469,6 +469,14 @@
             <span class="font-mono font-bold text-blue-900" dir="ltr">{{ project.creator_email or "miriam@drori.org" }}</span>
           </div>
         </div>
+      <!-- Upay Pane -->
+      <div id="pane-upay" class="hidden p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
+        <div class="font-bold">תשלום דרך Upay (Sumit)</div>
+        <p>הסליקה מתבצעת בדף תשלום מאובטח של Upay. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.</p>
+        <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
+          <span>💳 תומך בכל הכרטיסים: ויזה, מאסטרקארד, ישראכרט, Diners, AMEX ודביט ישראלי.</span>
+        </div>
+      </div>
       </div>
 
       <!-- Terms Acceptance -->
@@ -542,7 +550,7 @@
     document.getElementById('selected-payment-method').value = method;
     
     // Panes
-    const methods = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal'];
+    const methods = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay'];
     methods.forEach(m => {
       const pane = document.getElementById('pane-' + m);
       const btn = document.getElementById('btn-pay-' + m);
