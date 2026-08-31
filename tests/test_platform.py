@@ -166,3 +166,165 @@ def test_edit_project_security(client):
     assert rv.status_code == 200
     assert "מכשיר הגנה מעודכן".encode('utf-8') in rv.data
 
+
+
+def _latest_pledge():
+    from db import get_db
+    conn = get_db()
+    row = conn.execute("SELECT * FROM pledges ORDER BY id DESC LIMIT 1").fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def test_pledge_success_missing_returns_404(client):
+    rv = client.get("/success/999999")
+    assert rv.status_code == 404
+
+
+def test_submit_pledge_credit_card_stays_pending(client, monkeypatch):
+    def boom(*args, **kwargs):
+        raise OSError("network disabled")
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    rv = client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Test Card",
+            "backer_email": "card@example.com",
+            "payment_method": "credit_card",
+            "legal_accept": "on",
+        },
+        follow_redirects=True,
+    )
+    assert rv.status_code == 200
+    assert "תודה ענקית על תמיכתך".encode("utf-8") in rv.data
+    pledge = _latest_pledge()
+    assert pledge["payment_method"] == "credit_card"
+    assert pledge["payment_status"] == "pending"
+    assert pledge["is_payment_verified"] == 0
+
+
+def test_submit_pledge_upay_missing_credentials(client, monkeypatch):
+    monkeypatch.delenv("SUMIT_COMPANY_ID", raising=False)
+    monkeypatch.delenv("SUMIT_API_KEY", raising=False)
+    rv = client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Test Upay",
+            "backer_email": "upay@example.com",
+            "payment_method": "upay",
+            "legal_accept": "on",
+        },
+        follow_redirects=True,
+    )
+    assert rv.status_code == 200
+    assert "חסר מזהה חברה או מפתח API".encode("utf-8") in rv.data
+    pledge = _latest_pledge()
+    assert pledge["payment_method"] == "upay"
+    assert pledge["payment_status"] == "pending"
+    assert pledge["is_payment_verified"] == 0
+
+
+def test_submit_pledge_upay_redirects_to_hosted_page(client, monkeypatch):
+    import json
+    monkeypatch.setenv("SUMIT_COMPANY_ID", "12345")
+    monkeypatch.setenv("SUMIT_API_KEY", "test-key")
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self):
+            return json.dumps({
+                "Status": "Success",
+                "Data": {"RedirectURL": "https://pay.sumit.co.il/r/abc"},
+            }).encode()
+
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **k: FakeResp())
+    rv = client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "80",
+            "tip_amount": "0",
+            "backer_name": "Sumit User",
+            "backer_email": "sumit@example.com",
+            "payment_method": "upay",
+            "legal_accept": "on",
+        },
+        follow_redirects=False,
+    )
+    assert rv.status_code == 302
+    assert rv.location == "https://pay.sumit.co.il/r/abc"
+    pledge = _latest_pledge()
+    assert pledge["payment_status"] == "pending"
+
+
+def test_sumit_callback_marks_completed(client, monkeypatch):
+    monkeypatch.delenv("SUMIT_COMPANY_ID", raising=False)
+    monkeypatch.delenv("SUMIT_API_KEY", raising=False)
+    client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Webhook User",
+            "backer_email": "hook@example.com",
+            "payment_method": "upay",
+            "legal_accept": "on",
+        },
+    )
+    pledge = _latest_pledge()
+    assert pledge["payment_status"] == "pending"
+    rv = client.post(
+        "/payment/sumit/callback",
+        json={
+            "Payment": {"Status": "000", "ID": "SUMIT-99"},
+            "Customer": {"ExternalIdentifier": pledge["transaction_id"]},
+        },
+    )
+    assert rv.status_code == 200
+    from db import get_db
+    conn = get_db()
+    updated = conn.execute("SELECT payment_status, is_payment_verified, payment_reference FROM pledges WHERE id = ?", (pledge["id"],)).fetchone()
+    conn.close()
+    assert updated["payment_status"] == "completed"
+    assert updated["is_payment_verified"] == 1
+    assert updated["payment_reference"] == "SUMIT-99"
+
+
+def test_sumit_return_valid_completes(client, monkeypatch):
+    monkeypatch.delenv("SUMIT_COMPANY_ID", raising=False)
+    monkeypatch.delenv("SUMIT_API_KEY", raising=False)
+    client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Return User",
+            "backer_email": "return@example.com",
+            "payment_method": "upay",
+            "legal_accept": "on",
+        },
+    )
+    pledge = _latest_pledge()
+    rv = client.get(
+        f"/payment/sumit/return?pledge_id={pledge['id']}&Valid=1&ID=888",
+        follow_redirects=False,
+    )
+    assert rv.status_code == 302
+    assert f"/success/{pledge['id']}" in rv.location
+    from db import get_db
+    conn = get_db()
+    updated = conn.execute("SELECT payment_status, is_payment_verified FROM pledges WHERE id = ?", (pledge["id"],)).fetchone()
+    conn.close()
+    assert updated["payment_status"] == "completed"
+    assert updated["is_payment_verified"] == 1

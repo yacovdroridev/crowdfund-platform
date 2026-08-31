@@ -42,6 +42,7 @@
               {% elif g.gateway_key == 'google_pay' %}🌐
               {% elif g.gateway_key == 'bit' %}🔵
               {% elif g.gateway_key == 'paybox' %}🩵
+              {% elif g.gateway_key == 'upay' %}💰
               {% else %}🅿️{% endif %}
             </div>
             <div>
@@ -63,6 +64,7 @@
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">
               {% if g.gateway_key == 'credit_card' or g.gateway_key == 'google_pay' %}מפתח API לקוח / PayMe Seller PayMe ID
+              {% elif g.gateway_key == 'upay' %}מזהה חברה Sumit (CompanyID) או CompanyID:APIKey
               {% elif g.gateway_key == 'bit' %}מספר טלפון לקבלת ביט (Bit)
               {% elif g.gateway_key == 'paybox' %}מספר טלפון / קישור לקבוצת PayBox
               {% else %}דוא"ל חשבון PayPal Merchant{% endif %}

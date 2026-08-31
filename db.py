@@ -285,7 +285,8 @@ def init_db():
         ('google_pay', 'תשלום מהיר ב-Google Pay', 1, payme_key_env, 1, 'תשלום מאובטח בלחיצה אחת באמצעות Google Pay API'),
         ('bit', 'תשלום באפליקציית ביט (Bit)', 1, '054-8048602', 0, 'העברה ישירה באפליקציית Bit למספר הטלפון של הפרויקט'),
         ('paybox', 'תשלום בקבוצת פייבוקס (PayBox)', 1, '054-8048602', 0, 'תשלום בקבוצת PayBox של הקמפיין'),
-        ('paypal', 'תשלום מאובטח ב-PayPal', 1, 'miriam@drori.org', 1, 'סליקה גלובלית בחשבון PayPal')
+        ('paypal', 'תשלום מאובטח ב-PayPal', 1, 'miriam@drori.org', 1, 'סליקה גלובלית בחשבון PayPal'),
+        ('upay', 'סליקת כרטיסי אשראי (Upay / Sumit)', 1, (os.environ.get('SUMIT_COMPANY_ID') or '').strip(), 0, 'סליקה בדף תשלום מאובטח של Sumit / Upay'),
     ]
     for key, name, enabled, ident, sandbox, inst in default_gateways:
         cursor.execute("""
