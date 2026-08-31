@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import uuid
 import secrets
 import hashlib
@@ -152,6 +153,8 @@ def csrf_token():
 
 @app.before_request
 def enforce_csrf():
+    if request.path.startswith("/payment/"):
+        return
     if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and app.config.get('CSRF_ENABLED', True):
         supplied = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
         expected = session.get('_csrf_token', '')
@@ -181,20 +184,150 @@ def inject_auth_context():
         'legal_documents': LEGAL_DOCUMENTS,
     }
 
-def log_action(action, target_type, target_id=None, details=None):
-    """Insert a privacy-conscious admin/user action into the audit log."""
-    user = current_user()
-    actor_user_id = user['id'] if user else None
-    conn = get_db()
+def log_action(action, target_type, target_id=None, details=None, conn=None):
+    """Insert a privacy-conscious admin/user action into the audit log.
+
+    Pass the caller's open SQLite connection when inside a write transaction;
+    otherwise this helper opens (and closes) its own connection.
+    """
+    actor_user_id = session.get("user_id")
+    close_at_end = conn is None
+    if conn is None:
+        conn = get_db()
     try:
         conn.execute(
             """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (actor_user_id, action, target_type, target_id, details, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
         )
-        conn.commit()
+        if close_at_end:
+            conn.commit()
+    except Exception as e:
+        print(f"audit log skipped: {e}")
     finally:
-        conn.close()
+        if close_at_end:
+            conn.close()
+
+
+def _sumit_credentials(cursor=None):
+    """Resolve Sumit CompanyID + APIKey from env and/or payment_gateways.upay. Never invent keys."""
+    company_id = (os.environ.get("SUMIT_COMPANY_ID") or "").strip()
+    api_key = (os.environ.get("SUMIT_API_KEY") or "").strip()
+    ident = ""
+    if cursor is not None:
+        row = cursor.execute(
+            "SELECT account_identifier FROM payment_gateways WHERE gateway_key = 'upay'"
+        ).fetchone()
+        if row and row["account_identifier"]:
+            ident = str(row["account_identifier"]).strip()
+    if ident:
+        if ident.startswith("{") and ident.endswith("}"):
+            try:
+                parsed = json.loads(ident)
+                company_id = company_id or str(parsed.get("CompanyID") or parsed.get("company_id") or "").strip()
+                api_key = api_key or str(parsed.get("APIKey") or parsed.get("api_key") or "").strip()
+            except (ValueError, TypeError):
+                pass
+        elif ":" in ident:
+            left, right = ident.split(":", 1)
+            company_id = company_id or left.strip()
+            api_key = api_key or right.strip()
+        elif ident.isdigit():
+            company_id = company_id or ident
+        elif company_id and not api_key:
+            api_key = ident
+    if not company_id or not api_key:
+        return None
+    try:
+        return {"CompanyID": int(company_id), "APIKey": api_key}
+    except (TypeError, ValueError):
+        return None
+
+
+def _sumit_status_is_success(status=None, valid=None):
+    if valid is not None and str(valid).strip() != "":
+        valid_s = str(valid).strip().lower()
+        if valid_s in {"1", "true", "yes", "ok"}:
+            return True
+        if valid_s in {"0", "false", "no"}:
+            return False
+    if status is None or str(status).strip() == "":
+        return False
+    return str(status).strip() in {"000", "0"}
+
+
+def _find_sumit_pledge(cursor, pledge_id=None, transaction_id=None, payment_id=None):
+    if pledge_id and str(pledge_id).isdigit():
+        row = cursor.execute("SELECT * FROM pledges WHERE id = ?", (int(pledge_id),)).fetchone()
+        if row:
+            return row
+    if transaction_id:
+        row = cursor.execute("SELECT * FROM pledges WHERE transaction_id = ?", (transaction_id,)).fetchone()
+        if row:
+            return row
+    if payment_id:
+        row = cursor.execute("SELECT * FROM pledges WHERE payment_reference = ?", (str(payment_id),)).fetchone()
+        if row:
+            return row
+    return None
+
+
+def _complete_pending_pledge(cursor, conn, pledge, reference):
+    if not pledge or pledge["payment_status"] == "completed":
+        return False
+    cursor.execute(
+        "UPDATE pledges SET payment_status = 'completed', is_payment_verified = 1, payment_reference = ? WHERE id = ?",
+        (reference, pledge["id"]),
+    )
+    cursor.execute(
+        "UPDATE projects SET current_amount = current_amount + ?, backers_count = backers_count + 1 WHERE id = ?",
+        (pledge["amount"], pledge["project_id"]),
+    )
+    if pledge["reward_id"]:
+        cursor.execute("UPDATE rewards SET quantity_claimed = quantity_claimed + 1 WHERE id = ?", (pledge["reward_id"],))
+    sync_project_states(conn)
+    conn.commit()
+    return True
+
+
+def _sumit_payload_fields(source):
+    """Pull Sumit return/webhook identifiers from form, query, or JSON."""
+    source = source or {}
+    payment = source.get("Payment") if isinstance(source.get("Payment"), dict) else {}
+    customer = source.get("Customer") if isinstance(source.get("Customer"), dict) else {}
+    data = source.get("Data") if isinstance(source.get("Data"), dict) else {}
+    nested_payment = data.get("Payment") if isinstance(data.get("Payment"), dict) else {}
+    return {
+        "pledge_id": source.get("pledge_id") or data.get("pledge_id"),
+        "transaction_id": (
+            source.get("ExternalIdentifier")
+            or source.get("Identifier")
+            or source.get("transaction_id")
+            or customer.get("ExternalIdentifier")
+            or data.get("ExternalIdentifier")
+        ),
+        "payment_id": (
+            source.get("ID")
+            or source.get("PaymentID")
+            or payment.get("ID")
+            or nested_payment.get("ID")
+            or data.get("PaymentID")
+            or data.get("ID")
+        ),
+        "status": (
+            source.get("Payment.Status")
+            or payment.get("Status")
+            or nested_payment.get("Status")
+            or data.get("PaymentStatus")
+            or source.get("sale_status")
+        ),
+        "valid": (
+            source.get("Valid")
+            or payment.get("ValidPayment")
+            or nested_payment.get("ValidPayment")
+            or data.get("Valid")
+        ),
+    }
 
 
 # Categories definition
@@ -284,6 +417,7 @@ def index():
     category = request.args.get('category', 'all')
     status_filter = request.args.get('status', 'all')
     search_query = request.args.get('q', '').strip()
+    categories = get_category_map(include_all=True)
     conn = get_db()
     cursor = conn.cursor()
 
@@ -423,7 +557,8 @@ def submit_pledge(slug):
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     transaction_id = f"TXN-{uuid.uuid4().hex[:10].upper()}"
 
-    immediate_verification_methods = {'credit_card', 'google_pay', 'paypal'}
+    # Card rails wait for provider callback. PayPal capture is still recorded immediately.
+    immediate_verification_methods = {'paypal'}
     initial_status = 'completed' if payment_method in immediate_verification_methods else 'pending'
     is_verified = 1 if payment_method in immediate_verification_methods else 0
 
@@ -440,7 +575,10 @@ def submit_pledge(slug):
         shipping_address, initial_status, payment_method, transaction_id, now_str, is_verified
     ))
     pledge_id = cursor.lastrowid
-    log_action("pledge_started", "pledge", pledge_id, details=f"project={slug},amount={amount+tip_amount},payment_method={payment_method}")
+    log_action("pledge_started", "pledge", pledge_id, details=f"project={slug},amount={amount+tip_amount},payment_method={payment_method}", conn=conn)
+    payme_sale_url = None
+    upay_redirect_url = None
+    upay_setup_error = False
     if payment_method in {'credit_card', 'google_pay'}:
         gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
         
@@ -496,12 +634,76 @@ def submit_pledge(slug):
                 except Exception as ep_ex:
                     print(f"PayMe attempt with seller {s_id} ({endpoint_url}) note: {ep_ex}")
 
+    if payment_method == 'upay':
+        creds = _sumit_credentials(cursor)
+        if not creds:
+            flash("לא ניתן להתחיל סליקה ב-Sumit (Upay): חסר מזהה חברה או מפתח API. פנו למנהל המערכת.", "error")
+            upay_setup_error = True
+        else:
+            try:
+                import urllib.request
+                payload = {
+                    "Credentials": creds,
+                    "Customer": {
+                        "Name": backer_name,
+                        "EmailAddress": backer_email,
+                        "Phone": backer_phone,
+                        "ExternalIdentifier": transaction_id,
+                        "SearchMode": 2,
+                    },
+                    "Items": [{
+                        "Item": {"Name": f"תמיכה בפרויקט {project['title']}"},
+                        "Quantity": 1,
+                        "UnitPrice": total_charge,
+                        "Currency": 0,
+                    }],
+                    "VATIncluded": True,
+                    "RedirectURL": url_for("sumit_return", pledge_id=pledge_id, _external=True),
+                }
+                req = urllib.request.Request(
+                    "https://api.sumit.co.il/billing/payments/beginredirect/",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"},
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=10) as resp:
+                    resp_data = json.loads(resp.read().decode("utf-8"))
+                data = resp_data.get("Data") if isinstance(resp_data.get("Data"), dict) else {}
+                redirect_url = (
+                    data.get("RedirectURL")
+                    or data.get("redirect_url")
+                    or data.get("Url")
+                    or data.get("URL")
+                    or data.get("PaymentURL")
+                )
+                if redirect_url:
+                    upay_redirect_url = redirect_url
+                    payment_id = data.get("PaymentID") or data.get("ID")
+                    if not payment_id and isinstance(data.get("Payment"), dict):
+                        payment_id = data["Payment"].get("ID")
+                    if payment_id:
+                        cursor.execute(
+                            "UPDATE pledges SET payment_reference = ? WHERE id = ?",
+                            (str(payment_id), pledge_id),
+                        )
+                else:
+                    flash("סליקת Sumit (Upay) לא החזירה קישור לתשלום. נסו שוב או פנו למנהל המערכת.", "error")
+                    upay_setup_error = True
+            except Exception as sumit_ex:
+                print(f"Sumit beginredirect error: {sumit_ex}")
+                flash("לא ניתן להתחבר לסליקת Sumit (Upay) כרגע. נסו שוב בעוד מספר דקות.", "error")
+                upay_setup_error = True
+
     conn.commit()
     sync_project_states(conn)
     conn.close()
 
     if payme_sale_url:
         return redirect(payme_sale_url)
+    if upay_redirect_url:
+        return redirect(upay_redirect_url)
+    if upay_setup_error:
+        return redirect(url_for("project_detail", slug=slug))
 
     return redirect(url_for('pledge_success', pledge_id=pledge_id))
 
@@ -530,14 +732,79 @@ def payment_callback():
         conn.close()
     return "OK", 200
 
+
+@app.route("/payment/sumit/return", methods=["GET", "POST"])
+def sumit_return():
+    json_data = request.get_json(silent=True) or {}
+    merged = {}
+    merged.update(request.args.to_dict())
+    merged.update(request.form.to_dict())
+    if isinstance(json_data, dict):
+        merged.update(json_data)
+    fields = _sumit_payload_fields(merged)
+    conn = get_db()
+    cursor = conn.cursor()
+    pledge = _find_sumit_pledge(
+        cursor,
+        pledge_id=fields["pledge_id"],
+        transaction_id=fields["transaction_id"],
+        payment_id=fields["payment_id"],
+    )
+    if not pledge:
+        conn.close()
+        abort(404)
+    if _sumit_status_is_success(fields["status"], fields["valid"]):
+        reference = str(fields["payment_id"] or fields["transaction_id"] or pledge["transaction_id"])
+        _complete_pending_pledge(cursor, conn, pledge, reference)
+    pid = pledge["id"]
+    conn.close()
+    return redirect(url_for("pledge_success", pledge_id=pid))
+
+
+@app.route("/payment/sumit/callback", methods=["GET", "POST"])
+def sumit_callback():
+    json_data = request.get_json(silent=True) or {}
+    merged = {}
+    merged.update(request.args.to_dict())
+    merged.update(request.form.to_dict())
+    if isinstance(json_data, dict):
+        merged.update(json_data)
+    fields = _sumit_payload_fields(merged)
+    conn = get_db()
+    cursor = conn.cursor()
+    pledge = _find_sumit_pledge(
+        cursor,
+        pledge_id=fields["pledge_id"],
+        transaction_id=fields["transaction_id"],
+        payment_id=fields["payment_id"],
+    )
+    if pledge and _sumit_status_is_success(fields["status"], fields["valid"]):
+        reference = str(fields["payment_id"] or fields["transaction_id"] or pledge["transaction_id"])
+        _complete_pending_pledge(cursor, conn, pledge, reference)
+    conn.close()
+    return "OK", 200
+
 @app.route('/success/<int:pledge_id>')
 def pledge_success(pledge_id):
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("""SELECT p.*, pr.title as project_title, pr.slug as project_slug, pr.cover_image,\n                   pr.creator_phone, pr.creator_email,\n                   r.title as reward_title, p.payment_status, p.payment_method\n            FROM pledges p\n            JOIN projects pr ON p.project_id = pr.id\n            LEFT JOIN rewards r ON r.project_id = pr.id AND r.id = p.reward_id\n            WHERE p.id = ?\n""", (pledge_id,))\n    pledge = cursor.fetchone()\n    conn.close()\n    pledge_dict = dict(pledge)
-        if pledge_dict.get("payment_status") == "completed":
-            log_action("pledge_succeeded", "pledge", pledge_id, "project=" + pledge_dict.get("project_slug", "") + "," + "amount=" + str(pledge_dict.get("amount", 0)) + "," + "payment_method=" + pledge_dict.get("payment_method", ""))
-        raw_phone = pledge_dict.get('creator_phone') or '054-9103046'
+    cursor.execute("""
+            SELECT p.*, pr.title as project_title, pr.slug as project_slug, pr.cover_image,
+                   pr.creator_phone, pr.creator_email,
+                   r.title as reward_title, p.payment_status, p.payment_method
+            FROM pledges p
+            JOIN projects pr ON p.project_id = pr.id
+            LEFT JOIN rewards r ON r.project_id = pr.id AND r.id = p.reward_id
+            WHERE p.id = ?
+            """, (pledge_id,))
+    pledge = cursor.fetchone()
+    conn.close()
+    if not pledge:
+        abort(404)
+    pledge_dict = dict(pledge)
+    if pledge_dict.get("payment_status") == "completed":
+        log_action("pledge_succeeded", "pledge", pledge_id, "project=" + pledge_dict.get("project_slug", "") + "," + "amount=" + str(pledge_dict.get("amount", 0)) + "," + "payment_method=" + pledge_dict.get("payment_method", ""))
+    raw_phone = pledge_dict.get('creator_phone') or '054-9103046'
     clean_phone = re.sub(r'\D', '', raw_phone)
     if clean_phone.startswith('972'):
         clean_phone = '0' + clean_phone[3:]
@@ -1342,7 +1609,7 @@ def admin_payment_gateways():
     conn.commit()
 
     if request.method == 'POST':
-        gateways_keys = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal']
+        gateways_keys = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay']
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for key in gateways_keys:
             is_enabled = 1 if request.form.get(f"enabled_{key}") == 'on' else 0
@@ -1512,7 +1779,8 @@ def update_backer_status(slug, pledge_id):
 
     sync_project_states(conn)
     conn.commit()
-    log_action("pledge_succeeded", "pledge", pledge_id, "project=" + slug + "," + "amount=" + str(amount) + "," + "payment_method=" + payment_method)\n    conn.close()
+    log_action("pledge_succeeded", "pledge", pledge_id, "project=" + slug + "," + "amount=" + str(pledge["amount"]) + "," + "payment_method=" + str(pledge["payment_method"] or ""), conn=conn)
+    conn.close()
 
     return redirect(url_for('manage_backers', slug=slug))
 

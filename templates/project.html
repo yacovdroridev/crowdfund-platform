@@ -375,10 +375,14 @@
       <!-- Payment Method Selection -->
       <div class="mt-4 pt-4 border-t border-slate-100">
         <label class="block text-xs font-bold text-slate-800 mb-2">בחר אמצעי תשלום:</label>
-        <input type="hidden" name="payment_method" id="selected-payment-method" value="credit_card">
+        <input type="hidden" name="payment_method" id="selected-payment-method" value="upay">
 
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
-          <button type="button" onclick="selectPaymentMethod('credit_card')" id="btn-pay-credit_card" class="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 text-xs font-bold flex flex-col items-center gap-1 transition-all">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+          <button type="button" onclick="selectPaymentMethod('upay')" id="btn-pay-upay" class="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 text-xs font-bold flex flex-col items-center gap-1 transition-all">
+            <span class="text-base">💰</span>
+            <span>Upay (Sumit)</span>
+          </button>
+          <button type="button" onclick="selectPaymentMethod('credit_card')" id="btn-pay-credit_card" class="p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 text-xs font-bold flex flex-col items-center gap-1 transition-all">
             <span class="text-base">💳</span>
             <span>אשראי</span>
           </button>
@@ -491,7 +495,7 @@
       </div>
 
       <button type="submit" id="btn-submit-pledge" class="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base shadow-lg transition-all mt-4 cursor-pointer">
-        בצע תמיכה וסליקה עכשיו 💳
+        המשך לתשלום ב-Upay (Sumit) 💰
       </button>
     </form>
 
@@ -538,7 +542,7 @@
     document.getElementById('modal-reward-id').value = rewardId || '';
     document.getElementById('modal-amount').value = amount || 50;
     document.getElementById('modal-reward-name').textContent = rewardTitle || 'תמיכה חופשית';
-    selectPaymentMethod('credit_card');
+    selectPaymentMethod('upay');
     document.getElementById('pledge-modal').classList.remove('hidden');
   }
 
@@ -579,6 +583,8 @@
       btnSubmit.innerHTML = 'המשך לתשלום ב-PayPal 🅿️';
     } else if (method === 'google_pay') {
       btnSubmit.innerHTML = 'לתשלום ב-Google Pay 🌐';
+    } else if (method === 'upay') {
+      btnSubmit.innerHTML = 'המשך לתשלום ב-Upay (Sumit) 💰';
     } else {
       btnSubmit.innerHTML = 'בצע תמיכה וסליקה עכשיו 💳';
     }
