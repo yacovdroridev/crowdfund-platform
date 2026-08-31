@@ -354,3 +354,100 @@ def test_sumit_return_valid_completes(client, monkeypatch):
     conn.close()
     assert updated["payment_status"] == "completed"
     assert updated["is_payment_verified"] == 1
+
+
+def _set_gateway_enabled(key, enabled):
+    from db import get_db
+    conn = get_db()
+    conn.execute(
+        "UPDATE payment_gateways SET is_enabled = ? WHERE gateway_key = ?",
+        (1 if enabled else 0, key),
+    )
+    conn.commit()
+    conn.close()
+
+
+def test_disabled_google_pay_hidden_on_checkout_and_project(client):
+    _set_gateway_enabled("google_pay", False)
+    checkout = client.get("/project/synapse-guardian-iot/checkout")
+    assert checkout.status_code == 200
+    assert b'id="co-btn-google_pay"' not in checkout.data
+    assert b'id="co-pane-google_pay"' not in checkout.data
+    assert b'id="co-btn-upay"' in checkout.data
+    assert b'id="co-payment-method" value="upay"' in checkout.data
+
+    project = client.get("/project/synapse-guardian-iot")
+    assert project.status_code == 200
+    assert b'id="btn-pay-google_pay"' not in project.data
+    assert b'id="pane-google_pay"' not in project.data
+    assert b'id="btn-pay-upay"' in project.data
+
+
+def test_enabled_google_pay_shown_on_checkout_and_project(client):
+    _set_gateway_enabled("google_pay", True)
+    checkout = client.get("/project/synapse-guardian-iot/checkout")
+    assert checkout.status_code == 200
+    assert b'id="co-btn-google_pay"' in checkout.data
+    assert b'id="co-pane-google_pay"' in checkout.data
+    project = client.get("/project/synapse-guardian-iot")
+    assert project.status_code == 200
+    assert b'id="btn-pay-google_pay"' in project.data
+    assert b'id="pane-google_pay"' in project.data
+
+
+def test_submit_pledge_disabled_google_pay_rejected(client):
+    from db import get_db
+    _set_gateway_enabled("google_pay", False)
+    conn = get_db()
+    before = conn.execute("SELECT COUNT(*) AS c FROM pledges").fetchone()["c"]
+    conn.close()
+    rv = client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Disabled GPay",
+            "backer_email": "disabled-gpay@example.com",
+            "payment_method": "google_pay",
+            "legal_accept": "on",
+        },
+        follow_redirects=True,
+    )
+    assert rv.status_code == 200
+    assert "אמצעי התשלום שנבחר מבוטל כרגע במערכת".encode("utf-8") in rv.data
+    conn = get_db()
+    after = conn.execute("SELECT COUNT(*) AS c FROM pledges").fetchone()["c"]
+    conn.close()
+    assert after == before
+
+
+def test_checkout_defaults_to_first_enabled_when_upay_off(client):
+    _set_gateway_enabled("upay", False)
+    rv = client.get("/project/synapse-guardian-iot/checkout")
+    assert rv.status_code == 200
+    assert b'id="co-btn-upay"' not in rv.data
+    assert b'id="co-btn-google_pay"' in rv.data
+    assert b'id="co-payment-method" value="google_pay"' in rv.data
+    project = client.get("/project/synapse-guardian-iot")
+    assert project.status_code == 200
+    assert b'id="btn-pay-upay"' not in project.data
+    assert b'id="selected-payment-method" value="google_pay"' in project.data
+
+
+def test_checkout_unavailable_when_no_gateways_enabled(client):
+    from db import get_db
+    conn = get_db()
+    conn.execute("UPDATE payment_gateways SET is_enabled = 0")
+    conn.commit()
+    conn.close()
+    checkout = client.get("/project/synapse-guardian-iot/checkout")
+    assert checkout.status_code == 200
+    assert "התשלום אינו זמין כרגע".encode("utf-8") in checkout.data
+    assert b'id="btn-co-submit"' not in checkout.data
+    assert b'id="co-btn-upay"' not in checkout.data
+    assert b'id="co-btn-google_pay"' not in checkout.data
+    project = client.get("/project/synapse-guardian-iot")
+    assert project.status_code == 200
+    assert "התשלום אינו זמין כרגע".encode("utf-8") in project.data
+    assert b'id="btn-submit-pledge"' not in project.data

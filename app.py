@@ -290,6 +290,21 @@ def _complete_pending_pledge(cursor, conn, pledge, reference):
     return True
 
 
+
+def load_enabled_payment_gateways(cursor):
+    """Enabled public checkout methods. Default prefers upay, else first enabled."""
+    cursor.execute("SELECT * FROM payment_gateways WHERE is_enabled = 1 ORDER BY id ASC")
+    gateways = [dict(g) for g in cursor.fetchall()]
+    enabled_keys = [g["gateway_key"] for g in gateways]
+    if "upay" in enabled_keys:
+        default_method = "upay"
+    elif enabled_keys:
+        default_method = enabled_keys[0]
+    else:
+        default_method = ""
+    return gateways, enabled_keys, default_method
+
+
 def _sumit_payload_fields(source):
     """Pull Sumit return/webhook identifiers from form, query, or JSON."""
     source = source or {}
@@ -498,6 +513,7 @@ def project_detail(slug):
     backers = [dict(b) for b in cursor.fetchall()]
 
     is_auth = is_project_authorized(slug)
+    gateways, enabled_gateway_keys, default_payment_method = load_enabled_payment_gateways(cursor)
     conn.close()
 
     return render_template(
@@ -507,7 +523,10 @@ def project_detail(slug):
         updates=updates,
         comments=comments,
         backers=backers,
-        is_authorized=is_auth
+        is_authorized=is_auth,
+        gateways=gateways,
+        enabled_gateway_keys=enabled_gateway_keys,
+        default_payment_method=default_payment_method,
     )
 
 @app.route('/project/<slug>/pledge', methods=['POST'])
@@ -1582,8 +1601,7 @@ def checkout_page(slug):
                 selected_reward = r
                 break
 
-    cursor.execute("SELECT * FROM payment_gateways WHERE is_enabled = 1 ORDER BY id ASC")
-    gateways = [dict(g) for g in cursor.fetchall()]
+    gateways, enabled_gateway_keys, default_payment_method = load_enabled_payment_gateways(cursor)
     conn.close()
 
     return render_template(
@@ -1591,7 +1609,9 @@ def checkout_page(slug):
         project=project,
         rewards=rewards,
         selected_reward=selected_reward,
-        gateways=gateways
+        gateways=gateways,
+        enabled_gateway_keys=enabled_gateway_keys,
+        default_payment_method=default_payment_method,
     )
 
 
