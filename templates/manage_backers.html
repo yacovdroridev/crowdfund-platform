@@ -103,7 +103,8 @@
           <label class="block text-[11px] font-bold text-slate-600 mb-1">אמצעי תשלום</label>
           <select name="payment_method" onchange="this.form.submit()" class="w-full p-2.5 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none">
             <option value="all" {% if filter_payment_method == 'all' %}selected{% endif %}>כל האמצעים</option>
-            <option value="credit_card" {% if filter_payment_method == 'credit_card' %}selected{% endif %}>כרטיס אשראי</option>
+            <option value="upay" {% if filter_payment_method == 'upay' %}selected{% endif %}>Upay (Sumit)</option>
+            <option value="google_pay" {% if filter_payment_method == 'google_pay' %}selected{% endif %}>Google Pay</option>
             <option value="bit" {% if filter_payment_method == 'bit' %}selected{% endif %}>ביט (Bit)</option>
             <option value="paybox" {% if filter_payment_method == 'paybox' %}selected{% endif %}>פייבוקס (PayBox)</option>
             <option value="paypal" {% if filter_payment_method == 'paypal' %}selected{% endif %}>PayPal</option>
@@ -226,8 +227,12 @@
                         <span class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-900 text-[10px] font-black border border-sky-200">🟦 PayBox</span>
                       {% elif p.payment_method == 'paypal' %}
                         <span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-900 text-[10px] font-black border border-blue-200">🅿️ PayPal</span>
+                      {% elif p.payment_method == 'google_pay' %}
+                        <span class="px-2 py-0.5 rounded-md bg-slate-800 text-white text-[10px] font-black border border-slate-700">🌐 Google Pay</span>
+                      {% elif p.payment_method == 'upay' %}
+                        <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-900 text-[10px] font-black border border-emerald-200">💰 Upay</span>
                       {% else %}
-                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-black border border-slate-200">💳 כרטיס אשראי</span>
+                        <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[10px] font-black border border-slate-200">{{ p.payment_method }}</span>
                       {% endif %}
                     </div>
                   </td>

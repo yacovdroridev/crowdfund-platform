@@ -124,8 +124,10 @@
             🅿️ PayPal
           {% elif pledge.payment_method == 'google_pay' %}
             🌐 Google Pay
+          {% elif pledge.payment_method == 'upay' %}
+            💰 Upay (Sumit)
           {% else %}
-            💳 כרטיס אשראי (PayMe API)
+            {{ pledge.payment_method }}
           {% endif %}
         </span>
       </div>

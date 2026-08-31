@@ -90,10 +90,6 @@
       <input type="hidden" name="payment_method" id="co-payment-method" value="upay">
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <button type="button" onclick="selectCoMethod('credit_card')" id="co-btn-credit_card" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
-          <span class="text-lg">💳</span>
-          <span>כרטיס אשראי</span>
-        </button>
         <button type="button" onclick="selectCoMethod('google_pay')" id="co-btn-google_pay" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🌐</span>
           <span>Google Pay</span>
@@ -114,20 +110,6 @@
           <span class="text-lg">💰</span>
           <span>Upay (Sumit)</span>
         </button>
-      </div>
-
-      <!-- Credit Card Pane -->
-      <div id="co-pane-credit_card" class="hidden p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-        <div class="flex items-center justify-between text-xs font-bold text-slate-800">
-          <span>תשלום בכרטיס אשראי (PayMe Hosted Payment Page)</span>
-          <span class="text-emerald-600 font-mono">🔒 PCI-DSS & SSL</span>
-        </div>
-        <p class="text-xs text-slate-600 leading-relaxed">
-          הסליקה מתבצעת בדף תשלום מאובטח של PayMe ברמת אבטחה תקן <strong>PCI-DSS Level 1</strong>. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.
-        </p>
-        <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
-          <span>💳 תומך בכל הכרטיסים: ויזה, מאסטרקארד, ישראכרט, Diners, AMEX ודביט ישראלי.</span>
-        </div>
       </div>
 
       <!-- Google Pay Pane -->
@@ -196,7 +178,7 @@
 
   function selectCoMethod(method) {
     document.getElementById('co-payment-method').value = method;
-    ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay'].forEach(m => {
+    ['upay', 'google_pay', 'bit', 'paybox', 'paypal'].forEach(m => {
       const pane = document.getElementById('co-pane-' + m);
       const btn = document.getElementById('co-btn-' + m);
       if (pane) pane.classList.toggle('hidden', m !== method);

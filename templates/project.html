@@ -377,14 +377,10 @@
         <label class="block text-xs font-bold text-slate-800 mb-2">בחר אמצעי תשלום:</label>
         <input type="hidden" name="payment_method" id="selected-payment-method" value="upay">
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-4">
           <button type="button" onclick="selectPaymentMethod('upay')" id="btn-pay-upay" class="p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 text-xs font-bold flex flex-col items-center gap-1 transition-all">
             <span class="text-base">💰</span>
             <span>Upay (Sumit)</span>
-          </button>
-          <button type="button" onclick="selectPaymentMethod('credit_card')" id="btn-pay-credit_card" class="p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 text-xs font-bold flex flex-col items-center gap-1 transition-all">
-            <span class="text-base">💳</span>
-            <span>אשראי</span>
           </button>
           <button type="button" onclick="selectPaymentMethod('google_pay')" id="btn-pay-google_pay" class="p-3 rounded-xl border-2 border-slate-200 hover:border-slate-300 bg-white text-slate-700 text-xs font-bold flex flex-col items-center gap-1 transition-all">
             <span class="text-base">🌐</span>
@@ -402,20 +398,6 @@
             <span class="text-base">🅿️</span>
             <span>PayPal</span>
           </button>
-        </div>
-
-        <!-- 1. Credit Card / PayMe Pane -->
-        <div id="pane-credit_card" class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-          <div class="flex items-center justify-between text-xs font-bold text-slate-800">
-            <span>תשלום בכרטיס אשראי (PayMe Hosted Payment Page)</span>
-            <span class="text-emerald-600 font-mono">🔒 PCI-DSS & SSL</span>
-          </div>
-          <p class="text-xs text-slate-600 leading-relaxed">
-            הסליקה מתבצעת בדף תשלום מאובטח של PayMe ברמת אבטחה תקן <strong>PCI-DSS Level 1</strong>. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.
-          </p>
-          <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
-            <span>💳 תומך בכל הכרטיסים: ויזה, מאסטרקארד, ישראכרט, Diners, AMEX ודביט ישראלי.</span>
-          </div>
         </div>
 
         <!-- Google Pay Pane -->
@@ -474,7 +456,7 @@
           </div>
         </div>
       <!-- Upay Pane -->
-      <div id="pane-upay" class="hidden p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
+      <div id="pane-upay" class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
         <div class="font-bold">תשלום דרך Upay (Sumit)</div>
         <p>הסליקה מתבצעת בדף תשלום מאובטח של Upay. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.</p>
         <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
@@ -554,7 +536,7 @@
     document.getElementById('selected-payment-method').value = method;
     
     // Panes
-    const methods = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay'];
+    const methods = ['upay', 'google_pay', 'bit', 'paybox', 'paypal'];
     methods.forEach(m => {
       const pane = document.getElementById('pane-' + m);
       const btn = document.getElementById('btn-pay-' + m);

@@ -225,7 +225,7 @@ def init_db():
         greeting_message TEXT,
         shipping_address TEXT,
         payment_status TEXT DEFAULT 'completed',
-        payment_method TEXT DEFAULT 'credit_card',
+        payment_method TEXT DEFAULT 'upay',
         transaction_id TEXT,
         created_at TEXT NOT NULL,
         fulfillment_status TEXT DEFAULT 'pending',
@@ -277,11 +277,10 @@ def init_db():
     );
     """)
 
-    cursor.execute("DELETE FROM payment_gateways WHERE gateway_key = 'payme'")
+    cursor.execute("DELETE FROM payment_gateways WHERE gateway_key IN ('payme', 'credit_card')")
 
     payme_key_env = os.environ.get("PAYME_API_KEY", "").strip() or 'MPLDEMO-MPLDEMO-MPLDEMO-1234567'
     default_gateways = [
-        ('credit_card', 'סליקת כרטיסי אשראי (PayMe API)', 1, payme_key_env, 1, 'סליקת כרטיסי ויזה, מאסטרקארד, ישראכרט ו-AMEX מאובטחת באמצעות PayMe API'),
         ('google_pay', 'תשלום מהיר ב-Google Pay', 1, payme_key_env, 1, 'תשלום מאובטח בלחיצה אחת באמצעות Google Pay API'),
         ('bit', 'תשלום באפליקציית ביט (Bit)', 1, '054-8048602', 0, 'העברה ישירה באפליקציית Bit למספר הטלפון של הפרויקט'),
         ('paybox', 'תשלום בקבוצת פייבוקס (PayBox)', 1, '054-8048602', 0, 'תשלום בקבוצת PayBox של הקמפיין'),
@@ -864,7 +863,7 @@ def restore_project_states(conn):
                             p_id, None, pl.get('amount', 0.0), pl.get('tip_amount', 0.0),
                             pl.get('backer_name', 'תומך'), pl.get('backer_email', ''), pl.get('backer_phone', ''),
                             1 if pl.get('is_anonymous') else 0, pl.get('greeting_message', ''), pl.get('shipping_address', ''),
-                            pl.get('payment_status', 'completed'), pl.get('payment_method', 'credit_card'),
+                            pl.get('payment_status', 'completed'), pl.get('payment_method', 'upay'),
                             txn, pl.get('created_at', now_str), pl.get('fulfillment_status', 'pending'),
                             pl.get('fulfillment_notes'), pl.get('shipped_at'), 1 if pl.get('is_payment_verified') else 0,
                             pl.get('payment_reference')

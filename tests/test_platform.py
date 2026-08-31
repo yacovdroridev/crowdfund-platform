@@ -181,10 +181,11 @@ def test_pledge_success_missing_returns_404(client):
     assert rv.status_code == 404
 
 
-def test_submit_pledge_credit_card_stays_pending(client, monkeypatch):
-    def boom(*args, **kwargs):
-        raise OSError("network disabled")
-    monkeypatch.setattr("urllib.request.urlopen", boom)
+def test_submit_pledge_credit_card_is_rejected(client):
+    from db import get_db
+    conn = get_db()
+    before = conn.execute("SELECT COUNT(*) AS c FROM pledges").fetchone()["c"]
+    conn.close()
     rv = client.post(
         "/project/synapse-guardian-iot/pledge",
         data={
@@ -199,9 +200,34 @@ def test_submit_pledge_credit_card_stays_pending(client, monkeypatch):
         follow_redirects=True,
     )
     assert rv.status_code == 200
+    assert "אמצעי התשלום שנבחר אינו נתמך במערכת".encode("utf-8") in rv.data
+    conn = get_db()
+    after = conn.execute("SELECT COUNT(*) AS c FROM pledges").fetchone()["c"]
+    conn.close()
+    assert after == before
+
+
+def test_submit_pledge_google_pay_stays_pending(client, monkeypatch):
+    def boom(*args, **kwargs):
+        raise OSError("network disabled")
+    monkeypatch.setattr("urllib.request.urlopen", boom)
+    rv = client.post(
+        "/project/synapse-guardian-iot/pledge",
+        data={
+            "reward_id": "1",
+            "amount": "50",
+            "tip_amount": "0",
+            "backer_name": "Test Google Pay",
+            "backer_email": "gpay@example.com",
+            "payment_method": "google_pay",
+            "legal_accept": "on",
+        },
+        follow_redirects=True,
+    )
+    assert rv.status_code == 200
     assert "תודה ענקית על תמיכתך".encode("utf-8") in rv.data
     pledge = _latest_pledge()
-    assert pledge["payment_method"] == "credit_card"
+    assert pledge["payment_method"] == "google_pay"
     assert pledge["payment_status"] == "pending"
     assert pledge["is_payment_verified"] == 0
 

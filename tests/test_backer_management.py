@@ -181,10 +181,16 @@ def test_admin_payment_gateways_restricted_to_super_admin():
 
         # Post update
         post_data = {
-            'enabled_credit_card': 'on',
-            'ident_credit_card': 'TERM-8800',
-            'sandbox_credit_card': 'on',
-            'instructions_credit_card': 'סליקה בדיקתית'
+            'enabled_google_pay': 'on',
+            'ident_google_pay': 'TERM-8800',
+            'sandbox_google_pay': 'on',
+            'instructions_google_pay': 'סליקה בדיקתית',
+            'enabled_upay': 'on',
+            'ident_upay': '12345',
+            'instructions_upay': 'Upay / Sumit',
+            'enabled_bit': 'on',
+            'enabled_paybox': 'on',
+            'enabled_paypal': 'on',
         }
         rv = client.post('/admin/payment-gateways', data=post_data, follow_redirects=True)
         assert rv.status_code == 200
@@ -208,6 +214,10 @@ def test_standalone_checkout_page_renders_with_pay_button():
         assert rv.status_code == 200
         assert "עמוד תשלום וסליקה מאובטח".encode('utf-8') in rv.data
         assert "אישור וביצוע תשלום עכשיו".encode('utf-8') in rv.data
+        assert "Upay (Sumit)".encode('utf-8') in rv.data
+        assert b"co-btn-credit_card" not in rv.data
+        assert "PayMe Hosted Payment Page".encode('utf-8') not in rv.data
+        assert b'id="co-payment-method" value="upay"' in rv.data
 
     os.close(db_fd)
     if os.path.exists(db_path):
