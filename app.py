@@ -541,8 +541,8 @@ def submit_pledge(slug):
     is_anonymous = 1 if request.form.get('is_anonymous') == 'on' else 0
     greeting_message = request.form.get('greeting_message', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
-    payment_method = request.form.get('payment_method', 'bit').strip()
-    valid_gateways = {'credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay'}
+    payment_method = request.form.get('payment_method', 'upay').strip()
+    valid_gateways = {'google_pay', 'bit', 'paybox', 'paypal', 'upay'}
     if payment_method not in valid_gateways:
         conn.close()
         flash("אמצעי התשלום שנבחר אינו נתמך במערכת.", "error")
@@ -579,8 +579,8 @@ def submit_pledge(slug):
     payme_sale_url = None
     upay_redirect_url = None
     upay_setup_error = False
-    if payment_method in {'credit_card', 'google_pay'}:
-        gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
+    if payment_method == 'google_pay':
+        gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key = 'google_pay' AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
         
         candidate_ids = []
         if gw_row and gw_row['account_identifier']:
@@ -1604,12 +1604,12 @@ def admin_payment_gateways():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Automatically purge legacy duplicate 'payme' row from database
-    cursor.execute("DELETE FROM payment_gateways WHERE gateway_key = 'payme'")
+    # Automatically purge legacy duplicate 'payme' / hosted credit-card rows from database
+    cursor.execute("DELETE FROM payment_gateways WHERE gateway_key IN ('payme', 'credit_card')")
     conn.commit()
 
     if request.method == 'POST':
-        gateways_keys = ['credit_card', 'google_pay', 'bit', 'paybox', 'paypal', 'upay']
+        gateways_keys = ['google_pay', 'bit', 'paybox', 'paypal', 'upay']
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         for key in gateways_keys:
             is_enabled = 1 if request.form.get(f"enabled_{key}") == 'on' else 0
@@ -1629,7 +1629,7 @@ def admin_payment_gateways():
         conn.commit()
         flash("הגדרות אמצעי הסליקה עודכנו בהצלחה במערכת.", "success")
 
-    cursor.execute("SELECT * FROM payment_gateways WHERE gateway_key != 'payme' ORDER BY id ASC")
+    cursor.execute("SELECT * FROM payment_gateways WHERE gateway_key NOT IN ('payme', 'credit_card') ORDER BY id ASC")
     gateways = [dict(g) for g in cursor.fetchall()]
     conn.close()
 
@@ -1847,7 +1847,7 @@ def refund_backer_pledge(slug, pledge_id):
         flash("תמיכה זו כבר זוכתה והוחזרה בעבר.", "error")
         return redirect(url_for('manage_backers', slug=slug))
 
-    gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key IN ('credit_card', 'payme') AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
+    gw_row = cursor.execute("SELECT account_identifier, sandbox_mode FROM payment_gateways WHERE gateway_key = 'google_pay' AND account_identifier IS NOT NULL AND account_identifier != '' LIMIT 1").fetchone()
     seller_id = (gw_row['account_identifier'] if gw_row else None) or os.environ.get("PAYME_API_KEY", "")
 
     if seller_id and pledge['payment_method'] in ('credit_card', 'google_pay'):
