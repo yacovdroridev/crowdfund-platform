@@ -87,33 +87,45 @@
     <!-- 3. Payment Method Selection -->
     <div class="space-y-4 pt-4 border-t border-slate-100">
       <h3 class="text-base font-black text-slate-900 border-b border-slate-100 pb-2">3. אמצעי תשלום</h3>
-      <input type="hidden" name="payment_method" id="co-payment-method" value="upay">
+      {% if enabled_gateway_keys %}
+      <input type="hidden" name="payment_method" id="co-payment-method" value="{{ default_payment_method }}">
 
       <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        <button type="button" onclick="selectCoMethod('google_pay')" id="co-btn-google_pay" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+        {% if 'google_pay' in enabled_gateway_keys %}
+        <button type="button" onclick="selectCoMethod('google_pay')" id="co-btn-google_pay" class="p-3.5 rounded-xl border-2 {% if default_payment_method == 'google_pay' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 bg-white text-slate-700{% endif %} font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🌐</span>
           <span>Google Pay</span>
         </button>
-        <button type="button" onclick="selectCoMethod('bit')" id="co-btn-bit" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+        {% endif %}
+        {% if 'bit' in enabled_gateway_keys %}
+        <button type="button" onclick="selectCoMethod('bit')" id="co-btn-bit" class="p-3.5 rounded-xl border-2 {% if default_payment_method == 'bit' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 bg-white text-slate-700{% endif %} font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🔵</span>
           <span>ביט (Bit)</span>
         </button>
-        <button type="button" onclick="selectCoMethod('paybox')" id="co-btn-paybox" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+        {% endif %}
+        {% if 'paybox' in enabled_gateway_keys %}
+        <button type="button" onclick="selectCoMethod('paybox')" id="co-btn-paybox" class="p-3.5 rounded-xl border-2 {% if default_payment_method == 'paybox' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 bg-white text-slate-700{% endif %} font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🩵</span>
           <span>פייבוקס</span>
         </button>
-        <button type="button" onclick="selectCoMethod('paypal')" id="co-btn-paypal" class="p-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-bold text-xs flex flex-col items-center gap-1">
+        {% endif %}
+        {% if 'paypal' in enabled_gateway_keys %}
+        <button type="button" onclick="selectCoMethod('paypal')" id="co-btn-paypal" class="p-3.5 rounded-xl border-2 {% if default_payment_method == 'paypal' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 bg-white text-slate-700{% endif %} font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">🅿️</span>
           <span>PayPal</span>
         </button>
-        <button type="button" onclick="selectCoMethod('upay')" id="co-btn-upay" class="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-bold text-xs flex flex-col items-center gap-1">
+        {% endif %}
+        {% if 'upay' in enabled_gateway_keys %}
+        <button type="button" onclick="selectCoMethod('upay')" id="co-btn-upay" class="p-3.5 rounded-xl border-2 {% if default_payment_method == 'upay' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 bg-white text-slate-700{% endif %} font-bold text-xs flex flex-col items-center gap-1">
           <span class="text-lg">💰</span>
           <span>Upay (Sumit)</span>
         </button>
+        {% endif %}
       </div>
 
+      {% if 'google_pay' in enabled_gateway_keys %}
       <!-- Google Pay Pane -->
-      <div id="co-pane-google_pay" class="hidden p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+      <div id="co-pane-google_pay" class="{% if default_payment_method != 'google_pay' %}hidden {% endif %}p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
         <div class="flex items-center justify-between text-xs font-bold text-slate-100">
           <span class="flex items-center gap-1.5"><span class="text-base">🌐</span> תשלום מהיר ב-Google Pay</span>
           <span class="text-emerald-400 font-mono">🔒 Google Verified</span>
@@ -122,32 +134,46 @@
           תשלום מאובטח ומהיר בלחיצה אחת באמצעות חשבון Google שלכם, ללא צורך בהקלדת פרטי כרטיס.
         </p>
       </div>
+      {% endif %}
 
+      {% if 'bit' in enabled_gateway_keys %}
       <!-- Bit Pane -->
-      <div id="co-pane-bit" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
+      <div id="co-pane-bit" class="{% if default_payment_method != 'bit' %}hidden {% endif %}p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
         <div class="font-bold">תשלום ישיר באפליקציית ביט (Bit)</div>
         <p>בלחיצה על אישור תועבר לביצוע העברה למספר: <strong dir="ltr" class="font-mono">{{ project.creator_phone or '054-8048602' }}</strong></p>
       </div>
+      {% endif %}
 
+      {% if 'paybox' in enabled_gateway_keys %}
       <!-- PayBox Pane -->
-      <div id="co-pane-paybox" class="hidden p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-2 text-xs text-sky-900">
+      <div id="co-pane-paybox" class="{% if default_payment_method != 'paybox' %}hidden {% endif %}p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-2 text-xs text-sky-900">
         <div class="font-bold">תשלום בקבוצת פייבוקס (PayBox)</div>
         <p>קבוצת PayBox של הקמפיין: <strong dir="ltr" class="font-mono">{{ project.creator_phone or '054-8048602' }}</strong></p>
       </div>
+      {% endif %}
 
+      {% if 'paypal' in enabled_gateway_keys %}
       <!-- PayPal Pane -->
-      <div id="co-pane-paypal" class="hidden p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
+      <div id="co-pane-paypal" class="{% if default_payment_method != 'paypal' %}hidden {% endif %}p-4 bg-blue-50 rounded-2xl border border-blue-200 space-y-2 text-xs text-blue-900">
         <div class="font-bold">סליקת PayPal גלובלית</div>
         <p>חשבון מקבל: <strong dir="ltr" class="font-mono">{{ project.creator_email or 'miriam@drori.org' }}</strong></p>
       </div>
+      {% endif %}
+      {% if 'upay' in enabled_gateway_keys %}
       <!-- Upay Pane -->
-      <div id="co-pane-upay" class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
+      <div id="co-pane-upay" class="{% if default_payment_method != 'upay' %}hidden {% endif %}p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
         <div class="font-bold">תשלום דרך Upay (Sumit)</div>
         <p>הסליקה מתבצעת בדף תשלום מאובטח של Upay. בלחיצה על אישור תועבר/י לעמוד הסליקה המוצפן להזנת הפרטיים בבטחה.</p>
         <div class="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
           <span>💳 תומך בכל הכרטיסים: ויזה, מאסטרקארד, ישראכרט, Diners, AMEX ודביט ישראלי.</span>
         </div>
       </div>
+      {% endif %}
+      {% else %}
+      <div id="co-payment-unavailable" class="p-4 bg-amber-50 rounded-2xl border border-amber-200 text-sm font-bold text-amber-900">
+        התשלום אינו זמין כרגע. אנא נסו שוב מאוחר יותר.
+      </div>
+      {% endif %}
     </div>
 
     <!-- 4. Terms Acceptance -->
@@ -159,11 +185,13 @@
     </div>
 
     <!-- 5. Large Prominent Submit Button -->
+    {% if enabled_gateway_keys %}
     <div class="pt-4">
       <button type="submit" id="btn-co-submit" class="w-full py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2">
         <span>אישור וביצוע תשלום עכשיו 💰</span>
       </button>
     </div>
+    {% endif %}
   </form>
 </section>
 
@@ -176,9 +204,11 @@
     }
   }
 
+  const coMethods = {{ enabled_gateway_keys|tojson }};
   function selectCoMethod(method) {
-    document.getElementById('co-payment-method').value = method;
-    ['upay', 'google_pay', 'bit', 'paybox', 'paypal'].forEach(m => {
+    const field = document.getElementById('co-payment-method');
+    if (field) field.value = method;
+    coMethods.forEach(m => {
       const pane = document.getElementById('co-pane-' + m);
       const btn = document.getElementById('co-btn-' + m);
       if (pane) pane.classList.toggle('hidden', m !== method);
