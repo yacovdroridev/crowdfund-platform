@@ -4,7 +4,10 @@
 <section class="max-w-5xl mx-auto px-4 py-10">
   <div class="flex items-center justify-between gap-4 mb-8">
     <div><h1 class="text-3xl font-black text-slate-900">ניהול קטגוריות</h1><p class="text-sm text-slate-500 mt-1">הוספה, הפעלה והשבתה של קטגוריות.</p></div>
+    <div class="flex items-center gap-2">
+    <a href="{{ url_for('admin_users') }}" class="px-4 py-2 rounded-xl border border-slate-300 font-bold text-sm">ניהול משתמשים</a>
     <a href="{{ url_for('dashboard') }}" class="px-4 py-2 rounded-xl border border-slate-300 font-bold text-sm">חזרה ללוח הניהול</a>
+    </div>
   </div>
   <form method="POST" class="grid sm:grid-cols-[1fr_1fr_auto] gap-3 bg-white border border-slate-200 rounded-2xl p-5 mb-6">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

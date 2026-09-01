@@ -131,6 +131,10 @@
           </a>
         {% endif %}
         {% if current_user and is_admin %}
+          <a href="{{ url_for('admin_users') }}" class="hover:text-emerald-600 transition-colors flex items-center gap-1.5 text-emerald-700 font-bold">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>ניהול משתמשים</span>
+          </a>
           <a href="{{ url_for('admin_payment_gateways') }}" class="hover:text-emerald-600 transition-colors flex items-center gap-1.5 text-emerald-700 font-bold">
             <i data-lucide="credit-card" class="w-4 h-4"></i>
             <span>ניהול סליקה 💳</span>

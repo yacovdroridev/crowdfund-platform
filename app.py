@@ -170,6 +170,50 @@ def add_project_member(conn, project_id, user_id, role="editor"):
     )
 
 
+def count_active_admins(conn):
+    return conn.execute(
+        "SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1"
+    ).fetchone()[0]
+
+
+def campaigns_by_user_id(conn):
+    mapping = {}
+    for row in conn.execute(
+        "SELECT owner_user_id AS user_id, slug, title FROM projects WHERE owner_user_id IS NOT NULL"
+    ).fetchall():
+        mapping.setdefault(row["user_id"], {})[row["slug"]] = {
+            "slug": row["slug"],
+            "title": row["title"],
+            "membership": "owner",
+            "is_owner": True,
+        }
+    for row in conn.execute(
+        """SELECT m.user_id, p.slug, p.title, m.role
+           FROM project_members m
+           JOIN projects p ON p.id = m.project_id"""
+    ).fetchall():
+        camps = mapping.setdefault(row["user_id"], {})
+        existing = camps.get(row["slug"])
+        if existing and existing.get("is_owner"):
+            continue
+        camps[row["slug"]] = {
+            "slug": row["slug"],
+            "title": row["title"],
+            "membership": row["role"],
+            "is_owner": False,
+        }
+    return {uid: list(camps.values()) for uid, camps in mapping.items()}
+
+
+def public_user_record(row):
+    data = dict(row)
+    password_hash = data.pop("password_hash", None)
+    data["has_password"] = password_hash_is_usable(password_hash)
+    data["has_google"] = bool(data.get("google_id"))
+    data.pop("google_id", None)
+    return data
+
+
 def password_meets_policy(password):
     return bool(
         password
@@ -1852,6 +1896,250 @@ def admin_toggle_project(slug):
     conn.close()
     flash("הפרויקט הופעל וגלוי לציבור." if new_state else "הפרויקט הושבת ואינו גלוי לציבור.", "success")
     return redirect(url_for('dashboard'))
+
+
+@app.route('/admin/users', methods=['GET', 'POST'])
+def admin_users():
+    if not is_admin():
+        flash("גישה ללוח הניהול מוגבלת למנהלי מערכת בלבד.", "error")
+        return redirect(url_for('login', next=url_for('admin_users')))
+
+    q = (request.values.get('q') or '').strip()
+    conn = get_db()
+    if request.method == 'POST':
+        full_name = (request.form.get('full_name') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
+        if not full_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            flash("יש להזין שם מלא וכתובת אימייל תקינה.", "error")
+        elif password and not password_meets_policy(password):
+            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+        elif conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+            flash("כבר קיים חשבון עם כתובת האימייל הזאת.", "error")
+        else:
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            password_hash = (
+                generate_password_hash(password, method="scrypt")
+                if password else
+                make_unusable_password_hash()
+            )
+            role = (request.form.get("role") or "user").strip()
+            if role not in ("user", "admin"):
+                role = "user"
+            cursor = conn.execute(
+                """INSERT INTO users
+                   (email, password_hash, full_name, phone, role, is_active, created_at)
+                   VALUES (?, ?, ?, ?, ?, 1, ?)""",
+                (email, password_hash, full_name, None, role, now_str),
+            )
+            conn.execute(
+                """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+                   VALUES (?, 'user.created', 'user', ?, ?, ?)""",
+                (current_user()['id'], str(cursor.lastrowid), email, now_str),
+            )
+            sync_project_states(conn)
+            conn.commit()
+            flash("המשתמש נוצר בהצלחה.", "success")
+        conn.close()
+        return redirect(url_for('admin_users', q=q or None))
+
+    sql = """SELECT id, email, full_name, phone, role, is_active, last_login_at, created_at, google_id, password_hash
+             FROM users"""
+    params = []
+    if q:
+        like = f"%{q}%"
+        sql += " WHERE full_name LIKE ? OR email LIKE ?"
+        params.extend([like, like])
+    sql += " ORDER BY created_at DESC, id DESC"
+    rows = conn.execute(sql, params).fetchall()
+    campaign_map = campaigns_by_user_id(conn)
+    users = []
+    for row in rows:
+        user = public_user_record(row)
+        user["campaigns"] = campaign_map.get(user["id"], [])
+        users.append(user)
+    projects = [dict(r) for r in conn.execute("SELECT id, slug, title FROM projects ORDER BY title").fetchall()]
+    conn.close()
+    return render_template('admin_users.html', users=users, projects=projects, q=q)
+
+
+@app.post('/admin/users/<int:user_id>/edit')
+def admin_edit_user(user_id):
+    if not is_admin():
+        abort(403)
+    q = (request.form.get("q") or "").strip()
+    actor = current_user()
+    full_name = (request.form.get("full_name") or "").strip()
+    phone = (request.form.get("phone") or "").strip() or None
+    role = (request.form.get("role") or "user").strip()
+    if role not in ("user", "admin"):
+        role = "user"
+    is_active = 1 if request.form.get("is_active") in ("on", "1", "true") else 0
+    if not full_name:
+        flash("יש להזין שם מלא.", "error")
+        return redirect(url_for("admin_users", q=q or None))
+    conn = get_db()
+    target = conn.execute(
+        "SELECT id, email, full_name, phone, role, is_active FROM users WHERE id = ?",
+        (user_id,),
+    ).fetchone()
+    if not target:
+        conn.close()
+        abort(404)
+    was_active_admin = target["role"] == "admin" and bool(target["is_active"])
+    will_be_active_admin = role == "admin" and bool(is_active)
+    locks_self = actor["id"] == target["id"] and (not is_active or role != "admin")
+    locks_last = was_active_admin and not will_be_active_admin and count_active_admins(conn) <= 1
+    if locks_self or locks_last:
+        conn.close()
+        flash("לא ניתן להשבית או להסיר מנהל אחרון, או את עצמך, אם זה ינעל את הגישה לניהול.", "error")
+        return redirect(url_for("admin_users", q=q or None))
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        "UPDATE users SET full_name = ?, phone = ?, role = ?, is_active = ? WHERE id = ?",
+        (full_name, phone, role, is_active, user_id),
+    )
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, 'user.updated', 'user', ?, ?, ?)""",
+        (actor["id"], str(user_id), target["email"], now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    flash("פרטי המשתמש עודכנו.", "success")
+    return redirect(url_for("admin_users", q=q or None))
+
+
+@app.post('/admin/users/memberships')
+def admin_add_user_membership():
+    if not is_admin():
+        abort(403)
+    q = (request.form.get("q") or "").strip()
+    try:
+        user_id = int(request.form.get("user_id") or 0)
+        project_id = int(request.form.get("project_id") or 0)
+    except (TypeError, ValueError):
+        flash("יש לבחור משתמש וקמפיין קיימים.", "error")
+        return redirect(url_for("admin_users", q=q or None))
+    member_role = (request.form.get("member_role") or "editor").strip()
+    if member_role not in ("owner", "editor"):
+        member_role = "editor"
+    conn = get_db()
+    target = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    project = conn.execute("SELECT id, slug, title FROM projects WHERE id = ?", (project_id,)).fetchone()
+    if not target or not project:
+        conn.close()
+        flash("יש לבחור משתמש וקמפיין קיימים.", "error")
+        return redirect(url_for("admin_users", q=q or None))
+    add_project_member(conn, project["id"], target["id"], role=member_role)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, 'project.member_added', 'project', ?, ?, ?)""",
+        (current_user()["id"], str(project["id"]), f"Added member {target['email']}", now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    flash(f"הוענקה גישה ל־{target['email']} בקמפיין '{project['title']}'.", "success")
+    return redirect(url_for("admin_users", q=q or None))
+
+
+@app.post('/admin/users/<int:user_id>/toggle-admin')
+def admin_toggle_user_admin(user_id):
+    if not is_admin():
+        abort(403)
+    q = (request.form.get('q') or '').strip()
+    actor = current_user()
+    conn = get_db()
+    target = conn.execute("SELECT id, email, full_name, role FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not target:
+        conn.close()
+        abort(404)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if target["role"] == "admin":
+        if count_active_admins(conn) <= 1:
+            conn.close()
+            flash("לא ניתן להסיר הרשאת מנהל מהמנהל האחרון במערכת.", "error")
+            return redirect(url_for('admin_users', q=q or None))
+        conn.execute("UPDATE users SET role = 'user' WHERE id = ?", (user_id,))
+        action = "user.admin_revoked"
+        flash(f"הרשאת המנהל של {target['email']} הוסרה.", "success")
+    else:
+        conn.execute("UPDATE users SET role = 'admin' WHERE id = ?", (user_id,))
+        action = "user.admin_granted"
+        flash(f"{target['email']} הוגדר כמנהל מערכת.", "success")
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, ?, 'user', ?, ?, ?)""",
+        (actor["id"], action, str(user_id), target["email"], now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    return redirect(url_for('admin_users', q=q or None))
+
+
+@app.post('/admin/users/<int:user_id>/grant-access')
+def admin_grant_user_campaign(user_id):
+    if not is_admin():
+        abort(403)
+    q = (request.form.get('q') or '').strip()
+    slug = (request.form.get('project_slug') or '').strip()
+    conn = get_db()
+    target = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    project = conn.execute("SELECT id, slug, title FROM projects WHERE slug = ?", (slug,)).fetchone() if slug else None
+    if not target or not project:
+        conn.close()
+        flash("יש לבחור משתמש וקמפיין קיימים.", "error")
+        return redirect(url_for('admin_users', q=q or None))
+    member_role = (request.form.get("member_role") or "editor").strip()
+    if member_role not in ("owner", "editor"):
+        member_role = "editor"
+    add_project_member(conn, project["id"], target["id"], role=member_role)
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, 'project.member_added', 'project', ?, ?, ?)""",
+        (current_user()["id"], str(project["id"]), f"Added member {target['email']}", now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    flash(f"הוענקה גישה ל־{target['email']} בקמפיין '{project['title']}'.", "success")
+    return redirect(url_for('admin_users', q=q or None))
+
+
+@app.post('/admin/users/<int:user_id>/revoke-access')
+def admin_revoke_user_campaign(user_id):
+    if not is_admin():
+        abort(403)
+    q = (request.form.get('q') or '').strip()
+    slug = (request.form.get('project_slug') or '').strip()
+    conn = get_db()
+    target = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    project = conn.execute("SELECT id, slug, title FROM projects WHERE slug = ?", (slug,)).fetchone() if slug else None
+    if not target or not project:
+        conn.close()
+        flash("יש לבחור משתמש וקמפיין קיימים.", "error")
+        return redirect(url_for('admin_users', q=q or None))
+    conn.execute(
+        "DELETE FROM project_members WHERE project_id = ? AND user_id = ?",
+        (project["id"], target["id"]),
+    )
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, 'project.member_removed', 'project', ?, ?, ?)""",
+        (current_user()["id"], str(project["id"]), f"Removed member {target['email']}", now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    flash(f"הגישה של {target['email']} לקמפיין '{project['title']}' הוסרה.", "success")
+    return redirect(url_for('admin_users', q=q or None))
+
 
 
 @app.route('/project/<slug>/add-update', methods=['POST'])
