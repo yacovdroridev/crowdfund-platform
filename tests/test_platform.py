@@ -460,6 +460,14 @@ def _meta_content(html, attr, name):
     return match.group(1)
 
 
+def _assert_project_og_image_endpoint(image, slug="synapse-guardian-iot"):
+    assert f"/project/{slug}/og-image" in image
+    assert "v=" in image
+    assert not image.startswith("data:")
+    assert "data:image" not in image
+    assert "og-default.png" not in image
+
+
 def test_project_open_graph_and_whatsapp_share(client):
     rv = client.get("/project/synapse-guardian-iot")
     assert rv.status_code == 200
@@ -468,7 +476,10 @@ def test_project_open_graph_and_whatsapp_share(client):
     title = _meta_content(html, "property", "og:title")
     assert "SynApse Guardian" in title
     image = _meta_content(html, "property", "og:image")
-    assert "photo-1550751827-4bd374c3f58b" in image
+    _assert_project_og_image_endpoint(image)
+    assert _meta_content(html, "property", "og:image:secure_url").startswith("http")
+    assert "/og-image" in _meta_content(html, "property", "og:image:secure_url")
+    assert "/og-image" in _meta_content(html, "name", "twitter:image")
     description = _meta_content(html, "property", "og:description")
     assert "Smart Home" in description
     assert len(description) <= 160
@@ -478,25 +489,37 @@ def test_project_open_graph_and_whatsapp_share(client):
     assert "https://www.facebook.com/sharer/sharer.php?u=" in html
     assert "https://t.me/share/url?url=" in html
     assert "rel=\"noopener" in html or "rel='noopener" in html or "rel=\"noopener noreferrer\"" in html or "noopener noreferrer" in html
+    og = client.get("/project/synapse-guardian-iot/og-image")
+    assert og.status_code in (301, 302)
+    assert "photo-1550751827-4bd374c3f58b" in (og.headers.get("Location") or "")
 
 
-def test_project_og_data_uri_falls_back_to_hosted_default(client):
+def test_project_og_data_uri_served_via_og_image_route(client):
     from db import get_db
+    png_b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+    cover = f"data:image/png;base64,{png_b64}"
     conn = get_db()
     conn.execute(
         "UPDATE projects SET cover_image = ? WHERE slug = ?",
-        ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "synapse-guardian-iot"),
+        (cover, "synapse-guardian-iot"),
     )
     conn.commit()
     conn.close()
     html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
     image = _meta_content(html, "property", "og:image")
-    assert "og-default.png" in image
-    assert not image.startswith("data:")
-    assert "data:image" not in _meta_content(html, "property", "og:image")
+    _assert_project_og_image_endpoint(image)
+    assert _meta_content(html, "property", "og:image:type") == "image/png"
+    og = client.get("/project/synapse-guardian-iot/og-image")
+    assert og.status_code == 200
+    assert og.mimetype == "image/png"
+    assert og.data.startswith(b"\x89PNG")
+    assert "public" in og.headers.get("Cache-Control", "")
+    assert "max-age=86400" in og.headers.get("Cache-Control", "")
 
 
-def test_project_og_relative_cover_becomes_absolute(client):
+def test_project_og_relative_cover_uses_og_image_endpoint(client):
     from db import get_db
     conn = get_db()
     conn.execute(
@@ -507,8 +530,16 @@ def test_project_og_relative_cover_becomes_absolute(client):
     conn.close()
     html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
     image = _meta_content(html, "property", "og:image")
-    assert image.endswith("/static/images/tefila_feature.png")
-    assert image.startswith("http://")
+    _assert_project_og_image_endpoint(image)
+    assert _meta_content(html, "property", "og:image:type") == "image/png"
+    og = client.get("/project/synapse-guardian-iot/og-image")
+    assert og.status_code == 200
+    assert og.mimetype == "image/png"
+
+
+def test_project_og_image_missing_project_is_404(client):
+    rv = client.get("/project/does-not-exist/og-image")
+    assert rv.status_code == 404
 
 
 def test_home_page_default_open_graph(client):
