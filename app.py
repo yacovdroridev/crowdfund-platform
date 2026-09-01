@@ -8,6 +8,8 @@ import base64
 import bleach
 from urllib.parse import quote_plus, urlencode, unquote, urlparse
 import requests
+import smtplib
+from email.message import EmailMessage
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session, g, Response, send_file
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -35,6 +37,40 @@ app.config.update(
     CSRF_ENABLED=True,
 )
 LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "support@headfund.co.il")
+
+def mail_configured():
+    return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASSWORD"))
+
+
+def send_mail(to_addr, subject, body):
+    """Send a plaintext email. In tests, append to app.config['OUTBOX'] instead."""
+    record = {"to": to_addr, "subject": subject, "body": body}
+    if app.config.get("TESTING"):
+        app.config.setdefault("OUTBOX", []).append(record)
+        return True
+    if not mail_configured():
+        print("mail skipped: set SMTP_HOST, SMTP_USER, SMTP_PASSWORD")
+        return False
+    msg = EmailMessage()
+    msg["Subject"] = subject
+    msg["From"] = os.environ.get("SMTP_FROM") or os.environ.get("SMTP_USER")
+    msg["To"] = to_addr
+    msg.set_content(body)
+    host = os.environ.get("SMTP_HOST")
+    port = int(os.environ.get("SMTP_PORT") or "587")
+    use_tls = os.environ.get("SMTP_STARTTLS", "1").strip().lower() in {"1", "true", "yes", "on"}
+    try:
+        with smtplib.SMTP(host, port, timeout=20) as smtp:
+            if use_tls:
+                smtp.starttls()
+            smtp.login(os.environ["SMTP_USER"], os.environ["SMTP_PASSWORD"])
+            smtp.send_message(msg)
+    except Exception as exc:
+        print(f"mail send failed: {exc}")
+        return False
+    return True
+
+
 
 
 OG_DEFAULT_DESCRIPTION = (
@@ -2192,7 +2228,49 @@ def admin_create_user_invite_link(user_id):
     return redirect(url_for('admin_users', q=q or None))
 
 
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        generic = "אם קיים חשבון לכתובת הזו, נשלח אליה קישור לאיפוס סיסמה."
+        if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+            flash("יש להזין כתובת אימייל תקינה.", "error")
+            return render_template("forgot_password.html")
+        conn = get_db()
+        user = conn.execute(
+            "SELECT id, email, full_name, is_active FROM users WHERE email = ?",
+            (email,),
+        ).fetchone()
+        sent = False
+        if user and user["is_active"]:
+            token = create_user_invite(conn, user["id"], created_by=None, ttl_days=1)
+            reset_url = url_for("reset_password", token=token, _external=True)
+            body = (
+                f"שלום {user['full_name']},\n\n"
+                "ביקשתם לאפס סיסמה ב-HeadFund.\n"
+                "לחצו על הקישור הבא (תקף ל-24 שעות, לשימוש חד-פעמי):\n\n"
+                f"{reset_url}\n\n"
+                "אם לא ביקשתם איפוס, אפשר להתעלם מהמייל.\n"
+            )
+            sent = send_mail(user["email"], "איפוס סיסמה ב-HeadFund", body)
+            conn.execute(
+                """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+                   VALUES (?, 'user.password_reset_requested', 'user', ?, ?, ?)""",
+                (user["id"], str(user["id"]), email, datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+            )
+            conn.commit()
+        conn.close()
+        if user and user["is_active"] and not sent and not app.config.get("TESTING"):
+            flash("שליחת המייל נכשלה. ודאו ש-SMTP מוגדר בשרת, או נסו שוב מאוחר יותר.", "error")
+            return render_template("forgot_password.html")
+        flash(generic, "success")
+        return redirect(url_for("login"))
+    return render_template("forgot_password.html")
+
+
 @app.route('/invite/<token>', methods=['GET', 'POST'])
+@app.route('/reset/<token>', methods=['GET', 'POST'], endpoint='reset_password')
 def accept_invite(token):
     token = (token or "").strip()
     conn = get_db()
@@ -2222,11 +2300,11 @@ def accept_invite(token):
         if not password_meets_policy(password):
             conn.close()
             flash("הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
-            return render_template("invite_accept.html", invite_user=invite_user, token=token)
+            return render_template("invite_accept.html", invite_user=invite_user, token=token, is_reset=request.endpoint == "reset_password")
         if password != password_confirm:
             conn.close()
             flash("הסיסמאות אינן תואמות.", "error")
-            return render_template("invite_accept.html", invite_user=invite_user, token=token)
+            return render_template("invite_accept.html", invite_user=invite_user, token=token, is_reset=request.endpoint == "reset_password")
         conn.execute(
             "UPDATE users SET password_hash = ? WHERE id = ?",
             (generate_password_hash(password, method="scrypt"), invite_user["user_id"]),
@@ -2247,7 +2325,7 @@ def accept_invite(token):
         flash("הסיסמה הוגדרה. התחברת בהצלחה.", "success")
         return redirect(url_for("dashboard"))
     conn.close()
-    return render_template("invite_accept.html", invite_user=invite_user, token=token)
+    return render_template("invite_accept.html", invite_user=invite_user, token=token, is_reset=request.endpoint == "reset_password")
 
 @app.post('/admin/users/<int:user_id>/edit')
 def admin_edit_user(user_id):
