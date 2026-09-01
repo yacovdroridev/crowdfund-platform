@@ -357,7 +357,7 @@ def public_user_record(row):
 def password_meets_policy(password):
     return bool(
         password
-        and len(password) >= 12
+        and len(password) >= 8
         and re.search(r"[a-z]", password)
         and re.search(r"[A-Z]", password)
         and re.search(r"\d", password)
@@ -1457,7 +1457,7 @@ def register():
         elif not full_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
             flash("יש להזין שם מלא וכתובת אימייל תקינה.", "error")
         elif not password_meets_policy(password):
-            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            flash("הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
         elif password != password_confirm:
             flash("אימות הסיסמה אינו תואם.", "error")
         else:
@@ -1504,7 +1504,7 @@ def account():
                 return render_template('account.html', has_password=True)
         if not password_meets_policy(new_password):
             conn.close()
-            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            flash("הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
             return render_template('account.html', has_password=has_password)
         if new_password != new_password_confirm:
             conn.close()
@@ -2095,7 +2095,7 @@ def admin_users():
         if not full_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
             flash("יש להזין שם מלא וכתובת אימייל תקינה.", "error")
         elif password and not password_meets_policy(password):
-            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            flash("הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
         elif conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
             flash("כבר קיים חשבון עם כתובת האימייל הזאת.", "error")
         else:
@@ -2221,7 +2221,7 @@ def accept_invite(token):
         password_confirm = request.form.get("password_confirm") or ""
         if not password_meets_policy(password):
             conn.close()
-            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            flash("הסיסמה חייבת להכיל לפחות 8 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
             return render_template("invite_accept.html", invite_user=invite_user, token=token)
         if password != password_confirm:
             conn.close()
