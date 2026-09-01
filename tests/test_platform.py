@@ -44,8 +44,19 @@ def test_category_filter(client):
 def test_project_detail(client):
     rv = client.get('/project/synapse-guardian-iot')
     assert rv.status_code == 200
-    assert "SynApse Guardian".encode('utf-8') in rv.data
-    assert "בחרו מדרגת תמיכה ותשורה".encode('utf-8') in rv.data
+    html = rv.data.decode("utf-8")
+    assert "SynApse Guardian" in html
+    assert "בחרו מדרגת תמיכה ותשורה" in html
+    assert "openPledgeModal" in html
+    assert "https://wa.me/" in html
+    assert "הכי פופולרי" in html
+    assert "הסיפור" in html
+    assert "עזרו לנו להגיע ליעד" in html
+    assert "שתפו את הקמפיין" in html
+    assert 'id="funding-rail"' in html
+    assert "נותרו ליעד" in html
+    assert "ממוצע לתמיכה" in html
+    assert "תמיכה בפרויקט" in html
 
 def test_submit_pledge(client):
     # Get initial amount

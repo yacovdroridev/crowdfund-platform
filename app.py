@@ -543,6 +543,15 @@ def project_detail(slug):
     # Get Rewards / Tiers
     cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project["id"],))
     rewards = [dict(r) for r in cursor.fetchall()]
+    featured_reward_id = None
+    if rewards:
+        max_claimed = max((r.get("quantity_claimed") or 0) for r in rewards)
+        if max_claimed > 0:
+            featured_reward_id = next(
+                r["id"] for r in rewards if (r.get("quantity_claimed") or 0) == max_claimed
+            )
+        else:
+            featured_reward_id = rewards[len(rewards) // 2]["id"]
 
     # Get Updates
     cursor.execute("SELECT * FROM updates WHERE project_id = ? ORDER BY created_at DESC", (project["id"],))
@@ -569,6 +578,7 @@ def project_detail(slug):
         'project.html',
         project=project,
         rewards=rewards,
+        featured_reward_id=featured_reward_id,
         updates=updates,
         comments=comments,
         backers=backers,

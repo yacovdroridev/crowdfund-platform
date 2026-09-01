@@ -140,6 +140,7 @@
 
       <!-- Action Buttons -->
       <div class="flex items-center gap-3">
+        {% block header_extra_actions %}{% endblock %}
         {% if current_user %}
           <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold border border-slate-700">
             <i data-lucide="{% if is_admin %}shield-check{% else %}user{% endif %}" class="w-3.5 h-3.5"></i>
