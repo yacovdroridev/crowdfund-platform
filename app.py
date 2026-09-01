@@ -6,12 +6,13 @@ import secrets
 import hashlib
 import base64
 import bleach
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, urlencode
+import requests
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
-from db import get_db, init_db, seed_db, sync_project_states
+from db import get_db, init_db, seed_db, sync_project_states, make_unusable_password_hash, password_hash_is_usable
 
 
 def session_cookie_should_be_secure():
@@ -115,19 +116,101 @@ def is_admin():
     return bool(user and user["role"] == "admin")
 
 
+def is_project_owner(slug, user=None):
+    if is_admin():
+        return True
+    user = user or current_user()
+    if not user:
+        return False
+    conn = get_db()
+    owned = conn.execute(
+        """SELECT 1 FROM projects
+           WHERE slug = ?
+             AND (owner_user_id = ?
+                  OR (owner_user_id IS NULL AND LOWER(creator_email) = LOWER(?)))""",
+        (slug, user["id"], user["email"]),
+    ).fetchone()
+    conn.close()
+    return bool(owned)
+
+
 def is_project_authorized(slug):
     if is_admin():
         return True
     user = current_user()
     if not user:
         return False
+    if is_project_owner(slug, user=user):
+        return True
     conn = get_db()
-    owned = conn.execute(
-        "SELECT 1 FROM projects WHERE slug = ? AND (owner_user_id = ? OR (owner_user_id IS NULL AND LOWER(creator_email) = LOWER(?)))",
-        (slug, user["id"], user["email"]),
+    member = conn.execute(
+        """SELECT 1
+           FROM project_members m
+           JOIN projects p ON p.id = m.project_id
+           WHERE p.slug = ? AND m.user_id = ?""",
+        (slug, user["id"]),
     ).fetchone()
     conn.close()
-    return bool(owned)
+    return bool(member)
+
+
+def add_project_member(conn, project_id, user_id, role="editor"):
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if role not in ("owner", "editor"):
+        role = "editor"
+    conn.execute(
+        """INSERT INTO project_members (project_id, user_id, role, created_at)
+           VALUES (?, ?, ?, ?)
+           ON CONFLICT(project_id, user_id) DO UPDATE SET
+             role = CASE
+               WHEN project_members.role = 'owner' OR excluded.role = 'owner' THEN 'owner'
+               ELSE excluded.role
+             END""",
+        (project_id, user_id, role, now_str),
+    )
+
+
+def password_meets_policy(password):
+    return bool(
+        password
+        and len(password) >= 12
+        and re.search(r"[a-z]", password)
+        and re.search(r"[A-Z]", password)
+        and re.search(r"\d", password)
+        and re.search(r"[^A-Za-z0-9]", password)
+    )
+
+
+def _safe_next_url(value):
+    next_url = (value or "").strip() or url_for("index")
+    if not next_url.startswith("/") or next_url.startswith("//"):
+        return url_for("index")
+    return next_url
+
+
+def google_sso_configured():
+    client_id = (os.environ.get("GOOGLE_CLIENT_ID") or "").strip()
+    client_secret = (os.environ.get("GOOGLE_CLIENT_SECRET") or "").strip()
+    return bool(client_id and client_secret)
+
+
+def _google_credentials():
+    return (
+        (os.environ.get("GOOGLE_CLIENT_ID") or "").strip(),
+        (os.environ.get("GOOGLE_CLIENT_SECRET") or "").strip(),
+    )
+
+
+def _pkce_pair():
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
+    return verifier, challenge
+
+
+def _establish_login_session(user_id):
+    session.clear()
+    session["user_id"] = user_id
+    session.permanent = True
 
 
 def authorize_project(slug):
@@ -195,7 +278,7 @@ def csrf_token():
 
 @app.before_request
 def enforce_csrf():
-    if request.path.startswith("/payment/"):
+    if request.path.startswith("/payment/") or request.path.startswith("/login/google"):
         return
     if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'} and app.config.get('CSRF_ENABLED', True):
         supplied = request.form.get('csrf_token') or request.headers.get('X-CSRF-Token', '')
@@ -224,6 +307,7 @@ def inject_auth_context():
         'authorized_projects': [],
         'legal_contact_email': LEGAL_CONTACT_EMAIL,
         'legal_documents': LEGAL_DOCUMENTS,
+        'google_sso_configured': google_sso_configured(),
     }
 
 
@@ -537,7 +621,6 @@ def project_detail(slug):
         conn.close()
         abort(404)
     log_action("project_view", "project", raw_project["id"], details=f"slug={slug}")
-    project = calculate_project_metrics(raw_project)
     project = calculate_project_metrics(raw_project)
 
     # Get Rewards / Tiers
@@ -933,9 +1016,7 @@ def _record_login_failure(conn, key, now):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    next_url = request.values.get('next') or url_for('index')
-    if not next_url.startswith('/') or next_url.startswith('//'):
-        next_url = url_for('index')
+    next_url = _safe_next_url(request.values.get('next'))
     if request.method == 'POST':
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
@@ -949,7 +1030,7 @@ def login():
         user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
         valid_login = False
         if user and user['is_active']:
-            if check_password_hash(user['password_hash'], password):
+            if password_hash_is_usable(user['password_hash']) and check_password_hash(user['password_hash'], password):
                 valid_login = True
             elif user['role'] == 'admin' and (password == 'Admin123456!' or (os.environ.get('ADMIN_INITIAL_PASSWORD') and password == os.environ.get('ADMIN_INITIAL_PASSWORD'))):
                 valid_login = True
@@ -975,6 +1056,169 @@ def login():
     return render_template('login.html', next_url=next_url)
 
 
+
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+
+def _clear_google_oauth_session():
+    session.pop("google_oauth_state", None)
+    session.pop("google_oauth_next", None)
+    session.pop("google_oauth_verifier", None)
+
+
+@app.route("/login/google")
+def google_login():
+    next_url = _safe_next_url(request.args.get("next"))
+    if not google_sso_configured():
+        flash("כניסת Google אינה מוגדרת בשרת.", "error")
+        return redirect(url_for("login", next=next_url))
+    client_id, _client_secret = _google_credentials()
+    state = secrets.token_urlsafe(32)
+    verifier, challenge = _pkce_pair()
+    session["google_oauth_state"] = state
+    session["google_oauth_next"] = next_url
+    session["google_oauth_verifier"] = verifier
+    params = {
+        "client_id": client_id,
+        "redirect_uri": url_for("google_callback", _external=True),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "access_type": "online",
+        "include_granted_scopes": "true",
+        "prompt": "select_account",
+    }
+    return redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}")
+
+
+@app.route("/login/google/callback")
+def google_callback():
+    next_url = _safe_next_url(session.get("google_oauth_next"))
+    if not google_sso_configured():
+        _clear_google_oauth_session()
+        flash("כניסת Google אינה מוגדרת בשרת.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    error = request.args.get("error")
+    if error:
+        _clear_google_oauth_session()
+        flash("הכניסה עם Google בוטלה או נכשלה.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    code = request.args.get("code") or ""
+    state = request.args.get("state") or ""
+    expected_state = session.get("google_oauth_state") or ""
+    verifier = session.get("google_oauth_verifier") or ""
+    if (not code or not expected_state or not state or len(state) != len(expected_state)
+            or not secrets.compare_digest(state, expected_state)):
+        _clear_google_oauth_session()
+        flash("אימות הכניסה עם Google נכשל. נסו שוב.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    client_id, client_secret = _google_credentials()
+    redirect_uri = url_for("google_callback", _external=True)
+    try:
+        token_resp = requests.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+                "code_verifier": verifier,
+            },
+            headers={"Accept": "application/json"},
+            timeout=15,
+        )
+    except requests.RequestException:
+        _clear_google_oauth_session()
+        flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    if token_resp.status_code != 200:
+        _clear_google_oauth_session()
+        flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    access_token = (token_resp.json() or {}).get("access_token")
+    if not access_token:
+        _clear_google_oauth_session()
+        flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    try:
+        info_resp = requests.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"},
+            timeout=15,
+        )
+    except requests.RequestException:
+        _clear_google_oauth_session()
+        flash("לא ניתן היה לקבל את פרטי המשתמש מ-Google.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    if info_resp.status_code != 200:
+        _clear_google_oauth_session()
+        flash("לא ניתן היה לקבל את פרטי המשתמש מ-Google.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    info = info_resp.json() or {}
+    email = (info.get("email") or "").strip().lower()
+    google_id = str(info.get("id") or info.get("sub") or "").strip()
+    full_name = (info.get("name") or "").strip() or email.split("@")[0]
+    verified = info.get("verified_email")
+    if verified is None:
+        verified = info.get("email_verified")
+    _clear_google_oauth_session()
+
+    if not email or verified is False:
+        flash("חשבון Google חייב לכלול כתובת אימייל מאומתת.", "error")
+        return redirect(url_for("login", next=next_url))
+
+    conn = get_db()
+    user = None
+    if google_id:
+        user = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+    if user is None:
+        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if user is None:
+        cursor = conn.execute(
+            """INSERT INTO users
+               (email, password_hash, full_name, phone, role, is_active, created_at, google_id)
+               VALUES (?, ?, ?, ?, 'user', 1, ?, ?)""",
+            (email, make_unusable_password_hash(), full_name, None, now_str, google_id or None),
+        )
+        user_id = cursor.lastrowid
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    else:
+        if not user["is_active"]:
+            conn.close()
+            flash("החשבון אינו פעיל.", "error")
+            return redirect(url_for("login", next=next_url))
+        if google_id:
+            conn.execute(
+                "UPDATE users SET google_id = COALESCE(google_id, ?) WHERE id = ?",
+                (google_id, user["id"]),
+            )
+        user_id = user["id"]
+
+    conn.execute("UPDATE users SET last_login_at = ? WHERE id = ?", (now_str, user_id))
+    conn.commit()
+    role = user["role"]
+    conn.close()
+    _establish_login_session(user_id)
+    flash("התחברת בהצלחה.", "success")
+    destination = url_for("dashboard") if role == "admin" and next_url == url_for("index") else next_url
+    return redirect(destination)
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user():
@@ -990,7 +1234,7 @@ def register():
             flash("יש לאשר את תנאי השימוש ומדיניות הפרטיות.", "error")
         elif not full_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
             flash("יש להזין שם מלא וכתובת אימייל תקינה.", "error")
-        elif len(password) < 12 or not all((re.search(r"[a-z]", password), re.search(r"[A-Z]", password), re.search(r"\d", password), re.search(r"[^A-Za-z0-9]", password))):
+        elif not password_meets_policy(password):
             flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
         elif password != password_confirm:
             flash("אימות הסיסמה אינו תואם.", "error")
@@ -1017,6 +1261,44 @@ def register():
                 flash("החשבון נוצר בהצלחה.", "success")
                 return redirect(url_for('index'))
     return render_template('register.html')
+
+
+@app.route('/account', methods=['GET', 'POST'])
+def account():
+    user = current_user()
+    if not user:
+        return redirect(url_for('login', next=url_for('account')))
+    conn = get_db()
+    row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    has_password = password_hash_is_usable(row["password_hash"] if row else "")
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        new_password_confirm = request.form.get('new_password_confirm', '')
+        if has_password:
+            if not current_password or not check_password_hash(row["password_hash"], current_password):
+                conn.close()
+                flash("הסיסמה הנוכחית שגויה.", "error")
+                return render_template('account.html', has_password=True)
+        if not password_meets_policy(new_password):
+            conn.close()
+            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            return render_template('account.html', has_password=has_password)
+        if new_password != new_password_confirm:
+            conn.close()
+            flash("אימות הסיסמה אינו תואם.", "error")
+            return render_template('account.html', has_password=has_password)
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(new_password, method="scrypt"), user["id"]),
+        )
+        conn.commit()
+        conn.close()
+        flash("הסיסמה עודכנה בהצלחה.", "success")
+        return redirect(url_for('account'))
+    conn.close()
+    return render_template('account.html', has_password=has_password)
+
 
 @app.route('/logout')
 def logout():
@@ -1414,6 +1696,7 @@ def create_project():
             goal_amount, days_total, now_str, end_date, now_str, user['id'], main_media_type
         ))
         project_id = cursor.lastrowid
+        add_project_member(conn, project_id, user['id'], role='owner')
 
         # Parse reward tiers from dynamic form inputs
         tier_titles = request.form.getlist('reward_title[]')
@@ -1995,8 +2278,8 @@ def execute_paypal_sandbox():
 
 @app.route('/project/<slug>/grant-access', methods=['POST'])
 def grant_project_access(slug):
-    if not is_project_authorized(slug):
-        flash("אין לך הרשאה להעביר או לשלוח הרשאות ניהול לפרויקט זה.", "error")
+    if not is_project_owner(slug):
+        flash("רק בעל הקמפיין או מנהל מערכת יכולים להוסיף חברים.", "error")
         return redirect(url_for('login', next=url_for('project_detail', slug=slug)))
 
     target_email = request.form.get('target_email', '').strip().lower()
@@ -2014,31 +2297,30 @@ def grant_project_access(slug):
 
     cursor.execute("SELECT id, full_name FROM users WHERE email = ?", (target_email,))
     target_user = cursor.fetchone()
-
-    token = secrets.token_urlsafe(16)
-    claim_url = url_for('claim_project_access', slug=slug, token=token, _external=True)
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    created = False
+    if target_user is None:
+        cursor.execute(
+            """INSERT INTO users
+               (email, password_hash, full_name, phone, role, is_active, created_at)
+               VALUES (?, ?, ?, ?, 'user', 1, ?)""",
+            (target_email, make_unusable_password_hash(), target_email.split("@")[0], None, now_str),
+        )
+        target_user = cursor.execute("SELECT id, full_name FROM users WHERE email = ?", (target_email,)).fetchone()
+        created = True
 
-    if target_user:
-        cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (target_user['id'], proj['id']))
-        cursor.execute("""
+    add_project_member(conn, proj["id"], target_user["id"], role="editor")
+    cursor.execute("""
         INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
-        VALUES (?, 'project.access_granted', 'project', ?, ?, ?)
-        """, (current_user()['id'], str(proj['id']), f"Granted ownership to {target_email}", now_str))
-        sync_project_states(conn)
-        conn.commit()
-        conn.close()
-        flash(f"הרשאת הניהול לפרויקט '{proj['title']}' הועברה בהצלחה למשתמש {target_email}! הקישור הישיר לגישה: {claim_url}", "success")
+        VALUES (?, 'project.member_added', 'project', ?, ?, ?)
+    """, (current_user()['id'], str(proj['id']), f"Added member {target_email}", now_str))
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    if created:
+        flash(f"נוצר חשבון עבור {target_email} והוא נוסף כחבר בקמפיין '{proj['title']}'. אפשר להתחבר עם Google או להגדיר סיסמה אחרי הכניסה.", "success")
     else:
-        cursor.execute("""
-        INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
-        VALUES (?, 'project.access_invited', 'project', ?, ?, ?)
-        """, (current_user()['id'], str(proj['id']), f"Invited {target_email} via token {token}", now_str))
-        sync_project_states(conn)
-        conn.commit()
-        conn.close()
-        flash(f"הזמנת הרשאת ניהול נשלחה ל-'{target_email}'! להפעלת ההרשאה, המשתמש יוכל להתחבר בקישור: {claim_url}", "success")
-
+        flash(f"המשתמש {target_email} נוסף כחבר בקמפיין '{proj['title']}'.", "success")
     return redirect(request.referrer or url_for('manage_backers', slug=slug))
 
 
@@ -2057,7 +2339,9 @@ def claim_project_access(slug):
         conn.close()
         abort(404)
 
-    cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (user['id'], proj['id']))
+    if proj['owner_user_id'] is None:
+        cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (user['id'], proj['id']))
+    add_project_member(conn, proj['id'], user['id'], role='editor')
     sync_project_states(conn)
     conn.commit()
     conn.close()
