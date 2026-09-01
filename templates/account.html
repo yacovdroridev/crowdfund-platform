@@ -19,12 +19,12 @@
       {% endif %}
       <div>
         <label class="block text-xs font-bold mb-1">סיסמה חדשה *</label>
-        <input type="password" name="new_password" required minlength="12" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
-        <p class="text-[11px] text-slate-500 mt-1">לפחות 12 תווים, אות גדולה וקטנה, מספר וסימן.</p>
+        <input type="password" name="new_password" required minlength="8" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
+        <p class="text-[11px] text-slate-500 mt-1">לפחות 8 תווים, אות גדולה וקטנה, מספר וסימן.</p>
       </div>
       <div>
         <label class="block text-xs font-bold mb-1">אימות סיסמה חדשה *</label>
-        <input type="password" name="new_password_confirm" required minlength="12" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
+        <input type="password" name="new_password_confirm" required minlength="8" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
       </div>
       <button class="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-bold">{% if has_password %}החלפת סיסמה{% else %}הגדרת סיסמה{% endif %}</button>
     </form>
