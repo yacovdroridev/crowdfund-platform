@@ -3,9 +3,14 @@
 {% set share_url = url_for('project_detail', slug=project.slug, _external=True) %}
 {% set og_image_url = project.cover_image|absolute_og_image %}
 {% set og_desc = project.subtitle|og_plain(160) %}
-{% set share_wa = 'https://wa.me/?text=' ~ ((project.title ~ ' ' ~ share_url)|urlencode) %}
+{% set share_invite -%}
+היי, רציתי לשתף אתכם בפרויקט "{{ project.title }}" ב-HeadFund.
+בואו להשתתף איתנו במימון ולעזור לו לקרות 💚
+{{ share_url }}
+{%- endset %}
+{% set share_wa = 'https://wa.me/?text=' ~ (share_invite|urlencode) %}
 {% set share_fb = 'https://www.facebook.com/sharer/sharer.php?u=' ~ (share_url|urlencode) %}
-{% set share_tg = 'https://t.me/share/url?url=' ~ (share_url|urlencode) ~ '&text=' ~ (project.title|urlencode) %}
+{% set share_tg = 'https://t.me/share/url?url=' ~ (share_url|urlencode) ~ '&text=' ~ (share_invite|urlencode) %}
 
 {% block title %}{{ project.title }} | HeadFund מימון המונים{% endblock %}
 
@@ -29,7 +34,7 @@
   <meta name="twitter:image" content="{{ og_image_url }}">
 {% endblock %}
 
-{% macro share_menu_button(tone='dark', wa=share_wa, fb=share_fb, tg=share_tg, url=share_url) %}
+{% macro share_menu_button(tone='dark', wa=share_wa, fb=share_fb, tg=share_tg) %}
   <div class="relative" data-share-menu>
     <button type="button" onclick="toggleShareMenu(event)" class="{% if tone == 'dark' %}inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold border border-slate-700 transition-colors shadow-sm{% else %}inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 transition-colors shadow-sm{% endif %}" aria-expanded="false" aria-haspopup="true">
       <i data-lucide="share-2" class="w-4 h-4 text-emerald-400"></i>
@@ -48,15 +53,15 @@
         <i data-lucide="send" class="w-4 h-4 text-sky-500"></i>
         <span>טלגרם</span>
       </a>
-      <button type="button" onclick="copyProjectShareLink({{ url|tojson }})" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm font-bold">
+      <button type="button" onclick="copyProjectShareLink()" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm font-bold">
         <i data-lucide="copy" class="w-4 h-4 text-slate-500"></i>
-        <span>העתק קישור</span>
+        <span>העתק הודעה</span>
       </button>
     </div>
   </div>
 {% endmacro %}
 
-{% macro share_icon_row(wa=share_wa, fb=share_fb, tg=share_tg, url=share_url) %}
+{% macro share_icon_row(wa=share_wa, fb=share_fb, tg=share_tg) %}
   <div class="flex flex-wrap items-center gap-2">
     <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
       <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-600"></i>
@@ -71,7 +76,7 @@
     <a href="{{ tg }}" target="_blank" rel="noopener noreferrer" title="טלגרם" aria-label="שיתוף בטלגרם" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
       <i data-lucide="send" class="w-4 h-4"></i>
     </a>
-    <button type="button" onclick="copyProjectShareLink({{ url|tojson }})" title="העתק קישור" aria-label="העתק קישור" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
+    <button type="button" onclick="copyProjectShareLink()" title="העתק הודעה" aria-label="העתק הודעה" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
       <i data-lucide="copy" class="w-4 h-4"></i>
     </button>
   </div>
@@ -128,7 +133,7 @@
           <span>תמיכה בפרויקט 💙</span>
         </button>
 
-        {{ share_menu_button('dark', share_wa, share_fb, share_tg, share_url) }}
+        {{ share_menu_button('dark', share_wa, share_fb, share_tg) }}
 
         {% if current_user and is_authorized %}
           <a href="{{ url_for('manage_backers', slug=project.slug) }}" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm" title="ניהול תורמים, תשורות והדפסת מדבקות">
@@ -165,7 +170,7 @@
         {% endif %}
       </div>
       <div class="flex items-center justify-between gap-3 px-1">
-        {{ share_icon_row(share_wa, share_fb, share_tg, share_url) }}
+        {{ share_icon_row(share_wa, share_fb, share_tg) }}
       </div>
 
       <!-- Navigation Tabs -->
@@ -335,7 +340,7 @@
           סליקה ישירה ומאובטחת • תמיכה ישירה ביוזם
         </p>
         <div class="mt-4 flex justify-center">
-          {{ share_icon_row(share_wa, share_fb, share_tg, share_url) }}
+          {{ share_icon_row(share_wa, share_fb, share_tg) }}
         </div>
 
         <!-- Rewards Tiers Section Header -->
@@ -615,7 +620,7 @@
   </button>
 </div>
 <div id="share-toast" class="hidden fixed bottom-24 inset-x-0 z-50 flex justify-center pointer-events-none" role="status" aria-live="polite">
-  <div class="bg-slate-900 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg">הקישור הועתק</div>
+  <div class="bg-slate-900 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg">ההודעה הועתקה</div>
 </div>
 {% endblock %}
 
@@ -727,10 +732,13 @@
     window._shareToastTimer = setTimeout(() => toast.classList.add('hidden'), 2200);
   }
 
-  function copyProjectShareLink(url) {
+  const projectShareInvite = {{ share_invite|tojson }};
+
+  function copyProjectShareLink() {
+    const text = projectShareInvite;
     const fallback = function () {
       const ta = document.createElement('textarea');
-      ta.value = url;
+      ta.value = text;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
@@ -741,7 +749,7 @@
       showShareToast();
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(showShareToast).catch(fallback);
+      navigator.clipboard.writeText(text).then(showShareToast).catch(fallback);
     } else {
       fallback();
     }
