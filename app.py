@@ -6,10 +6,11 @@ import secrets
 import hashlib
 import base64
 import bleach
-from urllib.parse import quote_plus
+from urllib.parse import quote_plus, unquote, urlparse
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session, Response, send_file
 from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.utils import safe_join
 from werkzeug.middleware.proxy_fix import ProxyFix
 from db import get_db, init_db, seed_db, sync_project_states
 
@@ -57,17 +58,156 @@ def default_og_image_url():
     return url_for("static", filename=OG_DEFAULT_IMAGE, _external=True)
 
 
-def absolute_og_image_url(cover_image):
-    """Return a crawler-fetchable image URL. Never emit data: URIs into OG tags."""
+_OG_DATA_URI_RE = re.compile(
+    r"^data:(image/(?:png|jpeg|jpg));base64,(.+)$",
+    re.IGNORECASE | re.DOTALL,
+)
+_OG_EXT_TYPES = {
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+}
+
+
+def og_cover_cache_buster(cover_image):
+    """Short hash so crawlers treat an updated cover as a new image URL."""
+    raw = (cover_image or "").encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()[:10]
+
+
+def og_image_type(cover_image):
+    """Return the cover MIME type when it can be inferred, else empty string."""
     value = (cover_image or "").strip()
-    if not value or value.lower().startswith("data:"):
-        return default_og_image_url()
+    if not value:
+        return "image/png"
+    lower = value.lower()
+    if lower.startswith("data:"):
+        mime = lower[5:].split(";", 1)[0].split(",", 1)[0].strip()
+        if mime == "image/jpg":
+            return "image/jpeg"
+        if mime.startswith("image/"):
+            return mime
+        return ""
+    path = urlparse(value).path if "://" in value else value.split("?", 1)[0]
+    name = path.rsplit("/", 1)[-1]
+    if "." not in name:
+        return ""
+    ext = name.rsplit(".", 1)[-1].lower()
+    return _OG_EXT_TYPES.get(ext, "")
+
+
+def project_og_image_abs_url(slug, cover_image=""):
+    return url_for(
+        "project_og_image",
+        slug=slug,
+        v=og_cover_cache_buster(cover_image),
+        _external=True,
+    )
+
+
+def absolute_og_image_url(project_or_cover):
+    """Return the live /og-image endpoint. Never emit data: URIs into OG tags."""
+    if isinstance(project_or_cover, dict) and project_or_cover.get("slug"):
+        return project_og_image_abs_url(
+            project_or_cover["slug"],
+            project_or_cover.get("cover_image") or "",
+        )
+    return default_og_image_url()
+
+
+def _normalize_image_mime(mime):
+    mime = (mime or "").strip().lower()
+    if mime == "image/jpg":
+        return "image/jpeg"
+    return mime
+
+
+def _mimetype_from_filename(path):
+    name = os.path.basename(path or "").lower()
+    ext = name.rsplit(".", 1)[-1] if "." in name else ""
+    return _OG_EXT_TYPES.get(ext, "image/png")
+
+
+def _decode_data_uri_image(value):
+    match = _OG_DATA_URI_RE.match((value or "").strip())
+    if not match:
+        return None, None
+    mime = _normalize_image_mime(match.group(1))
+    payload = re.sub(r"\s+", "", match.group(2))
+    padding = (-len(payload)) % 4
+    try:
+        raw = base64.b64decode(payload + ("=" * padding), validate=False)
+    except Exception:
+        return None, None
+    if not raw:
+        return None, None
+    return mime, raw
+
+
+def _default_og_image_response():
+    path = os.path.join(app.root_path, "static", OG_DEFAULT_IMAGE)
+    response = send_file(path, mimetype="image/png", max_age=86400)
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def _cover_file_response(relative_under_static):
+    static_root = os.path.abspath(os.path.join(app.root_path, "static"))
+    full = safe_join(static_root, relative_under_static)
+    if not full or not os.path.isfile(full):
+        return _default_og_image_response()
+    response = send_file(full, mimetype=_mimetype_from_filename(full), max_age=86400)
+    response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def _serve_site_relative_cover(value):
+    path = unquote((value or "").split("?", 1)[0].strip()).replace("\\", "/")
+    if path.startswith("/static/"):
+        return _cover_file_response(path[len("/static/"):])
+    if path.startswith("static/"):
+        return _cover_file_response(path[len("static/"):])
+    name = path.lstrip("/")
+    if name.startswith("uploads/"):
+        return _cover_file_response(name)
+    return _cover_file_response(os.path.join("uploads", os.path.basename(name) or name))
+
+
+def _same_origin_static_path(url):
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc or not parsed.path:
+        return None
+    root = urlparse(request.url_root)
+    req_host = (request.host or "").split(":")[0].lower()
+    parsed_host = (parsed.hostname or "").lower()
+    if parsed_host not in {req_host, (root.hostname or "").lower()}:
+        return None
+    path = unquote(parsed.path)
+    if path.startswith("/static/"):
+        return path[len("/static/"):]
+    return None
+
+
+def serve_project_cover_image(cover_image):
+    """Serve a project's live cover for social crawlers."""
+    value = (cover_image or "").strip()
+    if not value:
+        return _default_og_image_response()
+    if value.lower().startswith("data:"):
+        mime, raw = _decode_data_uri_image(value)
+        if not raw:
+            return _default_og_image_response()
+        response = Response(raw, mimetype=mime or "image/png")
+        response.headers["Cache-Control"] = "public, max-age=86400"
+        return response
     if value.startswith(("https://", "http://")):
-        return value
-    root_url = request.url_root.rstrip("/")
-    if value.startswith("/"):
-        return root_url + value
-    return root_url + "/" + value
+        static_rel = _same_origin_static_path(value)
+        if static_rel:
+            return _cover_file_response(static_rel)
+        return redirect(value, code=302)
+    return _serve_site_relative_cover(value)
 
 
 def as_secure_url(url):
@@ -229,6 +369,7 @@ def inject_auth_context():
 
 app.jinja_env.filters["og_plain"] = og_plain_text
 app.jinja_env.filters["absolute_og_image"] = absolute_og_image_url
+app.jinja_env.filters["og_image_type"] = og_image_type
 app.jinja_env.filters["as_secure_url"] = as_secure_url
 app.jinja_env.globals["og_default_description"] = OG_DEFAULT_DESCRIPTION
 
@@ -577,6 +718,20 @@ def project_detail(slug):
         enabled_gateway_keys=enabled_gateway_keys,
         default_payment_method=default_payment_method,
     )
+
+
+@app.route('/project/<slug>/og-image')
+def project_og_image(slug):
+    conn = get_db()
+    row = conn.execute(
+        "SELECT cover_image FROM projects WHERE slug = ?",
+        (slug,),
+    ).fetchone()
+    conn.close()
+    if not row:
+        abort(404)
+    return serve_project_cover_image(row["cover_image"])
+
 
 @app.route('/project/<slug>/pledge', methods=['POST'])
 def submit_pledge(slug):
