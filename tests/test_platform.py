@@ -1,5 +1,9 @@
 import os
+import re
 import tempfile
+from html import unescape
+from urllib.parse import parse_qs, urlparse
+
 import pytest
 from app import app
 from db import init_db, seed_db, get_db
@@ -40,8 +44,19 @@ def test_category_filter(client):
 def test_project_detail(client):
     rv = client.get('/project/synapse-guardian-iot')
     assert rv.status_code == 200
-    assert "SynApse Guardian".encode('utf-8') in rv.data
-    assert "בחרו מדרגת תמיכה ותשורה".encode('utf-8') in rv.data
+    html = rv.data.decode("utf-8")
+    assert "SynApse Guardian" in html
+    assert "בחרו מדרגת תמיכה ותשורה" in html
+    assert "openPledgeModal" in html
+    assert "https://wa.me/" in html
+    assert "הכי פופולרי" in html
+    assert "הסיפור" in html
+    assert "עזרו לנו להגיע ליעד" in html
+    assert "שתפו את הקמפיין" in html
+    assert 'id="funding-rail"' in html
+    assert "נותרו ליעד" in html
+    assert "ממוצע לתמיכה" in html
+    assert "תמיכה בפרויקט" in html
 
 def test_submit_pledge(client):
     # Get initial amount
@@ -454,10 +469,25 @@ def test_checkout_unavailable_when_no_gateways_enabled(client):
 
 
 def _meta_content(html, attr, name):
-    import re
     match = re.search(rf'{attr}="{re.escape(name)}"\s+content="([^"]*)"', html)
     assert match, f"missing {attr}={name}"
     return match.group(1)
+
+
+def _href_starting(html, prefix):
+    match = re.search(rf'href="({re.escape(prefix)}[^"]*)"', html)
+    assert match, f"missing href {prefix}"
+    return unescape(match.group(1))
+
+
+def _query(url):
+    return {key: values[0] for key, values in parse_qs(urlparse(url).query).items()}
+
+
+def _assert_share_invite(text, project_path="/project/synapse-guardian-iot"):
+    assert "להשתתף" in text
+    assert "HeadFund" in text
+    assert project_path in text
 
 
 def _assert_project_og_image_endpoint(image, slug="synapse-guardian-iot"):
@@ -485,10 +515,31 @@ def test_project_open_graph_and_whatsapp_share(client):
     assert len(description) <= 160
     assert _meta_content(html, "property", "og:locale") == "he_IL"
     assert 'name="twitter:card" content="summary_large_image"' in html
-    assert "https://wa.me/" in html
-    assert "https://www.facebook.com/sharer/sharer.php?u=" in html
-    assert "https://t.me/share/url?url=" in html
-    assert "rel=\"noopener" in html or "rel='noopener" in html or "rel=\"noopener noreferrer\"" in html or "noopener noreferrer" in html
+    wa_href = _href_starting(html, "https://wa.me/")
+    wa_text = _query(wa_href)["text"]
+    _assert_share_invite(wa_text)
+    assert "SynApse Guardian" in wa_text
+    assert "HeadFund" in wa_href or "להשתתף" in wa_href or "%D7%9C%D7%94%D7%A9%D7%AA%D7%AA%D7%A3" in wa_href
+
+    tg = _query(_href_starting(html, "https://t.me/share/url"))
+    _assert_share_invite(tg["text"])
+    assert "/project/synapse-guardian-iot" in tg["url"]
+
+    fb = _query(_href_starting(html, "https://www.facebook.com/sharer/sharer.php"))
+    assert "/project/synapse-guardian-iot" in fb["u"]
+    assert "text" not in fb
+    assert "להשתתף" not in fb["u"]
+
+    assert "openPledgeModal" in html
+    assert "תמיכה בפרויקט" in html
+    assert "const projectShareInvite" in html
+    assert "ההודעה הועתקה" in html
+    invite_json = re.search(r"const projectShareInvite = (.*?);", html, re.S)
+    assert invite_json, "missing projectShareInvite"
+    import json
+    copied = json.loads(invite_json.group(1))
+    _assert_share_invite(copied)
+    assert "noopener noreferrer" in html
     og = client.get("/project/synapse-guardian-iot/og-image")
     assert og.status_code in (301, 302)
     assert "photo-1550751827-4bd374c3f58b" in (og.headers.get("Location") or "")
@@ -554,4 +605,6 @@ def test_project_page_allows_social_crawlers(client):
         rv = client.get("/project/synapse-guardian-iot", headers={"User-Agent": ua})
         assert rv.status_code == 200
         assert b'property="og:image"' in rv.data
-        assert b"https://wa.me/" in rv.data
+        html = rv.data.decode("utf-8")
+        wa_text = _query(_href_starting(html, "https://wa.me/"))["text"]
+        _assert_share_invite(wa_text)

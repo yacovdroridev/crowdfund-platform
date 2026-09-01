@@ -35,6 +35,15 @@ def resolve_db_path():
 
 DB_PATH = resolve_db_path()
 
+CAMPAIGN_TEMPLATES = ("classic", "honey", "linen")
+DEFAULT_CAMPAIGN_TEMPLATE = "classic"
+
+
+def normalize_campaign_template(value):
+    key = (value or "").strip().lower()
+    return key if key in CAMPAIGN_TEMPLATES else DEFAULT_CAMPAIGN_TEMPLATE
+
+
 def _as_flag(value, default=0):
     if value is None:
         return default
@@ -110,6 +119,7 @@ def init_db():
         created_at TEXT NOT NULL,
         owner_user_id INTEGER,
         is_active BOOLEAN NOT NULL DEFAULT 1,
+        template TEXT NOT NULL DEFAULT 'classic',
         FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
     );
     """)
@@ -124,6 +134,7 @@ def init_db():
         "ALTER TABLE projects ADD COLUMN owner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL",
         "ALTER TABLE projects ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
         "ALTER TABLE projects ADD COLUMN main_media_type TEXT DEFAULT 'auto'",
+        "ALTER TABLE projects ADD COLUMN template TEXT NOT NULL DEFAULT 'classic'",
         "ALTER TABLE pledges ADD COLUMN fulfillment_status TEXT DEFAULT 'pending'",
         "ALTER TABLE pledges ADD COLUMN fulfillment_notes TEXT",
         "ALTER TABLE pledges ADD COLUMN shipped_at TEXT",

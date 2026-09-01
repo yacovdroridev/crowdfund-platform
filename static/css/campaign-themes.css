@@ -1,0 +1,238 @@
+/* Per-campaign visual templates. Classic is the default (no extra rules). */
+
+html[data-template="honey"] {
+  --hf-bg: #0C0C0C;
+  --hf-card: #141414;
+  --hf-card-2: #1C1C1C;
+  --hf-border: #252525;
+  --hf-text: #F2F0EA;
+  --hf-muted: #888878;
+  --hf-accent: #E5C547;
+  --hf-accent-text: #0C0C0C;
+  --hf-display: "Frank Ruhl Libre", "Noto Serif Hebrew", serif;
+}
+
+html[data-template="linen"] {
+  --hf-bg: #F4EFE4;
+  --hf-card: #FFFBF3;
+  --hf-card-2: #F7F0E3;
+  --hf-border: #E4D8C4;
+  --hf-text: #2C2416;
+  --hf-muted: #7A6A52;
+  --hf-accent: #C45C26;
+  --hf-accent-text: #FFFBF3;
+  --hf-display: "Frank Ruhl Libre", "Noto Serif Hebrew", serif;
+}
+
+html[data-template="honey"] body,
+html[data-template="linen"] body {
+  background-color: var(--hf-bg) !important;
+  color: var(--hf-text) !important;
+}
+
+html[data-template="honey"] .project-page h1,
+html[data-template="honey"] .project-page h2,
+html[data-template="linen"] .project-page h1,
+html[data-template="linen"] .project-page h2,
+html[data-template="honey"] .checkout-page h1,
+html[data-template="linen"] .checkout-page h1 {
+  font-family: var(--hf-display);
+}
+
+html[data-template="honey"] .progress-bar-glow,
+html[data-template="linen"] .progress-bar-glow,
+html[data-template="honey"] .card-hover:hover,
+html[data-template="linen"] .card-hover:hover {
+  box-shadow: none !important;
+}
+
+/* Shared remaps for campaign pages + chrome when a campaign template is active */
+html[data-template="honey"] header,
+html[data-template="linen"] header {
+  background: color-mix(in srgb, var(--hf-bg) 92%, transparent) !important;
+  border-color: var(--hf-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-template="honey"] footer,
+html[data-template="linen"] footer {
+  background: var(--hf-bg) !important;
+  color: var(--hf-muted) !important;
+  border-color: var(--hf-border) !important;
+}
+
+html[data-template="honey"] .bg-white,
+html[data-template="honey"] .bg-white\/95,
+html[data-template="linen"] .bg-white,
+html[data-template="linen"] .bg-white\/95 {
+  background-color: var(--hf-card) !important;
+}
+
+html[data-template="honey"] .bg-slate-50,
+html[data-template="honey"] .bg-slate-100,
+html[data-template="linen"] .bg-slate-50,
+html[data-template="linen"] .bg-slate-100 {
+  background-color: var(--hf-card-2) !important;
+}
+
+html[data-template="honey"] .bg-slate-900,
+html[data-template="honey"] .bg-slate-800,
+html[data-template="honey"] .bg-slate-800\/60 {
+  background-color: var(--hf-card) !important;
+}
+
+html[data-template="linen"] .bg-slate-900 {
+  background-color: #3A2F20 !important;
+  color: var(--hf-card) !important;
+}
+
+html[data-template="honey"] .text-slate-900,
+html[data-template="honey"] .text-slate-800,
+html[data-template="honey"] .text-slate-700,
+html[data-template="linen"] .text-slate-900,
+html[data-template="linen"] .text-slate-800,
+html[data-template="linen"] .text-slate-700 {
+  color: var(--hf-text) !important;
+}
+
+html[data-template="honey"] .text-slate-600,
+html[data-template="honey"] .text-slate-500,
+html[data-template="honey"] .text-slate-400,
+html[data-template="honey"] .text-slate-300,
+html[data-template="linen"] .text-slate-600,
+html[data-template="linen"] .text-slate-500,
+html[data-template="linen"] .text-slate-400,
+html[data-template="linen"] .text-slate-300 {
+  color: var(--hf-muted) !important;
+}
+
+html[data-template="honey"] .text-white,
+html[data-template="linen"] .bg-slate-900 .text-white {
+  color: var(--hf-text) !important;
+}
+
+html[data-template="honey"] .border-slate-200,
+html[data-template="honey"] .border-slate-100,
+html[data-template="honey"] .border-slate-300,
+html[data-template="honey"] .border-slate-700,
+html[data-template="honey"] .border-slate-700\/50,
+html[data-template="honey"] .border-slate-800\/80,
+html[data-template="linen"] .border-slate-200,
+html[data-template="linen"] .border-slate-100,
+html[data-template="linen"] .border-slate-300 {
+  border-color: var(--hf-border) !important;
+}
+
+html[data-template="honey"] .bg-emerald-50,
+html[data-template="honey"] .bg-emerald-100,
+html[data-template="honey"] .bg-emerald-500\/20,
+html[data-template="linen"] .bg-emerald-50,
+html[data-template="linen"] .bg-emerald-100,
+html[data-template="linen"] .bg-emerald-500\/20 {
+  background-color: color-mix(in srgb, var(--hf-accent) 16%, var(--hf-card)) !important;
+  color: var(--hf-accent) !important;
+  border-color: color-mix(in srgb, var(--hf-accent) 35%, var(--hf-border)) !important;
+}
+
+html[data-template="honey"] .text-emerald-300,
+html[data-template="honey"] .text-emerald-400,
+html[data-template="honey"] .text-emerald-600,
+html[data-template="honey"] .text-emerald-700,
+html[data-template="honey"] .text-emerald-800,
+html[data-template="honey"] .text-emerald-900,
+html[data-template="linen"] .text-emerald-300,
+html[data-template="linen"] .text-emerald-400,
+html[data-template="linen"] .text-emerald-600,
+html[data-template="linen"] .text-emerald-700,
+html[data-template="linen"] .text-emerald-800,
+html[data-template="linen"] .text-emerald-900 {
+  color: var(--hf-accent) !important;
+}
+
+html[data-template="honey"] .bg-emerald-500,
+html[data-template="honey"] .bg-emerald-600,
+html[data-template="honey"] .bg-emerald-700,
+html[data-template="honey"] .hover\:bg-emerald-500:hover,
+html[data-template="honey"] .hover\:bg-emerald-600:hover,
+html[data-template="honey"] .bg-gradient-to-r.from-emerald-600,
+html[data-template="linen"] .bg-emerald-500,
+html[data-template="linen"] .bg-emerald-600,
+html[data-template="linen"] .bg-emerald-700,
+html[data-template="linen"] .hover\:bg-emerald-500:hover,
+html[data-template="linen"] .hover\:bg-emerald-600:hover {
+  background-color: var(--hf-accent) !important;
+  background-image: none !important;
+  color: var(--hf-accent-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-template="honey"] .border-emerald-200,
+html[data-template="honey"] .border-emerald-600,
+html[data-template="linen"] .border-emerald-200,
+html[data-template="linen"] .border-emerald-600 {
+  border-color: var(--hf-accent) !important;
+}
+
+html[data-template="honey"] .selection\:bg-emerald-500::selection,
+html[data-template="linen"] .selection\:bg-emerald-500::selection {
+  background-color: var(--hf-accent);
+  color: var(--hf-accent-text);
+}
+
+html[data-template="honey"] input,
+html[data-template="honey"] select,
+html[data-template="honey"] textarea,
+html[data-template="linen"] input,
+html[data-template="linen"] select,
+html[data-template="linen"] textarea {
+  background-color: var(--hf-card-2) !important;
+  color: var(--hf-text) !important;
+  border-color: var(--hf-border) !important;
+}
+
+html[data-template="honey"] a.hover\:text-emerald-600:hover,
+html[data-template="linen"] a.hover\:text-emerald-600:hover {
+  color: var(--hf-accent) !important;
+}
+
+/* Announcement bar follows the campaign */
+html[data-template="honey"] body > div.bg-emerald-50,
+html[data-template="linen"] body > div.bg-emerald-50 {
+  background-color: var(--hf-card) !important;
+  color: var(--hf-muted) !important;
+  border-color: var(--hf-border) !important;
+}
+
+html[data-template="honey"] .bg-emerald-500.animate-pulse,
+html[data-template="linen"] .bg-emerald-500.animate-pulse {
+  background-color: var(--hf-accent) !important;
+}
+
+.template-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+@media (max-width: 640px) {
+  .template-swatch-grid { grid-template-columns: 1fr; }
+}
+.template-swatch {
+  position: relative;
+  display: block;
+  cursor: pointer;
+  border: 2px solid #e2e8f0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #fff;
+}
+.template-swatch input { position: absolute; opacity: 0; pointer-events: none; }
+.template-swatch.is-selected,
+.template-swatch:has(input:checked) {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+}
+.template-swatch-preview { height: 72px; display: flex; }
+.template-swatch-preview span { flex: 1; }
+.template-swatch-copy { padding: 0.65rem 0.75rem 0.8rem; }
+.template-swatch-copy strong { display: block; font-size: 0.85rem; }
+.template-swatch-copy small { color: #64748b; font-size: 0.7rem; }
