@@ -732,10 +732,10 @@ def calculate_project_metrics(project):
 
     main_media_type = p.get('main_media_type', 'auto') or 'auto'
     p['main_media_type'] = main_media_type
-    if main_media_type == 'image':
-        p['show_video'] = False
-    else:
-        p['show_video'] = bool(p.get('video_embed_url'))
+    p['has_video'] = bool(p.get('video_embed_url'))
+    # Hero shows the video unless the creator picked the cover image.
+    # The YouTube player still appears below the cover in that case.
+    p['show_video'] = p['has_video'] and main_media_type != 'image'
 
     return p
 
