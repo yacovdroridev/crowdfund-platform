@@ -11,6 +11,9 @@
       <p class="text-xs sm:text-sm text-slate-500 mt-1">מבט על על כלל הפרויקטים, התמיכות והתשלומים בפלטפורמה</p>
     </div>
     <div class="flex flex-wrap gap-2">
+      <a href="{{ url_for('admin_users') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs">
+        <i data-lucide="users" class="w-4 h-4"></i><span>ניהול משתמשים</span>
+      </a>
       <a href="{{ url_for('admin_categories') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold text-xs">
         <i data-lucide="tags" class="w-4 h-4"></i><span>ניהול קטגוריות</span>
       </a>

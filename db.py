@@ -1,8 +1,19 @@
 import sqlite3
 import os
 import json
+import secrets
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
+
+UNUSABLE_PASSWORD_PREFIX = "unusable$"
+
+
+def make_unusable_password_hash():
+    return UNUSABLE_PASSWORD_PREFIX + generate_password_hash(secrets.token_urlsafe(48), method="scrypt")
+
+
+def password_hash_is_usable(password_hash):
+    return bool(password_hash) and not str(password_hash).startswith(UNUSABLE_PASSWORD_PREFIX)
 
 # Render persistent disk (dashboard-mounted). Tests may monkeypatch this.
 VAR_DATA_DIR = "/var/data"
@@ -78,7 +89,8 @@ def init_db():
         role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
         is_active BOOLEAN NOT NULL DEFAULT 1,
         last_login_at TEXT,
-        created_at TEXT NOT NULL
+        created_at TEXT NOT NULL,
+        google_id TEXT
     );
     """)
 
@@ -140,11 +152,25 @@ def init_db():
         "ALTER TABLE pledges ADD COLUMN shipped_at TEXT",
         "ALTER TABLE pledges ADD COLUMN is_payment_verified BOOLEAN DEFAULT 0",
         "ALTER TABLE pledges ADD COLUMN payment_reference TEXT",
+        "ALTER TABLE users ADD COLUMN google_id TEXT",
     ):
         try:
             cursor.execute(migration)
         except sqlite3.OperationalError:
             pass
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS project_members (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        role TEXT NOT NULL DEFAULT 'editor' CHECK (role IN ('owner', 'editor')),
+        created_at TEXT NOT NULL,
+        UNIQUE(project_id, user_id),
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    """)
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS login_attempts (
@@ -231,6 +257,8 @@ def init_db():
             )
 
     cursor.execute("DELETE FROM login_attempts")
+
+    _ensure_miriam_user(cursor)
 
     # Rewards table
     cursor.execute("""
@@ -337,8 +365,53 @@ def init_db():
     restore_project_states(conn)
 
     ensure_or_latefila_rewards(conn)
+    ensure_miriam_or_latefila(conn)
 
     conn.close()
+
+
+
+def _ensure_miriam_user(cursor):
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    email = "miriam@drori.org"
+    full_name = "מרים דרורי"
+    existing = cursor.execute("SELECT id FROM users WHERE email = ?", (email,)).fetchone()
+    if existing:
+        cursor.execute(
+            "UPDATE users SET full_name = COALESCE(NULLIF(full_name, ''), ?), is_active = 1 WHERE email = ?",
+            (full_name, email),
+        )
+        return existing["id"] if isinstance(existing, sqlite3.Row) else existing[0]
+    bootstrap = (os.environ.get("MIRIAM_INITIAL_PASSWORD") or "").strip()
+    password_hash = generate_password_hash(bootstrap, method="scrypt") if bootstrap else make_unusable_password_hash()
+    cursor.execute(
+        """INSERT INTO users (email, password_hash, full_name, role, is_active, created_at)
+           VALUES (?, ?, ?, 'user', 1, ?)""",
+        (email, password_hash, full_name, now_str),
+    )
+    return cursor.lastrowid
+
+
+def ensure_miriam_or_latefila(conn=None):
+    close_at_end = False
+    if conn is None:
+        conn = get_db()
+        close_at_end = True
+    cursor = conn.cursor()
+    user_id = _ensure_miriam_user(cursor)
+    project = cursor.execute("SELECT id, owner_user_id FROM projects WHERE slug = ?", ("or-latefila",)).fetchone()
+    if project:
+        cursor.execute("UPDATE projects SET owner_user_id = ? WHERE id = ?", (user_id, project["id"]))
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute(
+            """INSERT INTO project_members (project_id, user_id, role, created_at)
+               VALUES (?, ?, 'owner', ?)
+               ON CONFLICT(project_id, user_id) DO UPDATE SET role = 'owner'""",
+            (project["id"], user_id, now_str),
+        )
+    conn.commit()
+    if close_at_end:
+        conn.close()
 
 
 def ensure_or_latefila_rewards(conn=None):
@@ -695,6 +768,7 @@ def seed_db():
 
     conn.commit()
     restore_project_states(conn)
+    ensure_miriam_or_latefila(conn)
     conn.close()
 
 def get_project_states_path():

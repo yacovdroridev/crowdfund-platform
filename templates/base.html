@@ -132,6 +132,10 @@
           </a>
         {% endif %}
         {% if current_user and is_admin %}
+          <a href="{{ url_for('admin_users') }}" class="hover:text-emerald-600 transition-colors flex items-center gap-1.5 text-emerald-700 font-bold">
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>ניהול משתמשים</span>
+          </a>
           <a href="{{ url_for('admin_payment_gateways') }}" class="hover:text-emerald-600 transition-colors flex items-center gap-1.5 text-emerald-700 font-bold">
             <i data-lucide="credit-card" class="w-4 h-4"></i>
             <span>ניהול סליקה 💳</span>
@@ -143,10 +147,10 @@
       <div class="flex items-center gap-3">
         {% block header_extra_actions %}{% endblock %}
         {% if current_user %}
-          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold border border-slate-700">
+          <a href="{{ url_for('account') }}" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 text-amber-400 text-xs font-bold border border-slate-700 hover:border-amber-400">
             <i data-lucide="{% if is_admin %}shield-check{% else %}user{% endif %}" class="w-3.5 h-3.5"></i>
             <span>{{ 'מנהל מערכת' if is_admin else current_user.full_name }}</span>
-          </span>
+          </a>
           <a href="{{ url_for('logout') }}" title="התנתקות" class="p-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 transition-colors">
             <i data-lucide="log-out" class="w-4 h-4"></i>
           </a>
@@ -159,7 +163,7 @@
 
         <a href="{{ url_for('create_project') }}" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm">
           <i data-lucide="plus-circle" class="w-4 h-4"></i>
-          <span>התחל פרויקט</span>
+          <span>התחל גיוס</span>
         </a>
       </div>
 

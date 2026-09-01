@@ -139,7 +139,8 @@ def test_grant_and_claim_project_access_via_email(client):
         'target_email': 'demo@example.com'
     }, follow_redirects=True)
     assert rv.status_code == 200
-    assert "הועברה בהצלחה למשתמש demo@example.com".encode('utf-8') in rv.data
+    assert b"demo@example.com" in rv.data
+    assert "נוסף כחבר".encode("utf-8") in rv.data
 
 def test_guest_does_not_see_management_buttons():
     db_fd, db_path = tempfile.mkstemp()

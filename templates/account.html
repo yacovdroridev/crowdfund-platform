@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}החשבון שלי | HeadFund{% endblock %}
+{% block content %}
+<section class="min-h-[70vh] flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-lg bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl space-y-6">
+    <div>
+      <h1 class="text-2xl font-black text-slate-900 mb-1">החשבון שלי</h1>
+      <p class="text-sm text-slate-500">{{ current_user.full_name }} · <span dir="ltr">{{ current_user.email }}</span></p>
+    </div>
+    <form method="POST" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      {% if has_password %}
+      <div>
+        <label class="block text-xs font-bold mb-1">סיסמה נוכחית *</label>
+        <input type="password" name="current_password" required autocomplete="current-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
+      </div>
+      {% else %}
+      <p class="text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded-xl p-3">חשבון זה נוצר דרך Google ואין לו סיסמה עדיין. אפשר להגדיר סיסמה לכניסה עם אימייל, בלי סיסמה נוכחית.</p>
+      {% endif %}
+      <div>
+        <label class="block text-xs font-bold mb-1">סיסמה חדשה *</label>
+        <input type="password" name="new_password" required minlength="12" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
+        <p class="text-[11px] text-slate-500 mt-1">לפחות 12 תווים, אות גדולה וקטנה, מספר וסימן.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold mb-1">אימות סיסמה חדשה *</label>
+        <input type="password" name="new_password_confirm" required minlength="12" autocomplete="new-password" class="w-full p-3 rounded-xl border border-slate-300 font-mono">
+      </div>
+      <button class="w-full py-3.5 rounded-xl bg-emerald-600 text-white font-bold">{% if has_password %}החלפת סיסמה{% else %}הגדרת סיסמה{% endif %}</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

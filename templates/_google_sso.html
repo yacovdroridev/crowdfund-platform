@@ -1,0 +1,11 @@
+{% if google_sso_configured %}
+    <a href="{{ url_for('google_login', next=next_url|default('')) }}" class="w-full py-3.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 font-extrabold shadow-sm transition-all flex items-center justify-center gap-3">
+      <span class="inline-flex w-6 h-6 items-center justify-center rounded-full border border-slate-200 text-[#4285F4] font-black text-sm leading-none" aria-hidden="true">G</span>
+      <span>המשך עם Google</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <span class="flex-1 h-px bg-slate-200"></span>
+      <span class="text-xs text-slate-500 font-bold">או עם אימייל</span>
+      <span class="flex-1 h-px bg-slate-200"></span>
+    </div>
+{% endif %}
