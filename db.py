@@ -4,22 +4,49 @@ import json
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
+# Render persistent disk (dashboard-mounted). Tests may monkeypatch this.
+VAR_DATA_DIR = "/var/data"
+
 def resolve_db_path():
     env_path = os.environ.get("DATABASE_PATH")
     if env_path:
-        return env_path
-    if os.path.exists("/var/data") and os.access("/var/data", os.W_OK):
-        return "/var/data/crowdfund.db"
-    home_dir = os.path.expanduser("~/.crowdfund_data")
-    try:
-        os.makedirs(home_dir, exist_ok=True)
-        if os.access(home_dir, os.W_OK):
-            return os.path.join(home_dir, "crowdfund.db")
-    except Exception:
-        pass
-    return os.path.join(os.path.dirname(__file__), "crowdfund.db")
+        path = env_path
+    elif os.path.exists(VAR_DATA_DIR) and os.access(VAR_DATA_DIR, os.W_OK):
+        path = os.path.join(VAR_DATA_DIR, "crowdfund.db")
+    else:
+        path = None
+        home_dir = os.path.expanduser("~/.crowdfund_data")
+        try:
+            os.makedirs(home_dir, exist_ok=True)
+            if os.access(home_dir, os.W_OK):
+                path = os.path.join(home_dir, "crowdfund.db")
+        except Exception:
+            path = None
+        if not path:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "crowdfund.db")
+
+    parent = os.path.dirname(path)
+    if parent:
+        try:
+            os.makedirs(parent, exist_ok=True)
+        except Exception:
+            pass
+    return path
 
 DB_PATH = resolve_db_path()
+
+def _as_flag(value, default=0):
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return 1 if value.strip().lower() in {"1", "true", "yes", "on"} else 0
+    try:
+        return 1 if int(value) else 0
+    except (TypeError, ValueError):
+        return 1 if value else 0
+
+def _repo_project_states_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "project_states.json")
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -28,6 +55,7 @@ def get_db():
     return conn
 
 def init_db():
+    print(f"DB_PATH={os.path.abspath(DB_PATH)}")
     conn = get_db()
     cursor = conn.cursor()
 
@@ -294,6 +322,8 @@ def init_db():
         """, (key, name, enabled, ident, sandbox, inst, now_str))
 
     conn.commit()
+    # Re-apply disk snapshot after INSERT OR IGNORE so disabled gateways stay disabled.
+    restore_project_states(conn)
 
     ensure_or_latefila_rewards(conn)
 
@@ -657,8 +687,8 @@ def seed_db():
     conn.close()
 
 def get_project_states_path():
-    if os.path.exists("/var/data") and os.access("/var/data", os.W_OK):
-        return "/var/data/project_states.json"
+    if os.path.exists(VAR_DATA_DIR) and os.access(VAR_DATA_DIR, os.W_OK):
+        return os.path.join(VAR_DATA_DIR, "project_states.json")
     home_dir = os.path.expanduser("~/.crowdfund_data")
     try:
         os.makedirs(home_dir, exist_ok=True)
@@ -666,7 +696,7 @@ def get_project_states_path():
             return os.path.join(home_dir, "project_states.json")
     except Exception:
         pass
-    return os.path.join(os.path.dirname(__file__), "project_states.json")
+    return _repo_project_states_path()
 
 PROJECT_STATES_FILE = get_project_states_path()
 
@@ -710,20 +740,58 @@ def sync_project_states(conn):
         cursor.execute("SELECT id, email, password_hash, full_name, phone, role, is_active, created_at FROM users")
         states["_users"] = [dict(u) for u in cursor.fetchall()]
 
-        target_paths = {get_project_states_path(), os.path.join(os.path.dirname(__file__), "project_states.json")}
+        cursor.execute("""
+            SELECT gateway_key, display_name, is_enabled, account_identifier, sandbox_mode, instructions
+            FROM payment_gateways
+            ORDER BY id ASC
+        """)
+        states["_payment_gateways"] = [dict(g) for g in cursor.fetchall()]
+
+        target_paths = {get_project_states_path(), _repo_project_states_path()}
         for target_path in target_paths:
+            parent = os.path.dirname(target_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
             with open(target_path, 'w', encoding='utf-8') as f:
                 json.dump(states, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"Warning syncing project states: {e}")
 
-def restore_project_states(conn):
-    """Restore all project states, rewards, pledges, updates, and users from project_states.json."""
-    target_path = get_project_states_path()
-    if not os.path.exists(target_path):
-        target_path = os.path.join(os.path.dirname(__file__), "project_states.json")
+def _choose_restore_states_path(conn):
+    """Prefer /var/data JSON; repo JSON only bootstraps an empty DB. Never overlay a live DB with git JSON."""
+    repo_path = os.path.abspath(_repo_project_states_path())
+    disk_json = os.path.join(VAR_DATA_DIR, "project_states.json")
+    persisted = os.path.abspath(get_project_states_path())
 
-    if not os.path.exists(target_path) or os.environ.get("DATABASE_PATH"):
+    if os.path.exists(disk_json):
+        return disk_json
+
+    if os.path.exists(persisted) and persisted != repo_path:
+        env_db = os.environ.get("DATABASE_PATH")
+        if env_db:
+            db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+            persisted_dir = os.path.dirname(persisted)
+            # Isolated sqlite (tests): only consume a snapshot sitting next to that DB.
+            if persisted_dir != db_dir:
+                persisted = None
+        if persisted:
+            return persisted
+
+    try:
+        project_count = conn.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
+    except Exception:
+        project_count = 0
+    # Repo snapshot is a bootstrap only. DATABASE_PATH isolates Render/tests from git JSON
+    # so a live (or newly seeded) disk DB is never overwritten by the repo file.
+    if project_count == 0 and os.path.exists(repo_path) and not os.environ.get("DATABASE_PATH"):
+        return repo_path
+    return None
+
+
+def restore_project_states(conn):
+    """Restore all project states, rewards, pledges, updates, users, and payment gateways."""
+    target_path = _choose_restore_states_path(conn)
+    if not target_path or not os.path.exists(target_path):
         return
     try:
         with open(target_path, 'r', encoding='utf-8') as f:
@@ -759,8 +827,38 @@ def restore_project_states(conn):
                         1 if u.get("is_active", 1) else 0, existing_u["id"]
                     ))
 
+        if "_payment_gateways" in states and isinstance(states["_payment_gateways"], list):
+            for g in states["_payment_gateways"]:
+                if not isinstance(g, dict) or not g.get("gateway_key"):
+                    continue
+                key = g["gateway_key"]
+                cursor.execute("SELECT id FROM payment_gateways WHERE gateway_key = ?", (key,))
+                existing_g = cursor.fetchone()
+                enabled = _as_flag(g.get("is_enabled"))
+                sandbox = _as_flag(g.get("sandbox_mode"))
+                ident = g.get("account_identifier")
+                instructions = g.get("instructions")
+                if existing_g:
+                    cursor.execute("""
+                        UPDATE payment_gateways SET
+                            is_enabled = ?,
+                            account_identifier = ?,
+                            sandbox_mode = ?,
+                            instructions = ?,
+                            updated_at = ?
+                        WHERE gateway_key = ?
+                    """, (enabled, ident, sandbox, instructions, now_str, key))
+                else:
+                    cursor.execute("""
+                        INSERT INTO payment_gateways
+                            (gateway_key, display_name, is_enabled, account_identifier, sandbox_mode, instructions, updated_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        key, g.get("display_name", key), enabled, ident, sandbox, instructions, now_str
+                    ))
+
         for slug, data in states.items():
-            if slug == "_users" or not isinstance(data, dict):
+            if slug.startswith("_") or not isinstance(data, dict):
                 continue
 
             cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))

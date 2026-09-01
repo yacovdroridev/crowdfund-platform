@@ -1647,6 +1647,7 @@ def admin_payment_gateways():
                 WHERE gateway_key = ?
             """, (is_enabled, ident, sandbox, instructions, now_str, key))
         conn.commit()
+        sync_project_states(conn)
         flash("הגדרות אמצעי הסליקה עודכנו בהצלחה במערכת.", "success")
 
     cursor.execute("SELECT * FROM payment_gateways WHERE gateway_key NOT IN ('payme', 'credit_card') ORDER BY id ASC")
