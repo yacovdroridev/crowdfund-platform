@@ -451,3 +451,76 @@ def test_checkout_unavailable_when_no_gateways_enabled(client):
     assert project.status_code == 200
     assert "התשלום אינו זמין כרגע".encode("utf-8") in project.data
     assert b'id="btn-submit-pledge"' not in project.data
+
+
+def _meta_content(html, attr, name):
+    import re
+    match = re.search(rf'{attr}="{re.escape(name)}"\s+content="([^"]*)"', html)
+    assert match, f"missing {attr}={name}"
+    return match.group(1)
+
+
+def test_project_open_graph_and_whatsapp_share(client):
+    rv = client.get("/project/synapse-guardian-iot")
+    assert rv.status_code == 200
+    html = rv.data.decode("utf-8")
+    assert html.index('property="og:image"') < html.index("<body")
+    title = _meta_content(html, "property", "og:title")
+    assert "SynApse Guardian" in title
+    image = _meta_content(html, "property", "og:image")
+    assert "photo-1550751827-4bd374c3f58b" in image
+    description = _meta_content(html, "property", "og:description")
+    assert "Smart Home" in description
+    assert len(description) <= 160
+    assert _meta_content(html, "property", "og:locale") == "he_IL"
+    assert 'name="twitter:card" content="summary_large_image"' in html
+    assert "https://wa.me/" in html
+    assert "https://www.facebook.com/sharer/sharer.php?u=" in html
+    assert "https://t.me/share/url?url=" in html
+    assert "rel=\"noopener" in html or "rel='noopener" in html or "rel=\"noopener noreferrer\"" in html or "noopener noreferrer" in html
+
+
+def test_project_og_data_uri_falls_back_to_hosted_default(client):
+    from db import get_db
+    conn = get_db()
+    conn.execute(
+        "UPDATE projects SET cover_image = ? WHERE slug = ?",
+        ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB", "synapse-guardian-iot"),
+    )
+    conn.commit()
+    conn.close()
+    html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
+    image = _meta_content(html, "property", "og:image")
+    assert "og-default.png" in image
+    assert not image.startswith("data:")
+    assert "data:image" not in _meta_content(html, "property", "og:image")
+
+
+def test_project_og_relative_cover_becomes_absolute(client):
+    from db import get_db
+    conn = get_db()
+    conn.execute(
+        "UPDATE projects SET cover_image = ? WHERE slug = ?",
+        ("/static/images/tefila_feature.png", "synapse-guardian-iot"),
+    )
+    conn.commit()
+    conn.close()
+    html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
+    image = _meta_content(html, "property", "og:image")
+    assert image.endswith("/static/images/tefila_feature.png")
+    assert image.startswith("http://")
+
+
+def test_home_page_default_open_graph(client):
+    html = client.get("/").data.decode("utf-8")
+    assert _meta_content(html, "property", "og:title") == "HeadFund"
+    assert "og-default.png" in _meta_content(html, "property", "og:image")
+    assert 'name="twitter:card" content="summary_large_image"' in html
+
+
+def test_project_page_allows_social_crawlers(client):
+    for ua in ("WhatsApp/2.23.0", "facebookexternalhit/1.1", "TelegramBot (like TwitterBot)"):
+        rv = client.get("/project/synapse-guardian-iot", headers={"User-Agent": ua})
+        assert rv.status_code == 200
+        assert b'property="og:image"' in rv.data
+        assert b"https://wa.me/" in rv.data

@@ -1,6 +1,81 @@
 {% extends 'base.html' %}
 
+{% set share_url = url_for('project_detail', slug=project.slug, _external=True) %}
+{% set og_image_url = project.cover_image|absolute_og_image %}
+{% set og_desc = project.subtitle|og_plain(160) %}
+{% set share_wa = 'https://wa.me/?text=' ~ ((project.title ~ ' ' ~ share_url)|urlencode) %}
+{% set share_fb = 'https://www.facebook.com/sharer/sharer.php?u=' ~ (share_url|urlencode) %}
+{% set share_tg = 'https://t.me/share/url?url=' ~ (share_url|urlencode) ~ '&text=' ~ (project.title|urlencode) %}
+
 {% block title %}{{ project.title }} | HeadFund מימון המונים{% endblock %}
+
+{% block extra_head %}
+  <meta name="description" content="{{ og_desc }}">
+  <link rel="canonical" href="{{ share_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HeadFund">
+  <meta property="og:locale" content="he_IL">
+  <meta property="og:title" content="{{ project.title }}">
+  <meta property="og:description" content="{{ og_desc }}">
+  <meta property="og:url" content="{{ share_url }}">
+  <meta property="og:image" content="{{ og_image_url }}">
+  <meta property="og:image:secure_url" content="{{ og_image_url|as_secure_url }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ project.title }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ project.title }}">
+  <meta name="twitter:description" content="{{ og_desc }}">
+  <meta name="twitter:image" content="{{ og_image_url }}">
+{% endblock %}
+
+{% macro share_menu_button(tone='dark', wa=share_wa, fb=share_fb, tg=share_tg, url=share_url) %}
+  <div class="relative" data-share-menu>
+    <button type="button" onclick="toggleShareMenu(event)" class="{% if tone == 'dark' %}inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold border border-slate-700 transition-colors shadow-sm{% else %}inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 transition-colors shadow-sm{% endif %}" aria-expanded="false" aria-haspopup="true">
+      <i data-lucide="share-2" class="w-4 h-4 text-emerald-400"></i>
+      <span>שתף</span>
+    </button>
+    <div class="share-menu-panel hidden absolute top-full mt-2 z-30 w-56 rounded-2xl border border-slate-200 bg-white shadow-xl p-1.5 text-slate-800" onclick="event.stopPropagation()">
+      <a href="{{ wa }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-emerald-50 text-sm font-bold">
+        <i data-lucide="message-circle" class="w-4 h-4 text-emerald-600"></i>
+        <span>WhatsApp</span>
+      </a>
+      <a href="{{ fb }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-emerald-50 text-sm font-bold">
+        <i data-lucide="share-2" class="w-4 h-4 text-sky-600"></i>
+        <span>פייסבוק</span>
+      </a>
+      <a href="{{ tg }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-emerald-50 text-sm font-bold">
+        <i data-lucide="send" class="w-4 h-4 text-sky-500"></i>
+        <span>טלגרם</span>
+      </a>
+      <button type="button" onclick="copyProjectShareLink({{ url|tojson }})" class="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-slate-50 text-sm font-bold">
+        <i data-lucide="copy" class="w-4 h-4 text-slate-500"></i>
+        <span>העתק קישור</span>
+      </button>
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro share_icon_row(wa=share_wa, fb=share_fb, tg=share_tg, url=share_url) %}
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+      <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-600"></i>
+      <span>שתפו</span>
+    </span>
+    <a href="{{ wa }}" target="_blank" rel="noopener noreferrer" title="WhatsApp" aria-label="שיתוף ב-WhatsApp" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
+      <i data-lucide="message-circle" class="w-4 h-4"></i>
+    </a>
+    <a href="{{ fb }}" target="_blank" rel="noopener noreferrer" title="פייסבוק" aria-label="שיתוף בפייסבוק" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
+      <i data-lucide="share-2" class="w-4 h-4"></i>
+    </a>
+    <a href="{{ tg }}" target="_blank" rel="noopener noreferrer" title="טלגרם" aria-label="שיתוף בטלגרם" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
+      <i data-lucide="send" class="w-4 h-4"></i>
+    </a>
+    <button type="button" onclick="copyProjectShareLink({{ url|tojson }})" title="העתק קישור" aria-label="העתק קישור" class="inline-flex items-center justify-center w-9 h-9 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors">
+      <i data-lucide="copy" class="w-4 h-4"></i>
+    </button>
+  </div>
+{% endmacro %}
 
 {% block content %}
 <!-- Breadcrumb -->
@@ -53,6 +128,8 @@
           <span>תמיכה בפרויקט 💙</span>
         </button>
 
+        {{ share_menu_button('dark', share_wa, share_fb, share_tg, share_url) }}
+
         {% if current_user and is_authorized %}
           <a href="{{ url_for('manage_backers', slug=project.slug) }}" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-colors shadow-sm" title="ניהול תורמים, תשורות והדפסת מדבקות">
             <i data-lucide="users" class="w-3.5 h-3.5 text-white"></i>
@@ -86,6 +163,9 @@
         {% else %}
           <img src="{{ project.cover_image }}" alt="{{ project.title }}" class="w-full aspect-video object-cover">
         {% endif %}
+      </div>
+      <div class="flex items-center justify-between gap-3 px-1">
+        {{ share_icon_row(share_wa, share_fb, share_tg, share_url) }}
       </div>
 
       <!-- Navigation Tabs -->
@@ -254,6 +334,9 @@
         <p class="text-[11px] text-center text-slate-400">
           סליקה ישירה ומאובטחת • תמיכה ישירה ביוזם
         </p>
+        <div class="mt-4 flex justify-center">
+          {{ share_icon_row(share_wa, share_fb, share_tg, share_url) }}
+        </div>
 
         <!-- Rewards Tiers Section Header -->
         <div class="mt-8 pt-6 border-t border-slate-100">
@@ -523,10 +606,16 @@
     <div class="text-sm font-black text-slate-900 font-mono">₪{{ "{:,.0f}".format(project.current_amount) }}</div>
     <div class="text-[10px] text-emerald-600 font-bold font-mono">{{ project.percent }}% • {{ project.days_left }} ימים נותרו</div>
   </div>
+  <a href="{{ share_wa }}" target="_blank" rel="noopener noreferrer" class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-200 bg-white text-slate-600" aria-label="שיתוף ב-WhatsApp" title="שתף">
+    <i data-lucide="share-2" class="w-4 h-4 text-emerald-600"></i>
+  </a>
   <button type="button" onclick="openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="flex-1 max-w-[220px] py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform">
     <i data-lucide="heart" class="w-4 h-4 fill-white"></i>
     <span>תמיכה בפרויקט 💙</span>
   </button>
+</div>
+<div id="share-toast" class="hidden fixed bottom-24 inset-x-0 z-50 flex justify-center pointer-events-none" role="status" aria-live="polite">
+  <div class="bg-slate-900 text-white text-sm font-bold px-4 py-2.5 rounded-xl shadow-lg">הקישור הועתק</div>
 </div>
 {% endblock %}
 
@@ -607,6 +696,54 @@
       btnSubmit.innerHTML = 'המשך לתשלום ב-Upay (Sumit) 💰';
     } else {
       btnSubmit.innerHTML = 'בצע תמיכה וסליקה עכשיו 💳';
+    }
+  }
+
+  function toggleShareMenu(ev) {
+    ev.stopPropagation();
+    const wrap = ev.currentTarget.closest('[data-share-menu]');
+    const panel = wrap && wrap.querySelector('.share-menu-panel');
+    if (!panel) return;
+    const willOpen = panel.classList.contains('hidden');
+    document.querySelectorAll('.share-menu-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('[data-share-menu] button[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    if (willOpen) {
+      panel.classList.remove('hidden');
+      ev.currentTarget.setAttribute('aria-expanded', 'true');
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.share-menu-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('[data-share-menu] button[aria-expanded]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  });
+
+  function showShareToast() {
+    const toast = document.getElementById('share-toast');
+    if (!toast) return;
+    toast.classList.remove('hidden');
+    clearTimeout(window._shareToastTimer);
+    window._shareToastTimer = setTimeout(() => toast.classList.add('hidden'), 2200);
+  }
+
+  function copyProjectShareLink(url) {
+    const fallback = function () {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      showShareToast();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(showShareToast).catch(fallback);
+    } else {
+      fallback();
     }
   }
 </script>

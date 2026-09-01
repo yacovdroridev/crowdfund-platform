@@ -35,6 +35,48 @@ app.config.update(
 LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "support@headfund.co.il")
 
 
+OG_DEFAULT_DESCRIPTION = (
+    "פלטפורמת מימון המונים ישראלית לגיוס הון ותמיכה במיזמים "
+    "טכנולוגיים, יצירה, קהילה ועסקים."
+)
+OG_DEFAULT_IMAGE = "images/og-default.png"
+
+
+def og_plain_text(value, limit=160):
+    """Strip markup and collapse whitespace for Open Graph descriptions."""
+    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    text = re.sub(r"\s+", " ", text).strip()
+    if not text:
+        return OG_DEFAULT_DESCRIPTION
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"
+
+
+def default_og_image_url():
+    return url_for("static", filename=OG_DEFAULT_IMAGE, _external=True)
+
+
+def absolute_og_image_url(cover_image):
+    """Return a crawler-fetchable image URL. Never emit data: URIs into OG tags."""
+    value = (cover_image or "").strip()
+    if not value or value.lower().startswith("data:"):
+        return default_og_image_url()
+    if value.startswith(("https://", "http://")):
+        return value
+    root_url = request.url_root.rstrip("/")
+    if value.startswith("/"):
+        return root_url + value
+    return root_url + "/" + value
+
+
+def as_secure_url(url):
+    url = url or ""
+    if url.startswith("http://"):
+        return "https://" + url[len("http://"):]
+    return url
+
+
 @app.after_request
 def add_security_headers(response):
     """Apply browser-side security defaults to every HTML/API response."""
@@ -183,6 +225,13 @@ def inject_auth_context():
         'legal_contact_email': LEGAL_CONTACT_EMAIL,
         'legal_documents': LEGAL_DOCUMENTS,
     }
+
+
+app.jinja_env.filters["og_plain"] = og_plain_text
+app.jinja_env.filters["absolute_og_image"] = absolute_og_image_url
+app.jinja_env.filters["as_secure_url"] = as_secure_url
+app.jinja_env.globals["og_default_description"] = OG_DEFAULT_DESCRIPTION
+
 
 def log_action(action, target_type, target_id=None, details=None, conn=None):
     """Insert a privacy-conscious admin/user action into the audit log.
