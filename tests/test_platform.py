@@ -508,6 +508,9 @@ def test_project_open_graph_and_whatsapp_share(client):
     assert "text" not in fb
     assert "להשתתף" not in fb["u"]
 
+    assert "openPledgeModal" in html
+    assert "תמיכה בפרויקט" in html
+    assert "בחרו תמורה או סכום חופשי" in html
     assert "const projectShareInvite" in html
     assert "ההודעה הועתקה" in html
     invite_json = re.search(r"const projectShareInvite = (.*?);", html, re.S)
