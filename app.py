@@ -8,10 +8,10 @@ import base64
 import bleach
 from urllib.parse import quote_plus
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, abort, session, g
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
-from db import get_db, init_db, seed_db, sync_project_states
+from db import get_db, init_db, seed_db, sync_project_states, normalize_campaign_template
 
 
 def session_cookie_should_be_secure():
@@ -215,6 +215,17 @@ def handle_bad_request(e):
     return f"Bad Request: {desc}", 400
 
 
+def apply_campaign_template(project=None):
+    key = "classic"
+    if project is not None:
+        if hasattr(project, "keys") and "template" in project.keys():
+            key = project["template"]
+        elif isinstance(project, dict):
+            key = project.get("template")
+    g.campaign_template = normalize_campaign_template(key)
+    return g.campaign_template
+
+
 @app.context_processor
 def inject_auth_context():
     return {
@@ -224,6 +235,7 @@ def inject_auth_context():
         'authorized_projects': [],
         'legal_contact_email': LEGAL_CONTACT_EMAIL,
         'legal_documents': LEGAL_DOCUMENTS,
+        'campaign_template': getattr(g, 'campaign_template', 'classic'),
     }
 
 
@@ -538,7 +550,7 @@ def project_detail(slug):
         abort(404)
     log_action("project_view", "project", raw_project["id"], details=f"slug={slug}")
     project = calculate_project_metrics(raw_project)
-    project = calculate_project_metrics(raw_project)
+    apply_campaign_template(project)
 
     # Get Rewards / Tiers
     cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project["id"],))
@@ -1092,17 +1104,20 @@ def edit_project(slug):
 
         video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
+        template = normalize_campaign_template(request.form.get('template'))
 
         cursor.execute("""
         UPDATE projects SET
             title = ?, subtitle = ?, category = ?, goal_amount = ?, current_amount = ?, backers_count = ?,
             creator_name = ?, creator_email = ?, creator_phone = ?, creator_bio = ?,
-            creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?, main_media_type = ?
+            creator_avatar = ?, cover_image = ?, video_url = ?, story_html = ?, main_media_type = ?,
+            template = ?
         WHERE id = ?
         """, (
             title, subtitle, category, goal_amount, current_amount, backers_count,
             creator_name, creator_email, creator_phone, creator_bio,
             creator_avatar, cover_image, video_url, story_html, main_media_type,
+            template,
             project['id']
         ))
 
@@ -1397,6 +1412,7 @@ def create_project():
         cover_image = cropped_cover or uploaded_cover or request.form.get('cover_image', '').strip() or 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200'
         video_url = request.form.get('video_url', '').strip() or None
         story_html = sanitize_story_html(request.form.get('story_html', '').strip())
+        template = normalize_campaign_template(request.form.get('template'))
 
         # Generate slug
         clean_slug = re.sub(r'[^a-zA-Z0-9\-]', '', title.lower().replace(' ', '-'))
@@ -1416,12 +1432,12 @@ def create_project():
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
             goal_amount, current_amount, backers_count, days_total, start_date, end_date,
-            status, edit_pin, created_at, owner_user_id, is_active, main_media_type
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', NULL, ?, ?, 0, ?)
+            status, edit_pin, created_at, owner_user_id, is_active, main_media_type, template
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, 'active', NULL, ?, ?, 0, ?, ?)
         """, (
             slug, title, subtitle, category, creator_name, creator_bio, creator_avatar,
             creator_email, creator_phone, cover_image, video_url, story_html,
-            goal_amount, days_total, now_str, end_date, now_str, user['id'], main_media_type
+            goal_amount, days_total, now_str, end_date, now_str, user['id'], main_media_type, template
         ))
         project_id = cursor.lastrowid
 
@@ -1649,6 +1665,7 @@ def checkout_page(slug):
         conn.close()
         abort(404)
     project = calculate_project_metrics(p)
+    apply_campaign_template(project)
     cursor.execute("SELECT * FROM rewards WHERE project_id = ? ORDER BY amount ASC", (project['id'],))
     rewards = [dict(r) for r in cursor.fetchall()]
 

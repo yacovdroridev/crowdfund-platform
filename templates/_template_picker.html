@@ -1,0 +1,43 @@
+{% set current = current_template|default('classic') %}
+<div class="space-y-2">
+  <label class="block text-xs font-bold text-slate-700">מראה דף הקמפיין</label>
+  <p class="text-xs text-slate-500">הטמפלייט משנה רק את דף הפרויקט ואת עמוד התשלום שלו. שאר האתר נשאר HeadFund.</p>
+  <div class="template-swatch-grid">
+    <label class="template-swatch">
+      <input type="radio" name="template" value="classic" {% if current == 'classic' %}checked{% endif %}>
+      <div class="template-swatch-preview" aria-hidden="true">
+        <span style="background:#ecfdf5"></span>
+        <span style="background:#10b981"></span>
+        <span style="background:#ffffff"></span>
+      </div>
+      <div class="template-swatch-copy">
+        <strong>קלאסי</strong>
+        <small>ירוק HeadFund על רקע בהיר</small>
+      </div>
+    </label>
+    <label class="template-swatch">
+      <input type="radio" name="template" value="honey" {% if current == 'honey' %}checked{% endif %}>
+      <div class="template-swatch-preview" aria-hidden="true">
+        <span style="background:#0C0C0C"></span>
+        <span style="background:#E5C547"></span>
+        <span style="background:#141414"></span>
+      </div>
+      <div class="template-swatch-copy">
+        <strong>דבש</strong>
+        <small>שחור וחרדל, כמו בפיגמה</small>
+      </div>
+    </label>
+    <label class="template-swatch">
+      <input type="radio" name="template" value="linen" {% if current == 'linen' %}checked{% endif %}>
+      <div class="template-swatch-preview" aria-hidden="true">
+        <span style="background:#F4EFE4"></span>
+        <span style="background:#C45C26"></span>
+        <span style="background:#FFFBF3"></span>
+      </div>
+      <div class="template-swatch-copy">
+        <strong>פשתן</strong>
+        <small>נייר קרם ודיו חם</small>
+      </div>
+    </label>
+  </div>
+</div>
