@@ -2,10 +2,37 @@ import sqlite3
 import os
 import json
 import secrets
+import hashlib
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
 
 UNUSABLE_PASSWORD_PREFIX = "unusable$"
+
+INVITE_TTL_DAYS = 7
+
+
+def hash_invite_token(token):
+    return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+
+
+def create_user_invite(conn, user_id, created_by=None, ttl_days=INVITE_TTL_DAYS):
+    """Issue a fresh invite token; previous unused invites for the user expire immediately."""
+    token = secrets.token_urlsafe(32)
+    now = datetime.now()
+    now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+    expires = (now + timedelta(days=ttl_days)).strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        "UPDATE user_invites SET expires_at = ? WHERE user_id = ? AND used_at IS NULL AND expires_at > ?",
+        (now_str, user_id, now_str),
+    )
+    conn.execute(
+        """INSERT INTO user_invites (user_id, token_hash, created_at, expires_at, created_by)
+           VALUES (?, ?, ?, ?, ?)""",
+        (user_id, hash_invite_token(token), now_str, expires, created_by),
+    )
+    return token
+
+
 
 
 def make_unusable_password_hash():
@@ -192,6 +219,21 @@ def init_db():
         created_at TEXT NOT NULL,
         last_used_at TEXT,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+    """)
+
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_invites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        created_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        used_at TEXT,
+        created_by INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
     );
     """)
 

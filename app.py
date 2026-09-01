@@ -13,7 +13,7 @@ from flask import Flask, render_template, request, redirect, url_for, jsonify, f
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import safe_join
 from werkzeug.middleware.proxy_fix import ProxyFix
-from db import get_db, init_db, seed_db, sync_project_states, make_unusable_password_hash, password_hash_is_usable, normalize_campaign_template
+from db import get_db, init_db, seed_db, sync_project_states, make_unusable_password_hash, password_hash_is_usable, normalize_campaign_template, create_user_invite, hash_invite_token
 
 
 def session_cookie_should_be_secure():
@@ -2114,14 +2114,19 @@ def admin_users():
                    VALUES (?, ?, ?, ?, ?, 1, ?)""",
                 (email, password_hash, full_name, None, role, now_str),
             )
+            new_id = cursor.lastrowid
             conn.execute(
                 """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
                    VALUES (?, 'user.created', 'user', ?, ?, ?)""",
-                (current_user()['id'], str(cursor.lastrowid), email, now_str),
+                (current_user()['id'], str(new_id), email, now_str),
             )
+            if not password:
+                token = create_user_invite(conn, new_id, created_by=current_user()['id'])
+                session['last_invite_url'] = url_for('accept_invite', token=token, _external=True)
+                session['last_invite_email'] = email
             sync_project_states(conn)
             conn.commit()
-            flash("המשתמש נוצר בהצלחה.", "success")
+            flash("המשתמש נוצר בהצלחה." + (" קישור הזמנה מוכן למטה." if not password else ""), "success")
         conn.close()
         return redirect(url_for('admin_users', q=q or None))
 
@@ -2142,8 +2147,107 @@ def admin_users():
         users.append(user)
     projects = [dict(r) for r in conn.execute("SELECT id, slug, title FROM projects ORDER BY title").fetchall()]
     conn.close()
-    return render_template('admin_users.html', users=users, projects=projects, q=q)
+    last_invite_url = session.pop('last_invite_url', None)
+    last_invite_email = session.pop('last_invite_email', None)
+    return render_template(
+        'admin_users.html',
+        users=users,
+        projects=projects,
+        q=q,
+        last_invite_url=last_invite_url,
+        last_invite_email=last_invite_email,
+    )
 
+
+
+
+@app.post('/admin/users/<int:user_id>/invite')
+def admin_create_user_invite_link(user_id):
+    if not is_admin():
+        abort(403)
+    q = (request.form.get('q') or '').strip()
+    actor = current_user()
+    conn = get_db()
+    target = conn.execute("SELECT id, email, full_name, is_active FROM users WHERE id = ?", (user_id,)).fetchone()
+    if not target:
+        conn.close()
+        abort(404)
+    if not target['is_active']:
+        conn.close()
+        flash("לא ניתן להזמין משתמש לא פעיל.", "error")
+        return redirect(url_for('admin_users', q=q or None))
+    token = create_user_invite(conn, target['id'], created_by=actor['id'])
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    conn.execute(
+        """INSERT INTO audit_log (actor_user_id, action, target_type, target_id, details, created_at)
+           VALUES (?, 'user.invited', 'user', ?, ?, ?)""",
+        (actor['id'], str(target['id']), target['email'], now_str),
+    )
+    sync_project_states(conn)
+    conn.commit()
+    conn.close()
+    session['last_invite_url'] = url_for('accept_invite', token=token, _external=True)
+    session['last_invite_email'] = target['email']
+    flash("נוצר קישור הזמנה חדש. הקישור הקודם (אם היה פתוח) אינו תקף יותר.", "success")
+    return redirect(url_for('admin_users', q=q or None))
+
+
+@app.route('/invite/<token>', methods=['GET', 'POST'])
+def accept_invite(token):
+    token = (token or "").strip()
+    conn = get_db()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    row = conn.execute(
+        """SELECT i.id AS invite_id, i.user_id, i.expires_at, i.used_at,
+                  u.email, u.full_name, u.is_active
+           FROM user_invites i
+           JOIN users u ON u.id = i.user_id
+           WHERE i.token_hash = ?""",
+        (hash_invite_token(token),),
+    ).fetchone()
+    invite_user = dict(row) if row else None
+    invalid = (
+        not invite_user
+        or invite_user["used_at"]
+        or invite_user["expires_at"] <= now_str
+        or not invite_user["is_active"]
+    )
+    if invalid:
+        conn.close()
+        flash("קישור ההזמנה אינו תקף או שפג תוקפו. בקשו הזמנה חדשה.", "error")
+        return redirect(url_for("login"))
+    if request.method == "POST":
+        password = request.form.get("password") or ""
+        password_confirm = request.form.get("password_confirm") or ""
+        if not password_meets_policy(password):
+            conn.close()
+            flash("הסיסמה חייבת להכיל לפחות 12 תווים, אות גדולה, אות קטנה, מספר וסימן.", "error")
+            return render_template("invite_accept.html", invite_user=invite_user, token=token)
+        if password != password_confirm:
+            conn.close()
+            flash("הסיסמאות אינן תואמות.", "error")
+            return render_template("invite_accept.html", invite_user=invite_user, token=token)
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (generate_password_hash(password, method="scrypt"), invite_user["user_id"]),
+        )
+        conn.execute(
+            "UPDATE user_invites SET used_at = ? WHERE id = ?",
+            (now_str, invite_user["invite_id"]),
+        )
+        conn.execute(
+            "UPDATE users SET last_login_at = ? WHERE id = ?",
+            (now_str, invite_user["user_id"]),
+        )
+        conn.commit()
+        conn.close()
+        session.clear()
+        session["user_id"] = invite_user["user_id"]
+        session.permanent = True
+        flash("הסיסמה הוגדרה. התחברת בהצלחה.", "success")
+        return redirect(url_for("dashboard"))
+    conn.close()
+    return render_template("invite_accept.html", invite_user=invite_user, token=token)
 
 @app.post('/admin/users/<int:user_id>/edit')
 def admin_edit_user(user_id):
