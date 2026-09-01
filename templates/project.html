@@ -131,13 +131,23 @@
 
     <!-- Media: first on mobile, left column on desktop RTL (end) -->
     <div class="order-1 lg:col-start-5 lg:col-span-8 lg:row-start-1">
-      <div class="bg-slate-950 rounded-xl overflow-hidden border border-slate-200">
-        {% if project.show_video and (project.video_embed_url or project.video_url) %}
+      <div class="space-y-4">
+        <div class="bg-slate-950 rounded-xl overflow-hidden border border-slate-200">
+          {% if project.show_video and (project.video_embed_url or project.video_url) %}
+            <div class="aspect-video w-full">
+              <iframe src="{{ project.video_embed_url or project.video_url }}" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+          {% else %}
+            <img src="{{ project.cover_image }}" alt="{{ project.title }}" class="w-full aspect-video object-cover">
+          {% endif %}
+        </div>
+        {% if not project.show_video and project.has_video %}
+        <div class="bg-slate-950 rounded-xl overflow-hidden border border-slate-200" id="project-video">
+          <div class="px-4 py-2 text-xs font-bold text-white/80">הסרטון</div>
           <div class="aspect-video w-full">
             <iframe src="{{ project.video_embed_url or project.video_url }}" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>
-        {% else %}
-          <img src="{{ project.cover_image }}" alt="{{ project.title }}" class="w-full aspect-video object-cover">
+        </div>
         {% endif %}
       </div>
     </div>

@@ -58,6 +58,24 @@ def test_project_detail(client):
     assert "ממוצע לתמיכה" in html
     assert "תמיכה בפרויקט" in html
 
+
+def test_cover_hero_still_shows_youtube(client):
+    from db import get_db
+    html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
+    assert "dQw4w9WgXcQ" in html
+    assert 'id="project-video"' not in html
+
+    conn = get_db()
+    conn.execute("UPDATE projects SET main_media_type = 'image' WHERE slug = ?", ("synapse-guardian-iot",))
+    conn.commit()
+    conn.close()
+
+    html = client.get("/project/synapse-guardian-iot").data.decode("utf-8")
+    assert "dQw4w9WgXcQ" in html
+    assert 'id="project-video"' in html
+    assert "הסרטון" in html
+    assert "photo-1550751827-4bd374c3f58b" in html
+
 def test_submit_pledge(client):
     # Get initial amount
     rv = client.get('/api/projects/synapse-guardian-iot')
