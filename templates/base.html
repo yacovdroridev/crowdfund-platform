@@ -5,6 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}HeadFund | פלטפורמת גיוס המונים למיזמים ויצירה{% endblock %}</title>
 
+  {% block extra_head %}
+  {% set _og_title = "HeadFund" %}
+  {% set _og_desc = og_default_description %}
+  {% set _og_url = request.url %}
+  {% set _og_image = url_for('static', filename='images/og-default.png', _external=True) %}
+  <meta name="description" content="{{ _og_desc }}">
+  <link rel="canonical" href="{{ _og_url }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="HeadFund">
+  <meta property="og:locale" content="he_IL">
+  <meta property="og:title" content="{{ _og_title }}">
+  <meta property="og:description" content="{{ _og_desc }}">
+  <meta property="og:url" content="{{ _og_url }}">
+  <meta property="og:image" content="{{ _og_image }}">
+  <meta property="og:image:secure_url" content="{{ _og_image|as_secure_url }}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ _og_title }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ _og_title }}">
+  <meta name="twitter:description" content="{{ _og_desc }}">
+  <meta name="twitter:image" content="{{ _og_image }}">
+  {% endblock %}
+
+
   <!-- Google Fonts: Heebo (Hebrew & Clean) + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
