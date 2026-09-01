@@ -25,7 +25,7 @@ def client(monkeypatch):
     init_db()
     seed_db()
 
-    app.config.update(TESTING=True, CSRF_ENABLED=False)
+    app.config.update(TESTING=True, CSRF_ENABLED=False, OUTBOX=[])
     with app.test_client() as test_client:
         yield test_client
 
@@ -134,3 +134,35 @@ def test_non_admin_cannot_mint_invite(client):
     client.get("/logout", follow_redirects=True)
     denied = client.post(f"/admin/users/{user_id}/invite", follow_redirects=False)
     assert denied.status_code in (302, 303, 403)
+
+def test_create_user_sends_invite_email(client):
+    login_admin(client)
+    rv = client.post(
+        "/admin/users",
+        data={"full_name": "אורח מוזמן", "email": "guestmail@example.com"},
+        follow_redirects=True,
+    )
+    html = rv.get_data(as_text=True)
+    assert "נשלח מייל הזמנה" in html
+    assert len(app.config["OUTBOX"]) == 1
+    mail = app.config["OUTBOX"][0]
+    assert mail["to"] == "guestmail@example.com"
+    assert "הזמנה" in mail["subject"]
+    assert "/invite/" in mail["body"]
+
+
+def test_additional_invite_sends_email(client):
+    login_admin(client)
+    client.post("/admin/users", data={"full_name": "אורח", "email": "again@example.com"}, follow_redirects=True)
+    app.config["OUTBOX"] = []
+    conn = get_db()
+    user_id = conn.execute("SELECT id FROM users WHERE email = ?", ("again@example.com",)).fetchone()["id"]
+    conn.close()
+    page = client.post(f"/admin/users/{user_id}/invite", follow_redirects=True)
+    html = page.get_data(as_text=True)
+    assert "נשלח מייל הזמנה" in html
+    assert len(app.config["OUTBOX"]) == 1
+    mail = app.config["OUTBOX"][0]
+    assert mail["to"] == "again@example.com"
+    assert "/invite/" in mail["body"]
+

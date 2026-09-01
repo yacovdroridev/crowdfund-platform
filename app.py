@@ -70,6 +70,16 @@ def send_mail(to_addr, subject, body):
         return False
     return True
 
+def send_invite_mail(full_name, email, token):
+    invite_url = url_for("accept_invite", token=token, _external=True)
+    body = (
+        f"שלום {full_name},\n\n"
+        "הוזמנתם ל-HeadFund.\n"
+        "לחצו על הקישור הבא כדי להגדיר סיסמה ולהיכנס (תקף ל-7 ימים, לשימוש חד-פעמי):\n\n"
+        f"{invite_url}\n\n"
+        "אם לא ציפיתם להזמנה, אפשר להתעלם מהמייל.\n"
+    )
+    return send_mail(email, "הזמנה ל-HeadFund", body)
 
 
 
@@ -2156,13 +2166,21 @@ def admin_users():
                    VALUES (?, 'user.created', 'user', ?, ?, ?)""",
                 (current_user()['id'], str(new_id), email, now_str),
             )
+            mailed = False
             if not password:
                 token = create_user_invite(conn, new_id, created_by=current_user()['id'])
                 session['last_invite_url'] = url_for('accept_invite', token=token, _external=True)
                 session['last_invite_email'] = email
             sync_project_states(conn)
             conn.commit()
-            flash("המשתמש נוצר בהצלחה." + (" קישור הזמנה מוכן למטה." if not password else ""), "success")
+            if not password:
+                mailed = send_invite_mail(full_name, email, token)
+                if mailed:
+                    flash("המשתמש נוצר בהצלחה. נשלח מייל הזמנה, והקישור מוכן למטה.", "success")
+                else:
+                    flash("המשתמש נוצר, אבל שליחת מייל ההזמנה נכשלה. העתיקו את הקישור למטה.", "error")
+            else:
+                flash("המשתמש נוצר בהצלחה.", "success")
         conn.close()
         return redirect(url_for('admin_users', q=q or None))
 
@@ -2224,7 +2242,11 @@ def admin_create_user_invite_link(user_id):
     conn.close()
     session['last_invite_url'] = url_for('accept_invite', token=token, _external=True)
     session['last_invite_email'] = target['email']
-    flash("נוצר קישור הזמנה חדש. הקישור הקודם (אם היה פתוח) אינו תקף יותר.", "success")
+    mailed = send_invite_mail(target['full_name'], target['email'], token)
+    if mailed:
+        flash("נשלח מייל הזמנה. הקישור הקודם (אם היה פתוח) אינו תקף יותר, והקישור החדש מוכן למטה.", "success")
+    else:
+        flash("נוצר קישור הזמנה, אבל שליחת המייל נכשלה. העתיקו את הקישור למטה.", "error")
     return redirect(url_for('admin_users', q=q or None))
 
 
