@@ -1449,11 +1449,27 @@ def google_callback():
         return redirect(url_for("login", next=next_url))
 
     conn = get_db()
-    user = None
+    by_email = conn.execute(
+        "SELECT * FROM users WHERE lower(email) = ?",
+        (email,),
+    ).fetchone()
+    by_google = None
     if google_id:
-        user = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
-    if user is None:
-        user = conn.execute("SELECT * FROM users WHERE email = ?", (email,)).fetchone()
+        by_google = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+
+    # Email is canonical: an existing HeadFund user always wins over a Google-only row.
+    if by_email and by_google and by_email["id"] != by_google["id"]:
+        conn.execute("UPDATE users SET google_id = NULL WHERE id = ?", (by_google["id"],))
+        conn.execute("UPDATE users SET google_id = ? WHERE id = ?", (google_id, by_email["id"]))
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (by_email["id"],)).fetchone()
+    elif by_email:
+        if google_id:
+            conn.execute("UPDATE users SET google_id = ? WHERE id = ?", (google_id, by_email["id"]))
+        user = conn.execute("SELECT * FROM users WHERE id = ?", (by_email["id"],)).fetchone()
+    elif by_google:
+        user = by_google
+    else:
+        user = None
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if user is None:
@@ -1470,11 +1486,6 @@ def google_callback():
             conn.close()
             flash("החשבון אינו פעיל.", "error")
             return redirect(url_for("login", next=next_url))
-        if google_id:
-            conn.execute(
-                "UPDATE users SET google_id = COALESCE(google_id, ?) WHERE id = ?",
-                (google_id, user["id"]),
-            )
         user_id = user["id"]
 
     conn.execute("UPDATE users SET last_login_at = ? WHERE id = ?", (now_str, user_id))

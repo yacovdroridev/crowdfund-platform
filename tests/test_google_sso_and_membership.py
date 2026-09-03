@@ -85,6 +85,41 @@ def test_google_login_redirects_to_google_when_env_set(client, monkeypatch):
         assert sess.get("google_oauth_state") == params["state"][0]
 
 
+
+class _FakeResp:
+    def __init__(self, payload, status_code=200):
+        self._payload = payload
+        self.status_code = status_code
+
+    def json(self):
+        return self._payload
+
+
+def _complete_google_login(client, monkeypatch, email, google_id="gid-admin-1", name="יעקב דרורי"):
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "test-secret")
+
+    def fake_post(url, **kwargs):
+        assert "oauth2.googleapis.com/token" in url
+        return _FakeResp({"access_token": "tok-test"})
+
+    def fake_get(url, **kwargs):
+        assert "userinfo" in url
+        return _FakeResp({
+            "email": email,
+            "id": google_id,
+            "name": name,
+            "verified_email": True,
+        })
+
+    monkeypatch.setattr("app.requests.post", fake_post)
+    monkeypatch.setattr("app.requests.get", fake_get)
+    start = client.get("/login/google?next=/admin/users", follow_redirects=False)
+    assert start.status_code in (302, 303)
+    with client.session_transaction() as sess:
+        state = sess.get("google_oauth_state")
+    return client.get(f"/login/google/callback?code=ok-code&state={state}", follow_redirects=False)
+
 def test_google_callback_invalid_state_does_not_login(client, monkeypatch):
     monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
     monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "test-secret")
@@ -220,3 +255,49 @@ def test_google_only_user_can_set_password_without_current(client):
 
 def password_hash_is_ok(password_hash, password):
     return check_password_hash(password_hash, password)
+
+def test_google_login_links_existing_admin_by_email(client, monkeypatch):
+    response = _complete_google_login(client, monkeypatch, "yacov@drori.org")
+    assert response.status_code in (302, 303)
+    assert "/admin/users" in (response.headers.get("Location") or "") or "/dashboard" in (response.headers.get("Location") or "")
+    with client.session_transaction() as sess:
+        user_id = sess.get("user_id")
+    conn = get_db()
+    admin = conn.execute("SELECT * FROM users WHERE email = ?", ("yacov@drori.org",)).fetchone()
+    google_rows = conn.execute("SELECT id FROM users WHERE google_id = ?", ("gid-admin-1",)).fetchall()
+    conn.close()
+    assert admin["role"] == "admin"
+    assert admin["id"] == user_id
+    assert admin["google_id"] == "gid-admin-1"
+    assert [row["id"] for row in google_rows] == [admin["id"]]
+
+
+def test_google_login_merges_stray_google_row_into_email_account(client, monkeypatch):
+    conn = get_db()
+    admin = conn.execute("SELECT id FROM users WHERE email = ?", ("yacov@drori.org",)).fetchone()
+    conn.execute(
+        """INSERT INTO users
+           (email, password_hash, full_name, phone, role, is_active, created_at, google_id)
+           VALUES (?, ?, ?, NULL, 'user', 1, ?, ?)""",
+        (
+            "google-orphan@example.com",
+            "unusable$x",
+            "יתום גוגל",
+            "2026-09-03 00:00:00",
+            "gid-admin-1",
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    response = _complete_google_login(client, monkeypatch, "yacov@drori.org")
+    assert response.status_code in (302, 303)
+    conn = get_db()
+    admin = conn.execute("SELECT * FROM users WHERE email = ?", ("yacov@drori.org",)).fetchone()
+    orphan = conn.execute("SELECT * FROM users WHERE email = ?", ("google-orphan@example.com",)).fetchone()
+    conn.close()
+    assert admin["google_id"] == "gid-admin-1"
+    assert orphan["google_id"] in (None, "")
+    with client.session_transaction() as sess:
+        assert sess.get("user_id") == admin["id"]
+
