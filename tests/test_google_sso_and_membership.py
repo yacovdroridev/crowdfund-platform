@@ -301,3 +301,19 @@ def test_google_login_merges_stray_google_row_into_email_account(client, monkeyp
     with client.session_transaction() as sess:
         assert sess.get("user_id") == admin["id"]
 
+def test_google_token_invalid_client_shows_secret_hint(client, monkeypatch):
+    monkeypatch.setenv("GOOGLE_CLIENT_ID", "test-client-id.apps.googleusercontent.com")
+    monkeypatch.setenv("GOOGLE_CLIENT_SECRET", "test-secret")
+
+    def fake_post(url, **kwargs):
+        return _FakeResp({"error": "invalid_client", "error_description": "Unauthorized"}, status_code=401)
+
+    monkeypatch.setattr("app.requests.post", fake_post)
+    start = client.get("/login/google", follow_redirects=False)
+    with client.session_transaction() as sess:
+        state = sess.get("google_oauth_state")
+    response = client.get(f"/login/google/callback?code=ok-code&state={state}", follow_redirects=True)
+    html = response.get_data(as_text=True)
+    assert "GOOGLE_CLIENT_SECRET" in html
+    assert "לא ניתן היה להשלים" not in html or "GOOGLE_CLIENT" in html
+
