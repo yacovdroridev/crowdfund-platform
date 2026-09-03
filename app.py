@@ -431,6 +431,13 @@ def _google_credentials():
     )
 
 
+def _google_redirect_uri():
+    explicit = (os.environ.get("GOOGLE_REDIRECT_URI") or "").strip()
+    if explicit:
+        return explicit
+    return "https://headfundcoil.com/login/google/callback"
+
+
 def _pkce_pair():
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
@@ -1350,7 +1357,7 @@ def google_login():
     session["google_oauth_verifier"] = verifier
     params = {
         "client_id": client_id,
-        "redirect_uri": url_for("google_callback", _external=True),
+        "redirect_uri": _google_redirect_uri(),
         "response_type": "code",
         "scope": "openid email profile",
         "state": state,
@@ -1388,7 +1395,7 @@ def google_callback():
         return redirect(url_for("login", next=next_url))
 
     client_id, client_secret = _google_credentials()
-    redirect_uri = url_for("google_callback", _external=True)
+    redirect_uri = _google_redirect_uri()
     try:
         token_resp = requests.post(
             GOOGLE_TOKEN_URL,
@@ -1408,12 +1415,26 @@ def google_callback():
         flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
         return redirect(url_for("login", next=next_url))
 
+    try:
+        token_payload = token_resp.json() or {}
+    except Exception:
+        token_payload = {}
     if token_resp.status_code != 200:
         _clear_google_oauth_session()
-        flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
+        err = (token_payload or {}).get("error") or f"http_{token_resp.status_code}"
+        desc = (token_payload or {}).get("error_description") or ""
+        print(f"google token exchange failed: {err} {desc}".strip())
+        if err in {"invalid_client", "unauthorized_client"}:
+            flash("Google דחה את פרטי הלקוח. בדקו GOOGLE_CLIENT_ID ו-GOOGLE_CLIENT_SECRET ב-Render.", "error")
+        elif err == "redirect_uri_mismatch":
+            flash("Google דחה את כתובת ה-callback. היא חייבת להיות בדיוק https://headfundcoil.com/login/google/callback", "error")
+        elif err == "invalid_grant":
+            flash("קוד הכניסה מ-Google פג או לא תאם. נסו «המשך עם Google» שוב.", "error")
+        else:
+            flash(f"לא ניתן היה להשלים את הכניסה עם Google ({err}). נסו שוב.", "error")
         return redirect(url_for("login", next=next_url))
 
-    access_token = (token_resp.json() or {}).get("access_token")
+    access_token = (token_payload or {}).get("access_token")
     if not access_token:
         _clear_google_oauth_session()
         flash("לא ניתן היה להשלים את הכניסה עם Google. נסו שוב.", "error")
