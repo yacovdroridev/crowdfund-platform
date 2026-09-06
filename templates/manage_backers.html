@@ -31,17 +31,72 @@
   </div>
 
   <!-- Campaign Stats Tiles -->
-    <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4" dir="rtl">
-      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="eye" class="w-4 h-4 text-emerald-600"></i>
-          <span>צפיות בדף</span>
-        </div>
-        <div class="text-2xl font-black text-slate-900 font-mono" data-stat="page-views">{{ "{:,}".format(page_views) }}</div>
-        <div class="text-[11px] text-slate-400">כניסות לדף הציבורי</div>
+  <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4" dir="rtl">
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="eye" class="w-4 h-4 text-emerald-600"></i>
+        <span>צפיות בדף</span>
       </div>
+      <div class="text-2xl font-black text-slate-900 font-mono" data-stat="page-views">{{ "{:,}".format(page_views) }}</div>
+      <div class="text-[11px] text-slate-400">כניסות לדף הציבורי</div>
+    </div>
 
-    <!-- Tab Navigation Bar -->
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
+        <span>סה"כ תומכים</span>
+      </div>
+      <div class="text-2xl font-black text-slate-900 font-mono" data-stat="backers-count">{{ total_count }}</div>
+      <div class="text-[11px] text-slate-400">רשומות תמיכה בקמפיין</div>
+    </div>
+
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="target" class="w-4 h-4 text-emerald-600"></i>
+        <span>גויס / יעד</span>
+      </div>
+      <div class="text-2xl font-black text-emerald-700 font-mono" data-stat="raised-goal">₪{{ "{:,.0f}".format(raised_amount) }}</div>
+      <div class="text-[11px] text-slate-500 font-bold">מתוך ₪{{ "{:,.0f}".format(goal_amount) }} · <span class="text-emerald-700" data-stat="raised-percent">{{ raised_percent }}%</span></div>
+    </div>
+
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="coins" class="w-4 h-4 text-emerald-600"></i>
+        <span>ממוצע תרומה</span>
+      </div>
+      <div class="text-2xl font-black text-slate-900 font-mono" data-stat="average-pledge">₪{{ "{:,.0f}".format(average_pledge) }}</div>
+      <div class="text-[11px] text-slate-400">ממוצע תשלומים שהושלמו</div>
+    </div>
+
+    <div class="p-5 bg-white rounded-2xl border border-amber-200 bg-amber-50/40 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+        <i data-lucide="badge-check" class="w-4 h-4 text-amber-600"></i>
+        <span>תשלומים הושלמו / ממתינים</span>
+      </div>
+      <div class="text-2xl font-black text-slate-900 font-mono" data-stat="payments-split">
+        <span class="text-emerald-700">{{ completed_payments }}</span>
+        <span class="text-slate-400 text-lg">/</span>
+        <span class="text-amber-800">{{ pending_payments }}</span>
+      </div>
+      <div class="text-[11px] text-slate-500">ביט/פייבוקס ממתינים: {{ pending_bit_paybox }} · נשלחו: {{ shipped_count }}</div>
+    </div>
+
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="calendar-clock" class="w-4 h-4 text-emerald-600"></i>
+        <span>ימים שנותרו</span>
+      </div>
+      {% if has_end_date %}
+        <div class="text-2xl font-black text-slate-900 font-mono" data-stat="days-left">{{ days_left }}</div>
+        <div class="text-[11px] text-slate-400">עד סיום הקמפיין</div>
+      {% else %}
+        <div class="text-2xl font-black text-slate-400 font-mono" data-stat="days-left">—</div>
+        <div class="text-[11px] text-slate-400">ללא תאריך סיום</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tab Navigation Bar -->
   <div class="flex items-center gap-3 border-b border-slate-200 pb-3">
     <button type="button" onclick="switchManageTab('backers')" id="tab-btn-backers" class="px-6 py-3 rounded-2xl font-black text-xs transition-all bg-slate-900 text-white flex items-center gap-2 shadow-sm cursor-pointer">
       <i data-lucide="users" class="w-4 h-4"></i>
@@ -57,62 +112,8 @@
   <!-- TAB 1: DONORS & FULFILLMENT -->
   <div id="tab-content-backers" class="space-y-8">
 
-      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="users" class="w-4 h-4 text-emerald-600"></i>
-          <span>סה"כ תומכים</span>
-        </div>
-        <div class="text-2xl font-black text-slate-900 font-mono" data-stat="backers-count">{{ total_count }}</div>
-        <div class="text-[11px] text-slate-400">רשומות תמיכה בקמפיין</div>
-      </div>
-
-      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="target" class="w-4 h-4 text-emerald-600"></i>
-          <span>גויס / יעד</span>
-        </div>
-        <div class="text-2xl font-black text-emerald-700 font-mono" data-stat="raised-goal">₪{{ "{:,.0f}".format(raised_amount) }}</div>
-        <div class="text-[11px] text-slate-500 font-bold">מתוך ₪{{ "{:,.0f}".format(goal_amount) }} · <span class="text-emerald-700" data-stat="raised-percent">{{ raised_percent }}%</span></div>
-      </div>
-
-      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="coins" class="w-4 h-4 text-emerald-600"></i>
-          <span>ממוצע תרומה</span>
-        </div>
-        <div class="text-2xl font-black text-slate-900 font-mono" data-stat="average-pledge">₪{{ "{:,.0f}".format(average_pledge) }}</div>
-        <div class="text-[11px] text-slate-400">ממוצע תשלומים שהושלמו</div>
-      </div>
-
-      <div class="p-5 bg-white rounded-2xl border border-amber-200 bg-amber-50/40 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-          <i data-lucide="badge-check" class="w-4 h-4 text-amber-600"></i>
-          <span>תשלומים הושלמו / ממתינים</span>
-        </div>
-        <div class="text-2xl font-black text-slate-900 font-mono" data-stat="payments-split">
-          <span class="text-emerald-700">{{ completed_payments }}</span>
-          <span class="text-slate-400 text-lg">/</span>
-          <span class="text-amber-800">{{ pending_payments }}</span>
-        </div>
-        <div class="text-[11px] text-slate-500">ביט/פייבוקס ממתינים: {{ pending_bit_paybox }} · נשלחו: {{ shipped_count }}</div>
-      </div>
-
-      <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
-        <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-          <i data-lucide="calendar-clock" class="w-4 h-4 text-emerald-600"></i>
-          <span>ימים שנותרו</span>
-        </div>
-        {% if has_end_date %}
-          <div class="text-2xl font-black text-slate-900 font-mono" data-stat="days-left">{{ days_left }}</div>
-          <div class="text-[11px] text-slate-400">עד סיום הקמפיין</div>
-        {% else %}
-          <div class="text-2xl font-black text-slate-400 font-mono" data-stat="days-left">—</div>
-          <div class="text-[11px] text-slate-400">ללא תאריך סיום</div>
-        {% endif %}
-      </div>
-    </div>
-
     <!-- Search & Filter Bar -->
+
     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
       <form method="GET" action="{{ url_for('manage_backers', slug=project.slug) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div>
