@@ -374,6 +374,18 @@ def init_db():
     );
     """)
 
+    # Interest / email leads (visitors who want campaign updates)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS project_interest_leads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        email TEXT NOT NULL,
+        full_name TEXT,
+        created_at TEXT NOT NULL,
+        UNIQUE(project_id, email)
+    );
+    """)
+
     # Payment Gateways config table (Super Admin only)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS payment_gateways (
