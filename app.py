@@ -753,6 +753,34 @@ def get_category_map(include_all=False, include_inactive=False):
         return {"all": "כל הקטגוריות", **categories}
     return categories
 
+
+_BOT_UA_MARKERS = (
+    "bot", "crawl", "spider", "slurp", "scrapy", "curl/", "wget/",
+    "python-requests", "httpclient", "libwww", "headless",
+    "facebookexternalhit", "facebot", "twitterbot", "linkedinbot",
+    "slackbot", "discordbot", "telegrambot", "whatsapp",
+    "googlebot", "bingbot", "yandex", "baiduspider", "duckduckbot",
+    "semrush", "ahrefs", "bytespider", "gptbot", "claudebot",
+    "applebot", "petalbot", "embedly", "quora link preview",
+    "pinterest", "redditbot", "vkshare", "preview",
+)
+
+
+def is_bot_user_agent(user_agent):
+    """Return True for obvious crawlers/bots so page-view counts stay human-ish."""
+    ua = (user_agent or "").strip().lower()
+    if not ua:
+        return True
+    return any(marker in ua for marker in _BOT_UA_MARKERS)
+
+
+def increment_project_page_views(cursor, project_id):
+    cursor.execute(
+        "UPDATE projects SET page_views = COALESCE(page_views, 0) + 1 WHERE id = ?",
+        (project_id,),
+    )
+
+
 def calculate_project_metrics(project):
     p = dict(project)
     
@@ -871,6 +899,11 @@ def project_detail(slug):
         conn.close()
         abort(404)
     log_action("project_view", "project", raw_project["id"], details=f"slug={slug}")
+    if not is_bot_user_agent(request.headers.get("User-Agent")):
+        increment_project_page_views(cursor, raw_project["id"])
+        conn.commit()
+        cursor.execute("SELECT * FROM projects WHERE slug = ?", (slug,))
+        raw_project = cursor.fetchone()
     project = calculate_project_metrics(raw_project)
     apply_campaign_template(project)
 
@@ -2767,6 +2800,26 @@ def manage_backers(slug):
     cursor.execute("SELECT COUNT(*) FROM pledges WHERE project_id = ? AND fulfillment_status IN ('shipped', 'delivered')", (project['id'],))
     shipped_count = cursor.fetchone()[0] or 0
 
+    cursor.execute(
+        """SELECT
+             SUM(CASE WHEN payment_status = 'completed' OR is_payment_verified = 1 THEN 1 ELSE 0 END) AS completed_count,
+             SUM(CASE WHEN payment_status = 'completed' OR is_payment_verified = 1 THEN 0 ELSE 1 END) AS pending_count,
+             AVG(CASE WHEN payment_status = 'completed' OR is_payment_verified = 1 THEN amount END) AS avg_completed_pledge
+           FROM pledges WHERE project_id = ?""",
+        (project['id'],),
+    )
+    payment_row = cursor.fetchone()
+    completed_payments = int(payment_row['completed_count'] or 0)
+    pending_payments = int(payment_row['pending_count'] or 0)
+    average_pledge = float(payment_row['avg_completed_pledge'] or 0.0)
+
+    page_views = int(project.get('page_views') or 0)
+    goal_amount = float(project.get('goal_amount') or 0)
+    raised_amount = float(project.get('current_amount') or 0)
+    raised_percent = int(project.get('percent') or 0)
+    days_left = project.get('days_left')
+    has_end_date = bool(project.get('end_date'))
+
     conn.close()
 
     return render_template(
@@ -2782,7 +2835,16 @@ def manage_backers(slug):
         total_count=total_count,
         total_amount=total_amount,
         pending_bit_paybox=pending_bit_paybox,
-        shipped_count=shipped_count
+        shipped_count=shipped_count,
+        page_views=page_views,
+        completed_payments=completed_payments,
+        pending_payments=pending_payments,
+        average_pledge=average_pledge,
+        goal_amount=goal_amount,
+        raised_amount=raised_amount,
+        raised_percent=raised_percent,
+        days_left=days_left,
+        has_end_date=has_end_date,
     )
 
 

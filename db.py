@@ -159,6 +159,7 @@ def init_db():
         owner_user_id INTEGER,
         is_active BOOLEAN NOT NULL DEFAULT 1,
         template TEXT NOT NULL DEFAULT 'classic',
+        page_views INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
     );
     """)
@@ -180,6 +181,7 @@ def init_db():
         "ALTER TABLE pledges ADD COLUMN is_payment_verified BOOLEAN DEFAULT 0",
         "ALTER TABLE pledges ADD COLUMN payment_reference TEXT",
         "ALTER TABLE users ADD COLUMN google_id TEXT",
+        "ALTER TABLE projects ADD COLUMN page_views INTEGER NOT NULL DEFAULT 0",
     ):
         try:
             cursor.execute(migration)
