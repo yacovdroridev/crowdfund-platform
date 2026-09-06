@@ -82,6 +82,83 @@ def send_invite_mail(full_name, email, token):
     return send_mail(email, "הזמנה ל-HeadFund", body)
 
 
+def _truncate_email_text(value, limit=600):
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 1)].rstrip() + "…"
+
+
+def send_interest_thank_you_mail(email, full_name, project_title, project_url):
+    greeting = f"שלום {full_name}," if full_name else "שלום,"
+    subject = f"תודה על ההתעניינות ב«{project_title}»"
+    body = (
+        f"{greeting}\n\n"
+        f"תודה שנרשמתם לקבלת עדכונים על הקמפיין «{project_title}».\n"
+        "נעדכן אתכם במייל כשיהיו חדשות.\n\n"
+        f"לעמוד הקמפיין:\n{project_url}\n\n"
+        "צוות HeadFund\n"
+    )
+    return send_mail(email, subject, body)
+
+
+def send_interest_update_mail(email, full_name, project_title, project_url, update_title, update_content):
+    greeting = f"שלום {full_name}," if full_name else "שלום,"
+    snippet = _truncate_email_text(update_content, 600)
+    subject = f"עדכון מ«{project_title}»: {update_title}"
+    body = (
+        f"{greeting}\n\n"
+        f"יש עדכון חדש בקמפיין «{project_title}».\n\n"
+        f"{update_title}\n"
+        f"{snippet}\n\n"
+        f"לעמוד הקמפיין:\n{project_url}\n\n"
+        "צוות HeadFund\n"
+    )
+    return send_mail(email, subject, body)
+
+
+def send_interest_blast_mail(email, full_name, project_title, project_url, subject, message):
+    greeting = f"שלום {full_name}," if full_name else "שלום,"
+    body = (
+        f"{greeting}\n\n"
+        f"{message}\n\n"
+        f"קמפיין: «{project_title}»\n"
+        f"{project_url}\n\n"
+        "צוות HeadFund\n"
+    )
+    return send_mail(email, subject, body)
+
+
+def notify_interest_leads(project_id, project_title, project_url, subject, body_builder):
+    """Email all interest leads for a project. Returns (sent, failed). Never raises."""
+    conn = get_db()
+    rows = conn.execute(
+        """
+        SELECT email, full_name
+        FROM project_interest_leads
+        WHERE project_id = ?
+        ORDER BY id ASC
+        """,
+        (project_id,),
+    ).fetchall()
+    conn.close()
+    sent = 0
+    failed = 0
+    for row in rows:
+        email = row["email"]
+        full_name = row["full_name"]
+        try:
+            ok = body_builder(email, full_name)
+        except Exception as exc:
+            print(f"interest lead mail failed for {email}: {exc}")
+            ok = False
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+    return sent, failed
+
+
 
 OG_DEFAULT_DESCRIPTION = (
     "פלטפורמת מימון המונים ישראלית לגיוס הון ותמיכה במיזמים "
@@ -981,7 +1058,7 @@ def submit_project_interest(slug):
 
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, is_active FROM projects WHERE slug = ?", (slug,))
+    cursor.execute("SELECT id, title, is_active FROM projects WHERE slug = ?", (slug,))
     project = cursor.fetchone()
     if not project or (not project['is_active'] and not is_project_authorized(slug)):
         conn.close()
@@ -995,8 +1072,16 @@ def submit_project_interest(slug):
         """,
         (project['id'], email, full_name, now_str),
     )
+    inserted = cursor.rowcount > 0
     conn.commit()
     conn.close()
+
+    if inserted:
+        project_url = url_for('project_detail', slug=slug, _external=True)
+        try:
+            send_interest_thank_you_mail(email, full_name, project['title'], project_url)
+        except Exception as exc:
+            print(f"interest thank-you mail skipped/failed: {exc}")
 
     flash("תודה! נעדכן אתכם במייל כשיהיו חדשות על הקמפיין.", "success")
     return redirect(url_for('project_detail', slug=slug) + "#interest")
@@ -2643,7 +2728,7 @@ def add_project_update(slug):
 
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM projects WHERE slug = ?", (slug,))
+    cursor.execute("SELECT id, title FROM projects WHERE slug = ?", (slug,))
     proj = cursor.fetchone()
     if not proj:
         conn.close()
@@ -2658,7 +2743,20 @@ def add_project_update(slug):
     conn.commit()
     conn.close()
 
-    flash("העדכון פורסם בהצלחה!", "success")
+    project_url = url_for('project_detail', slug=slug, _external=True)
+    sent, _failed = notify_interest_leads(
+        proj["id"],
+        proj["title"],
+        project_url,
+        title,
+        lambda email, full_name: send_interest_update_mail(
+            email, full_name, proj["title"], project_url, title, content
+        ),
+    )
+    if sent:
+        flash(f"העדכון פורסם בהצלחה! נשלח עדכון ל-{sent} מתעניינים.", "success")
+    else:
+        flash("העדכון פורסם בהצלחה!", "success")
     return redirect(url_for('project_detail', slug=slug) + "#tab-updates")
 
 
@@ -2893,6 +2991,50 @@ def manage_backers(slug):
         interest_leads=interest_leads,
         interest_leads_count=interest_leads_count,
     )
+
+
+@app.route('/project/<slug>/manage/interest-blast', methods=['POST'])
+def blast_interest_leads(slug):
+    """Send a custom Hebrew message to all interest leads for a project."""
+    if not is_project_authorized(slug):
+        flash("אין לך הרשאה לשלוח הודעה למתעניינים.", "error")
+        return redirect(url_for('login', next=url_for('manage_backers', slug=slug)))
+
+    subject = (request.form.get('subject') or '').strip()
+    message = (request.form.get('body') or request.form.get('message') or '').strip()
+    if not subject or not message:
+        flash("נא למלא נושא ותוכן להודעה.", "error")
+        return redirect(url_for('manage_backers', slug=slug) + "#interest-leads")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title FROM projects WHERE slug = ?", (slug,))
+    project = cursor.fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    conn.close()
+
+    project_url = url_for('project_detail', slug=slug, _external=True)
+    sent, failed = notify_interest_leads(
+        project["id"],
+        project["title"],
+        project_url,
+        subject,
+        lambda email, full_name: send_interest_blast_mail(
+            email, full_name, project["title"], project_url, subject, message
+        ),
+    )
+    if sent:
+        note = f"נשלחה הודעה ל-{sent} מתעניינים."
+        if failed:
+            note += f" ({failed} נכשלו)"
+        flash(note, "success")
+    elif failed:
+        flash("שליחת ההודעה למתעניינים נכשלה.", "error")
+    else:
+        flash("אין מתעניינים לשלוח אליהם הודעה.", "error")
+    return redirect(url_for('manage_backers', slug=slug) + "#interest-leads")
 
 
 @app.route('/project/<slug>/manage/backers/<int:pledge_id>/update-status', methods=['POST'])

@@ -183,6 +183,26 @@
         </h2>
       </div>
       {% if interest_leads %}
+      <form method="POST" action="{{ url_for('blast_interest_leads', slug=project.slug) }}" class="space-y-3 p-4 rounded-xl border border-emerald-100 bg-emerald-50/40">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="text-sm font-black text-slate-900">שלחו הודעה למתעניינים</div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1" for="interest-blast-subject">נושא</label>
+          <input id="interest-blast-subject" name="subject" type="text" required maxlength="200"
+                 class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                 placeholder="למשל: עדכון חשוב לקמפיין">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1" for="interest-blast-body">תוכן ההודעה</label>
+          <textarea id="interest-blast-body" name="body" rows="4" required
+                    class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    placeholder="כתבו כאן הודעה קצרה למתעניינים..."></textarea>
+        </div>
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors cursor-pointer">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          שליחה לכל המתעניינים
+        </button>
+      </form>
       <ul class="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
         {% for lead in interest_leads %}
         <li class="p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-slate-50/80">
