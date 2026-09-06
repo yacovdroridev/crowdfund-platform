@@ -969,6 +969,39 @@ def project_og_image(slug):
     return serve_project_cover_image(row["cover_image"])
 
 
+@app.route('/project/<slug>/interest', methods=['POST'])
+def submit_project_interest(slug):
+    """Capture a visitor email for campaign updates (interest lead)."""
+    email = (request.form.get('email') or '').strip().lower()
+    full_name = (request.form.get('full_name') or request.form.get('name') or '').strip() or None
+
+    if not email or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        flash("נא להזין כתובת אימייל תקינה.", "error")
+        return redirect(url_for('project_detail', slug=slug) + "#interest")
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, is_active FROM projects WHERE slug = ?", (slug,))
+    project = cursor.fetchone()
+    if not project or (not project['is_active'] and not is_project_authorized(slug)):
+        conn.close()
+        abort(404)
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute(
+        """
+        INSERT OR IGNORE INTO project_interest_leads (project_id, email, full_name, created_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (project['id'], email, full_name, now_str),
+    )
+    conn.commit()
+    conn.close()
+
+    flash("תודה! נעדכן אתכם במייל כשיהיו חדשות על הקמפיין.", "success")
+    return redirect(url_for('project_detail', slug=slug) + "#interest")
+
+
 @app.route('/project/<slug>/pledge', methods=['POST'])
 def submit_pledge(slug):
     legal_flag = request.form.get('legal_accept') or request.form.get('terms_accepted')
@@ -2820,6 +2853,18 @@ def manage_backers(slug):
     days_left = project.get('days_left')
     has_end_date = bool(project.get('end_date'))
 
+    cursor.execute(
+        """
+        SELECT id, email, full_name, created_at
+        FROM project_interest_leads
+        WHERE project_id = ?
+        ORDER BY id DESC
+        """,
+        (project['id'],),
+    )
+    interest_leads = [dict(row) for row in cursor.fetchall()]
+    interest_leads_count = len(interest_leads)
+
     conn.close()
 
     return render_template(
@@ -2845,6 +2890,8 @@ def manage_backers(slug):
         raised_percent=raised_percent,
         days_left=days_left,
         has_end_date=has_end_date,
+        interest_leads=interest_leads,
+        interest_leads_count=interest_leads_count,
     )
 
 

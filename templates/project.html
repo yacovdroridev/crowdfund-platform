@@ -204,6 +204,13 @@
         <div class="mt-4 pt-4 border-t border-slate-100">
           {{ share_icon_row(share_wa, share_fb, share_tg) }}
         </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-100" id="interest">
+          <button type="button" onclick="openInterestModal(true)" class="w-full text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl px-4 py-3 flex items-center justify-center gap-2 transition-colors">
+            <i data-lucide="mail" class="w-4 h-4"></i>
+            <span>השאירו מייל לעדכונים</span>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -605,6 +612,43 @@
   </div>
 </div>
 
+<!-- Interest email capture modal (once per visitor) -->
+<div id="interest-modal" class="fixed inset-0 z-[60] bg-slate-950/70 backdrop-blur-sm hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="interest-modal-title">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden relative" dir="rtl">
+    <button type="button" onclick="dismissInterestModal()" class="absolute top-3 left-3 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center" aria-label="סגור">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+    <div class="p-6 sm:p-7 space-y-4">
+      <div class="space-y-1.5 pr-2">
+        <div class="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 text-[11px] font-bold">
+          <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+          <span>עדכוני קמפיין</span>
+        </div>
+        <h3 id="interest-modal-title" class="text-xl font-black text-slate-900">רוצים עדכונים על הקמפיין?</h3>
+        <p class="text-sm text-slate-600 leading-relaxed">השאירו מייל ונעדכן אתכם על התקדמות, עדכונים חשובים ומועד הסיום.</p>
+      </div>
+      <form method="POST" action="{{ url_for('submit_project_interest', slug=project.slug) }}" class="space-y-3" onsubmit="markInterestSeen()">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div>
+          <label for="interest-email" class="block text-xs font-bold text-slate-600 mb-1">אימייל <span class="text-rose-600">*</span></label>
+          <input type="email" name="email" id="interest-email" required autocomplete="email" placeholder="name@example.com" class="w-full p-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none" dir="ltr">
+        </div>
+        <div>
+          <label for="interest-name" class="block text-xs font-bold text-slate-600 mb-1">שם (אופציונלי)</label>
+          <input type="text" name="full_name" id="interest-name" autocomplete="name" placeholder="השם שלכם" class="w-full p-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+        </div>
+        <button type="submit" class="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2">
+          <i data-lucide="send" class="w-4 h-4"></i>
+          <span>שלחו לי עדכונים</span>
+        </button>
+        <button type="button" onclick="dismissInterestModal()" class="w-full py-2.5 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-50 font-bold text-xs">
+          אחר כך
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Mobile Bottom Sticky Support Bar -->
 <div class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 pt-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-2.5">
   <div class="shrink-0">
@@ -713,6 +757,58 @@
   }
 
   const projectShareInvite = {{ share_invite|tojson }};
+
+  const interestStorageKey = 'headfund_interest_seen_' + {{ project.slug|tojson }};
+
+  function markInterestSeen() {
+    try { localStorage.setItem(interestStorageKey, '1'); } catch (e) {}
+  }
+
+  function hasSeenInterest() {
+    try { return localStorage.getItem(interestStorageKey) === '1'; } catch (e) { return false; }
+  }
+
+  function openInterestModal(force) {
+    const modal = document.getElementById('interest-modal');
+    if (!modal) return;
+    if (!force && hasSeenInterest()) return;
+    modal.classList.remove('hidden');
+    if (window.lucide && lucide.createIcons) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
+    const emailField = document.getElementById('interest-email');
+    if (emailField) setTimeout(() => emailField.focus(), 50);
+  }
+
+  function closeInterestModal() {
+    const modal = document.getElementById('interest-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function dismissInterestModal() {
+    markInterestSeen();
+    closeInterestModal();
+  }
+
+  (function setupInterestPopup() {
+    if (hasSeenInterest()) return;
+    let opened = false;
+    const tryOpen = function () {
+      if (opened || hasSeenInterest()) return;
+      opened = true;
+      openInterestModal(false);
+    };
+    setTimeout(tryOpen, 4000);
+    let scrolled = false;
+    window.addEventListener('scroll', function onScroll() {
+      if (scrolled) return;
+      if ((window.scrollY || document.documentElement.scrollTop) > 180) {
+        scrolled = true;
+        tryOpen();
+        window.removeEventListener('scroll', onScroll);
+      }
+    }, { passive: true });
+  })();
 
   function copyProjectShareLink() {
     const text = projectShareInvite;

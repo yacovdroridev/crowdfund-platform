@@ -31,7 +31,7 @@
   </div>
 
   <!-- Campaign Stats Tiles -->
-  <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4" dir="rtl">
+  <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4" dir="rtl">
     <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
       <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
         <i data-lucide="eye" class="w-4 h-4 text-emerald-600"></i>
@@ -93,6 +93,15 @@
         <div class="text-2xl font-black text-slate-400 font-mono" data-stat="days-left">—</div>
         <div class="text-[11px] text-slate-400">ללא תאריך סיום</div>
       {% endif %}
+    </div>
+
+    <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-1">
+      <div class="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+        <i data-lucide="mail" class="w-4 h-4 text-emerald-600"></i>
+        <span>מתעניינים</span>
+      </div>
+      <div class="text-2xl font-black text-slate-900 font-mono" data-stat="interest-leads">{{ interest_leads_count }}</div>
+      <div class="text-[11px] text-slate-400">השאירו מייל לעדכונים</div>
     </div>
   </div>
 
@@ -163,6 +172,37 @@
           </a>
         </div>
       </form>
+    </div>
+
+    <!-- Interest leads -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4" id="interest-leads" dir="rtl">
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-sm font-black text-slate-900 flex items-center gap-2">
+          <i data-lucide="mail" class="w-4 h-4 text-emerald-600"></i>
+          <span>מתעניינים שהשאירו מייל ({{ interest_leads_count }})</span>
+        </h2>
+      </div>
+      {% if interest_leads %}
+      <ul class="divide-y divide-slate-100 border border-slate-100 rounded-xl overflow-hidden">
+        {% for lead in interest_leads %}
+        <li class="p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 hover:bg-slate-50/80">
+          <div class="space-y-0.5">
+            <a href="mailto:{{ lead.email }}" class="text-sm font-bold text-emerald-700 hover:text-emerald-800 underline-offset-2 hover:underline" dir="ltr">{{ lead.email }}</a>
+            {% if lead.full_name %}
+            <div class="text-xs text-slate-600 font-medium">{{ lead.full_name }}</div>
+            {% else %}
+            <div class="text-xs text-slate-400">ללא שם</div>
+            {% endif %}
+          </div>
+          <div class="text-[11px] text-slate-400 font-mono shrink-0">{{ lead.created_at }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="text-sm text-slate-500 bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center">
+        עדיין אין מתעניינים שהשאירו מייל בקמפיין הזה.
+      </div>
+      {% endif %}
     </div>
 
     <!-- Backers Table & Batch Labels Form -->
