@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}על HeadFund | גיוס המונים ישראלי{% endblock %}
+{% block content %}
+<section class="max-w-4xl mx-auto px-4 py-12 sm:py-20">
+  <div class="rounded-3xl bg-slate-950 text-white p-7 sm:p-12">
+    <span class="text-emerald-400 font-bold text-sm">על HeadFund</span>
+    <h1 class="text-3xl sm:text-5xl font-black mt-3">גיוס המונים עם ליווי אנושי</h1>
+    <p class="mt-5 text-slate-300 text-lg leading-relaxed">HeadFund היא פלטפורמה ישראלית ליוצרים, יזמים ופרויקטים קהילתיים. אנחנו נותנים מקום אחד לסיפור, לתשורות, לעדכונים ולתמיכה מהקהילה.</p>
+  </div>
+  <div class="grid sm:grid-cols-3 gap-4 mt-8">
+    <div class="border rounded-2xl p-5"><h2 class="font-black">שקיפות</h2><p class="text-sm text-slate-600 mt-2">היעד, ההתקדמות והזמן שנותר מוצגים בכל קמפיין.</p></div>
+    <div class="border rounded-2xl p-5"><h2 class="font-black">ליווי בעברית</h2><p class="text-sm text-slate-600 mt-2">מענה אנושי ליוצרים ולתומכים דרך {{ legal_contact_email }}.</p></div>
+    <div class="border rounded-2xl p-5"><h2 class="font-black">תשלום מסודר</h2><p class="text-sm text-slate-600 mt-2">כל קמפיין מציג את אמצעי התשלום הזמינים ואת תנאי הביטול.</p></div>
+  </div>
+  <p class="mt-8 text-sm text-slate-600">הפלטפורמה מופעלת על ידי {{ site_operator_name }}. פרטי קשר מלאים מופיעים בתחתית כל עמוד ובמסמכים המשפטיים.</p>
+</section>
+{% endblock %}
