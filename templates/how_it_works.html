@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}איך זה עובד | HeadFund{% endblock %}
+{% block content %}
+<section class="max-w-5xl mx-auto px-4 py-12 sm:py-20">
+  <div class="text-center max-w-2xl mx-auto"><h1 class="text-4xl font-black">איך HeadFund עובד</h1><p class="text-slate-600 mt-3">שלושה צעדים ליוצרים, ושלושה לתומכים.</p></div>
+  <div class="grid md:grid-cols-2 gap-6 mt-10">
+    <div class="border rounded-3xl p-7"><h2 class="text-2xl font-black text-emerald-700">ליוצרים</h2><ol class="mt-5 space-y-4 text-slate-700"><li><strong>1. מקימים עמוד:</strong> סיפור, יעד, תמונות ותשורות.</li><li><strong>2. מפרסמים לקהילה:</strong> משתפים קישור ומעדכנים לאורך הדרך.</li><li><strong>3. מנהלים את התמיכות:</strong> עוקבים אחר התקדמות ומספקים תשורות.</li></ol><a href="{{ url_for('create_project') }}" class="inline-flex mt-6 bg-emerald-600 text-white px-5 py-3 rounded-xl font-bold">התחלת גיוס</a></div>
+    <div class="border rounded-3xl p-7"><h2 class="text-2xl font-black">לתומכים</h2><ol class="mt-5 space-y-4 text-slate-700"><li><strong>1. מכירים את הפרויקט:</strong> קוראים את הסיפור והעדכונים.</li><li><strong>2. בוחרים תמיכה:</strong> סכום חופשי או תשורה.</li><li><strong>3. משלימים תשלום:</strong> דרך אמצעי הסליקה שמוצג בקמפיין.</li></ol><a href="{{ url_for('index') }}" class="inline-flex mt-6 bg-slate-900 text-white px-5 py-3 rounded-xl font-bold">לכל הפרויקטים</a></div>
+  </div>
+</section>
+{% endblock %}
