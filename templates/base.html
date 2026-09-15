@@ -29,6 +29,32 @@
   <meta name="twitter:image" content="{{ _og_image }}">
   {% endblock %}
 
+  <script type="application/ld+json">{{ {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "HeadFund",
+    "url": request.url_root,
+    "email": legal_contact_email,
+    "description": og_default_description
+  }|tojson }}</script>
+
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id|e }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', {{ ga_measurement_id|tojson }}, {send_page_view: true});
+    window.hfTrack = function(name, params) { gtag('event', name, params || {}); };
+  </script>
+  {% else %}<script>window.hfTrack = function(){};</script>{% endif %}
+
+  {% if meta_pixel_id %}
+  <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', {{ meta_pixel_id|tojson }}); fbq('track', 'PageView');
+  </script>
+  {% endif %}
 
   <!-- Google Fonts: Heebo (Hebrew & Clean) + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,9 +65,6 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- Cropper.js CDN for interactive image crop, pan & zoom -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -95,7 +118,7 @@
   <!-- Top Announcement Bar -->
   <div class="bg-emerald-50 text-emerald-900 text-xs py-2 px-4 text-center font-medium border-b border-emerald-100 flex items-center justify-center gap-2">
     <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-    <span>ברוכים הבאים ל-<strong>HeadFund</strong> • פלטפורמת גיוס ההמונים והתשורות המתקדמת בישראל</span>
+    <span>ברוכים הבאים ל-<strong>HeadFund</strong> • פלטפורמה ישראלית לגיוס המונים ותשורות, עם ליווי אישי ליוצרים</span>
   </div>
 
   <!-- Header / Navigation -->
@@ -211,6 +234,9 @@
           <ul class="space-y-2 text-sm text-slate-500">
             <li><a href="{{ url_for('index') }}" class="hover:text-emerald-600 transition-colors">כל הפרויקטים</a></li>
             <li><a href="{{ url_for('create_project') }}" class="hover:text-emerald-600 transition-colors">פתיחת פרויקט חדש</a></li>
+            <li><a href="{{ url_for('how_it_works') }}" class="hover:text-emerald-600 transition-colors">איך זה עובד</a></li>
+            <li><a href="{{ url_for('about') }}" class="hover:text-emerald-600 transition-colors">עלינו</a></li>
+            <li><a href="{{ url_for('faq') }}" class="hover:text-emerald-600 transition-colors">שאלות נפוצות</a></li>
             <li><a href="{{ url_for('dashboard') }}" class="hover:text-emerald-600 transition-colors">לוח בקרה ליוזמים</a></li>
           </ul>
         </div>
@@ -220,7 +246,7 @@
           <ul class="space-y-2 text-sm text-slate-500">
             <li class="flex items-center gap-2"><i data-lucide="mail" class="w-4 h-4 text-emerald-600"></i> support@headfund.co.il</li>
             <li class="flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 text-emerald-600"></i> 054-9103046</li>
-            <li class="text-xs text-slate-500 mt-2">פותח ע"י סטודיו SynApse Zero ליזמות וטכנולוגיה</li>
+            <li class="text-xs text-slate-500 mt-2">מופעל ע"י {{ site_operator_name }} • מענה אנושי בעברית</li>
           </ul>
         </div>
 
