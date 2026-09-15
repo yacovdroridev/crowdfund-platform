@@ -22,6 +22,14 @@ services:
         sync: false
       - key: LEGAL_CONTACT_EMAIL
         value: support@headfund.co.il
+      - key: SITE_OPERATOR_NAME
+        value: SynApse Zero
+      - key: SITE_BASE_URL
+        value: https://headfundcoil.com
+      - key: GA_MEASUREMENT_ID
+        sync: false
+      - key: META_PIXEL_ID
+        sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET

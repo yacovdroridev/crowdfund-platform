@@ -137,6 +137,14 @@
       </div>
     </div>
 
+    {% if pledge.payment_status == 'completed' %}
+    <div class="mb-8 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-right">
+      <h2 class="font-black text-emerald-950">עוד צעד קטן שעוזר מאוד</h2>
+      <p class="text-sm text-emerald-900 mt-1">שתפו את הפרויקט עם שני אנשים שיכולים להתחבר אליו.</p>
+      <a href="https://wa.me/?text={{ ('תמכתי עכשיו בפרויקט «' ~ pledge.project_title ~ '» ב-HeadFund. אולי גם זה ידבר אליך: ' ~ url_for('project_detail', slug=pledge.project_slug, _external=True))|urlencode }}" target="_blank" rel="noopener" onclick="hfTrack('share_after_purchase', {project_slug: {{ pledge.project_slug|tojson }}})" class="inline-flex mt-3 px-5 py-3 rounded-xl bg-emerald-600 text-white font-bold">שיתוף ב-WhatsApp</a>
+    </div>
+    {% endif %}
+
     <!-- Action Buttons -->
     <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
       <a href="{{ url_for('project_detail', slug=pledge.project_slug) }}" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors">
@@ -165,6 +173,7 @@
 
   // If user is on mobile and chose Bit/Paybox, try automatic launch
   document.addEventListener('DOMContentLoaded', () => {
+    {% if pledge.payment_status == 'completed' %}hfTrack('purchase', {transaction_id: {{ pledge.transaction_id|tojson }}, value: {{ pledge.amount|float }}, currency: 'ILS', project_slug: {{ pledge.project_slug|tojson }}});{% endif %}
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     const paymentMethod = "{{ pledge.payment_method }}";
     

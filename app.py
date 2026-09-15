@@ -37,6 +37,10 @@ app.config.update(
     CSRF_ENABLED=True,
 )
 LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "support@headfund.co.il")
+GA_MEASUREMENT_ID = os.environ.get("GA_MEASUREMENT_ID", "").strip()
+META_PIXEL_ID = os.environ.get("META_PIXEL_ID", "").strip()
+SITE_OPERATOR_NAME = os.environ.get("SITE_OPERATOR_NAME", "SynApse Zero").strip()
+SITE_BASE_URL = os.environ.get("SITE_BASE_URL", "https://headfundcoil.com").rstrip("/")
 
 def mail_configured():
     return bool(os.environ.get("SMTP_HOST") and os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASSWORD"))
@@ -231,6 +235,16 @@ def project_og_image_abs_url(slug, cover_image=""):
     )
 
 
+def display_cover_image_url(project):
+    """Keep normal image URLs cacheable; proxy only legacy inline data images."""
+    value = (project.get("cover_image") if isinstance(project, dict) else project["cover_image"]) or ""
+    value = value.strip()
+    if value.lower().startswith("data:"):
+        slug = project.get("slug") if isinstance(project, dict) else project["slug"]
+        return project_og_image_abs_url(slug, value)
+    return value or default_og_image_url()
+
+
 def absolute_og_image_url(project_or_cover):
     """Return the live /og-image endpoint. Never emit data: URIs into OG tags."""
     if isinstance(project_or_cover, dict) and project_or_cover.get("slug"):
@@ -348,6 +362,8 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if request.path.startswith("/static/") or request.path.endswith("/og-image"):
+        response.headers.setdefault("Cache-Control", "public, max-age=86400")
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
@@ -591,6 +607,25 @@ def csrf_token():
 
 
 @app.before_request
+def capture_campaign_attribution():
+    """Keep first-touch campaign attribution through the checkout flow."""
+    if request.method != "GET":
+        return
+    campaign = session.setdefault("campaign_attribution", {})
+    changed = False
+    for key in ("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"):
+        value = (request.args.get(key) or "").strip()[:200]
+        if value and key not in campaign:
+            campaign[key] = value
+            changed = True
+    if request.referrer and "referrer" not in campaign:
+        campaign["referrer"] = request.referrer[:500]
+        changed = True
+    if changed:
+        session.modified = True
+
+
+@app.before_request
 def enforce_csrf():
     if request.path.startswith("/payment/") or request.path.startswith("/login/google"):
         return
@@ -634,12 +669,17 @@ def inject_auth_context():
         'legal_documents': LEGAL_DOCUMENTS,
         'google_sso_configured': google_sso_configured(),
         'campaign_template': getattr(g, 'campaign_template', 'classic'),
+        'ga_measurement_id': GA_MEASUREMENT_ID,
+        'meta_pixel_id': META_PIXEL_ID,
+        'site_operator_name': SITE_OPERATOR_NAME,
     }
 
 
 app.jinja_env.filters["og_plain"] = og_plain_text
 app.jinja_env.filters["absolute_og_image"] = absolute_og_image_url
 app.jinja_env.filters["og_image_type"] = og_image_type
+app.jinja_env.filters["og_cache_buster"] = og_cover_cache_buster
+app.jinja_env.filters["display_cover"] = display_cover_image_url
 app.jinja_env.filters["as_secure_url"] = as_secure_url
 app.jinja_env.globals["og_default_description"] = OG_DEFAULT_DESCRIPTION
 
@@ -899,6 +939,54 @@ def calculate_project_metrics(project):
 
 # --- HTML Routes ---
 
+@app.route('/robots.txt')
+def robots_txt():
+    body = f"User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /admin\nDisallow: /login\nDisallow: /register\nDisallow: /success/\nDisallow: /project/*/checkout\nSitemap: {SITE_BASE_URL}/sitemap.xml\n"
+    return Response(body, mimetype="text/plain")
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    conn = get_db()
+    rows = conn.execute("SELECT slug FROM projects WHERE is_active = 1 ORDER BY id DESC").fetchall()
+    conn.close()
+    urls = [url_for("index", _external=True), url_for("about", _external=True), url_for("how_it_works", _external=True), url_for("faq", _external=True), url_for("legal_center", _external=True)]
+    urls.extend(url_for("project_detail", slug=row["slug"], _external=True) for row in rows)
+    urls.extend(url_for("legal_document", document=key, _external=True) for key in LEGAL_DOCUMENTS)
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + ''.join(f'<url><loc>{url}</loc></url>' for url in urls) + '</urlset>'
+    return Response(xml, mimetype="application/xml")
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/how-it-works')
+def how_it_works():
+    return render_template('how_it_works.html')
+
+
+@app.route('/faq')
+def faq():
+    return render_template('faq.html')
+
+
+@app.route('/privacy')
+def privacy_redirect():
+    return redirect(url_for('legal_document', document='privacy'), code=301)
+
+
+@app.route('/terms')
+def terms_redirect():
+    return redirect(url_for('legal_document', document='terms'), code=301)
+
+
+@app.route('/accessibility')
+def accessibility_redirect():
+    return redirect(url_for('legal_document', document='accessibility'), code=301)
+
+
 @app.route('/legal', strict_slashes=False)
 def legal_center():
     return render_template('legal/index.html')
@@ -914,9 +1002,7 @@ def legal_document(document):
 
 @app.route('/')
 def index():
-    log_action("home_view", "page")
-    status_filter = request.args.get('status', 'all')
-    log_action("home_view", "page")
+    log_action("home_view", "page", details=json.dumps(dict(session.get('campaign_attribution') or {}), ensure_ascii=False))
     category = request.args.get('category', 'all')
     status_filter = request.args.get('status', 'all')
     search_query = request.args.get('q', '').strip()
@@ -1152,7 +1238,7 @@ def submit_pledge(slug):
         shipping_address, initial_status, payment_method, transaction_id, now_str, is_verified
     ))
     pledge_id = cursor.lastrowid
-    log_action("pledge_started", "pledge", pledge_id, details=f"project={slug},amount={amount+tip_amount},payment_method={payment_method}", conn=conn)
+    log_action("pledge_started", "pledge", pledge_id, details=json.dumps({"project": slug, "amount": amount + tip_amount, "payment_method": payment_method, **dict(session.get("campaign_attribution") or {})}, ensure_ascii=False), conn=conn)
     payme_sale_url = None
     upay_redirect_url = None
     upay_setup_error = False
