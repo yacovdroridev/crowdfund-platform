@@ -42,7 +42,7 @@
 {% endblock %}
 
 {% block header_extra_actions %}
-  <button type="button" onclick="openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">
+  <button type="button" onclick="hfTrack('begin_checkout', {project_slug: {{ project.slug|tojson }}, value: 50, currency: 'ILS'}); openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold">
     <i data-lucide="heart" class="w-3.5 h-3.5"></i>
     <span>תמיכה בפרויקט</span>
   </button>
@@ -138,7 +138,7 @@
               <iframe src="{{ project.video_embed_url or project.video_url }}" class="w-full h-full border-none" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
             </div>
           {% else %}
-            <img src="{{ project.cover_image }}" alt="{{ project.title }}" class="w-full aspect-video object-cover">
+            <img src="{{ project|display_cover }}" alt="{{ project.title }}" width="1200" height="630" fetchpriority="high" class="w-full aspect-video object-cover">
           {% endif %}
         </div>
         {% if not project.show_video and project.has_video %}
@@ -192,7 +192,7 @@
           {% endif %}
         </div>
 
-        <button type="button" onclick="openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="w-full py-4 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-2">
+        <button type="button" onclick="hfTrack('begin_checkout', {project_slug: {{ project.slug|tojson }}, value: 50, currency: 'ILS'}); openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="w-full py-4 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base sm:text-lg flex items-center justify-center gap-2">
           <i data-lucide="heart" class="w-5 h-5 fill-white"></i>
           <span>תמיכה בפרויקט</span>
         </button>
@@ -201,8 +201,11 @@
           התשלום נגבה דרך אמצעי הסליקה שתבחרו בדף התשלום.
         </p>
 
-        <div class="mt-4 pt-4 border-t border-slate-100">
+        <div class="mt-4 pt-4 border-t border-slate-100" onclick="hfTrack('share', {project_slug: {{ project.slug|tojson }}})">
           {{ share_icon_row(share_wa, share_fb, share_tg) }}
+        </div>
+        <div class="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-xs text-emerald-950 leading-relaxed">
+          <strong>תשלום דרך ספק הסליקה שנבחר.</strong> HeadFund אינה מציגה או שומרת בדף זה את פרטי הכרטיס. לעזרה: {{ legal_contact_email }}. <a href="{{ url_for('legal_document', document='supporters') }}" class="underline font-bold">תשלומים וביטולים</a>
         </div>
 
         <div class="mt-4 pt-4 border-t border-slate-100" id="interest">
@@ -627,7 +630,7 @@
         <h3 id="interest-modal-title" class="text-xl font-black text-slate-900">רוצים עדכונים על הקמפיין?</h3>
         <p class="text-sm text-slate-600 leading-relaxed">השאירו מייל ונעדכן אתכם על התקדמות, עדכונים חשובים ומועד הסיום.</p>
       </div>
-      <form method="POST" action="{{ url_for('submit_project_interest', slug=project.slug) }}" class="space-y-3" onsubmit="markInterestSeen()">
+      <form method="POST" action="{{ url_for('submit_project_interest', slug=project.slug) }}" class="space-y-3" onsubmit="hfTrack('lead', {project_slug: {{ project.slug|tojson }}}); markInterestSeen()">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div>
           <label for="interest-email" class="block text-xs font-bold text-slate-600 mb-1">אימייל <span class="text-rose-600">*</span></label>
@@ -658,7 +661,7 @@
   <a href="{{ share_wa }}" target="_blank" rel="noopener noreferrer" class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg border border-slate-200 bg-transparent text-slate-600" aria-label="שיתוף ב-WhatsApp" title="שתף">
     <i data-lucide="share-2" class="w-3.5 h-3.5 text-emerald-600"></i>
   </a>
-  <button type="button" onclick="openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="flex-1 min-h-[52px] py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-transform">
+  <button type="button" onclick="hfTrack('begin_checkout', {project_slug: {{ project.slug|tojson }}, value: 50, currency: 'ILS'}); openPledgeModal(null, 50, 'תמיכה חופשית בפרויקט')" class="flex-1 min-h-[52px] py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base flex items-center justify-center gap-2 active:scale-95 transition-transform">
     <i data-lucide="heart" class="w-5 h-5 fill-white"></i>
     <span>תמיכה בפרויקט</span>
   </button>
@@ -709,6 +712,7 @@
   const methods = {{ enabled_gateway_keys|tojson }};
   window.defaultPaymentMethod = {{ default_payment_method|tojson }};
   function selectPaymentMethod(method) {
+    hfTrack('payment_method_selected', {project_slug: {{ project.slug|tojson }}, payment_method: method});
     const field = document.getElementById('selected-payment-method');
     if (field) field.value = method;
     
